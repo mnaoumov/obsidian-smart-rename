@@ -9,7 +9,7 @@ class PromptModal extends Modal {
     private promiseResolve: (value: string | null) => void;
     private promptText: string;
     private value: string;
-    private isCancelled: boolean = true;
+    private isCancelled = true;
 
     constructor(app: App, promptText: string) {
         super(app);
@@ -21,7 +21,7 @@ class PromptModal extends Modal {
         const textInput = new TextComponent(this.contentEl);
         textInput.setPlaceholder('Type text here');
         textInput.onChange(value => (this.value = value));
-        textInput.inputEl.addEventListener('keydown', (evt: KeyboardEvent) => {
+        textInput.inputEl.addEventListener('keydown', (evt: KeyboardEvent): void => {
             if (evt.key === 'Enter') {
                 evt.preventDefault();
                 this.isCancelled = false;
@@ -39,7 +39,7 @@ class PromptModal extends Modal {
 
     async getResult(): Promise<string | null> {
         this.open();
-        return new Promise(resolve => {
+        return new Promise((resolve: (value: string | null) => void): void => {
             this.promiseResolve = resolve
         });
     }

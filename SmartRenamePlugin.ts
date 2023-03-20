@@ -3,7 +3,7 @@ import prompt from 'prompt';
 
 export default class SmartRenamePlugin extends Plugin {
     private systemForbiddenCharactersRegExp: RegExp;
-    private readonly obsidianForbiddenCharactersRegExp = /[#^\[\]|]/;
+    private readonly obsidianForbiddenCharactersRegExp = /[#^[\]|]/;
     private currentNoteFile: TFile;
     private oldTitle: string;
     private newTitle: string | null;
@@ -23,11 +23,16 @@ export default class SmartRenamePlugin extends Plugin {
         });
 
         const isWindows = document.body.hasClass('mod-windows');
-        this.systemForbiddenCharactersRegExp = isWindows ? /[*"\\\/<>:|?]/ : /[\\\/]/;
+        this.systemForbiddenCharactersRegExp = isWindows ? /[*"\\/<>:|?]/ : /[\\/]/;
     }
 
     private async smartRename(): Promise<void> {
-        this.currentNoteFile = this.app.workspace.activeEditor!.file as TFile;
+        const editor = this.app.workspace.activeEditor;
+        if (editor === null) {
+            return;
+        }
+
+        this.currentNoteFile = editor.file as TFile;
         this.oldTitle = this.currentNoteFile.basename;
         this.newTitle = await prompt(this.app, 'Enter new title');
         this.newPath = `${this.currentNoteFile.parent.path}/${this.newTitle}.md`;
@@ -74,7 +79,12 @@ export default class SmartRenamePlugin extends Plugin {
     
             const indicesToFix = new Set<number>();
     
-            const links = this.app.metadataCache.getCache(backlinkFilePath)!.links!;
+            const cache = this.app.metadataCache.getCache(backlinkFilePath);
+            if (cache === null) {
+                continue;
+            }
+
+            const links = cache.links || [];
     
             for (let linkIndex = 0; linkIndex < links.length; linkIndex++) {
                 const link = links[linkIndex];
@@ -98,7 +108,7 @@ export default class SmartRenamePlugin extends Plugin {
     }
 
     private async addOldTitleAlias(): Promise<void> {
-        await this.app.fileManager.processFrontMatter(this.currentNoteFile, (frontMatter: any): void => {
+        await this.app.fileManager.processFrontMatter(this.currentNoteFile, (frontMatter: { aliases: string[] | string }): void => {
             const aliases = parseFrontMatterAliases(frontMatter) || [];
         
             if (!aliases.includes(this.oldTitle)) {
@@ -113,7 +123,12 @@ export default class SmartRenamePlugin extends Plugin {
         await this.app.vault.adapter.process(filePath, (content): string => {
             let newContent = '';
             let contentIndex = 0;
-            const links = this.app.metadataCache.getCache(filePath)!.links!;
+            const cache = this.app.metadataCache.getCache(filePath);
+            if (cache === null) {
+                return content;
+            }
+
+            const links = cache.links || [];
             for (let linkIndex = 0; linkIndex < links.length; linkIndex++) {
                 const link = links[linkIndex];
                 newContent += content.substring(contentIndex, link.position.start.offset);
@@ -127,7 +142,7 @@ export default class SmartRenamePlugin extends Plugin {
             newContent += content.substring(contentIndex, content.length);
             return newContent;
         });
-    };
+    }
 
     private async fixModifiedBacklinks(): Promise<void> {
         const eventRef = this.app.metadataCache.on('resolved', async (): Promise<void> => {
