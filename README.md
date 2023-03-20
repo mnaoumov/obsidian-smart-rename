@@ -1,6 +1,6 @@
 # Smart Rename
 
-This is a plugin for [Obsidian](https://obsidian.md/) that adds the command `Smart Rename` which does the following following steps after renaming the note:
+This is a plugin for [Obsidian](https://obsidian.md/) that adds the command `Smart Rename` which performs the following steps after renaming the note:
 
 1. Adds the previous title as an alias to the renamed note
 2. Preserves the backlinks to the renamed note that were using previous title as a display text.
