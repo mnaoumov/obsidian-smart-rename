@@ -1,5 +1,5 @@
 {
-    "name": "obsidian-smart-rename",
+    "name": "smart-rename",
     "version": "1.0.0",
     "description": "Renames notes keeping previous title in existing links",
     "main": "main.js",
