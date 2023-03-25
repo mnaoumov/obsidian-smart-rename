@@ -1,6 +1,6 @@
 {
     "name": "smart-rename",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Renames notes keeping previous title in existing links",
     "main": "main.js",
     "scripts": {
