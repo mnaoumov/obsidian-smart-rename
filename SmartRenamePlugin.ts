@@ -12,7 +12,7 @@ export default class SmartRenamePlugin extends Plugin {
 
     async onload(): Promise<void> {
         this.addCommand({
-            id: 'smart-rename-command',
+            id: 'smart-rename',
             name: 'Smart Rename',
             checkCallback: (checking: boolean): boolean => {
                 if (!checking) {
