@@ -8,7 +8,8 @@ export default class SmartRenamePlugin extends Plugin {
     private oldTitle: string;
     private newTitle: string | null;
     private newPath: string;
-    private backlinksToFix: Map<string, Set<number>>;
+    private readonly backlinksToFix: Map<string, Set<number>> = new Map<string, Set<number>>();
+    private isReadyToFixBacklinks: boolean;
 
     async onload(): Promise<void> {
         this.addCommand({
@@ -24,6 +25,8 @@ export default class SmartRenamePlugin extends Plugin {
 
         const isWindows = document.body.hasClass('mod-windows');
         this.systemForbiddenCharactersRegExp = isWindows ? /[*"\\/<>:|?]/ : /[\\/]/;
+
+        this.registerEvent(this.app.metadataCache.on('resolved', this.fixModifiedBacklinks.bind(this)));
     }
 
     private async smartRename(): Promise<void> {
@@ -47,7 +50,7 @@ export default class SmartRenamePlugin extends Plugin {
         this.prepareBacklinksToFix();
         await this.addOldTitleAlias();
         await this.app.fileManager.renameFile(this.currentNoteFile, this.newPath);
-        this.fixModifiedBacklinks();
+        this.isReadyToFixBacklinks = true;
     }
 
     private async getValidationError(): Promise<string | null> {
@@ -71,8 +74,6 @@ export default class SmartRenamePlugin extends Plugin {
     }
 
     private prepareBacklinksToFix(): void {
-        this.backlinksToFix = new Map<string, Set<number>>();
-
         for (const [backlinkFilePath, resolvedLinks] of Object.entries(this.app.metadataCache.resolvedLinks)) {
             if (!resolvedLinks.hasOwnProperty(this.currentNoteFile.path)) {
                 continue;
@@ -146,21 +147,25 @@ export default class SmartRenamePlugin extends Plugin {
     }
 
     private async fixModifiedBacklinks(): Promise<void> {
-        const eventRef = this.app.metadataCache.on('resolved', async (): Promise<void> => {
-            this.app.metadataCache.offref(eventRef);
-    
-            for (const [backlinkFilePath, indicesToFix] of this.backlinksToFix.entries()) {
-                await this.editFileLinks(backlinkFilePath, (link: LinkCache, linkIndex: number): string | undefined => {
-                    if (!indicesToFix.has(linkIndex)) {
-                        return;
-                    }
+        if (!this.isReadyToFixBacklinks) {
+            return;
+        }
 
-                    const isWikilink = link.original.includes(']]');
-                    return isWikilink
-                        ? link.original.replace(/(\|.+)?\]\]/, `|${this.oldTitle}]]`)
-                        : link.original.replace(`[${this.newTitle}]`, `[${this.oldTitle}]`);
-                });
-            }
-        });
+        this.isReadyToFixBacklinks = false;
+
+        for (const [backlinkFilePath, indicesToFix] of this.backlinksToFix.entries()) {
+            await this.editFileLinks(backlinkFilePath, (link: LinkCache, linkIndex: number): string | undefined => {
+                if (!indicesToFix.has(linkIndex)) {
+                    return;
+                }
+
+                const isWikilink = link.original.includes(']]');
+                return isWikilink
+                    ? link.original.replace(/(\|.+)?\]\]/, `|${this.oldTitle}]]`)
+                    : link.original.replace(`[${this.newTitle}]`, `[${this.oldTitle}]`);
+            });
+        }
+
+        this.backlinksToFix.clear();
     }
 }
