@@ -27,7 +27,13 @@ export default class SmartRenamePlugin extends Plugin {
     }
 
     private async smartRename(): Promise<void> {
-        this.currentNoteFile = this.app.workspace.getActiveFile() as TFile;
+        const activeFile = this.app.workspace.getActiveFile();
+
+        if (activeFile === null) {
+            return;
+        }
+
+        this.currentNoteFile = activeFile;
         this.oldTitle = this.currentNoteFile.basename;
         this.newTitle = await prompt(this.app, 'Enter new title');
         this.newPath = `${this.currentNoteFile.parent.path}/${this.newTitle}.md`;
