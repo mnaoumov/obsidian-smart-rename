@@ -35,7 +35,7 @@ This note references
 
 ```markdown
 ---
-alises:
+aliases:
   - OldName
 ---
 
@@ -58,5 +58,5 @@ Current plugin's aim is to preserve `OldName` display text in links 1, 2, 4
 
 ## Installation
 
-- `Smart Rename` is not available on [the official Community Plugins repository](https://obsidian.md/plugins) yet.
+- `Smart Rename` is available on [the official Community Plugins repository](https://obsidian.md/plugins) now.
 - Beta releases can be installed through [BRAT](https://github.com/TfTHacker/obsidian42-brat)
