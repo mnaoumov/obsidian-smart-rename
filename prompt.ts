@@ -19,7 +19,8 @@ class PromptModal extends Modal {
     onOpen(): void {
         this.titleEl.setText(this.promptText);
         const textInput = new TextComponent(this.contentEl);
-        textInput.setPlaceholder('Type text here');
+        textInput.inputEl.style.width = '100%';
+        textInput.setPlaceholder('New title');
         textInput.onChange(value => (this.value = value));
         textInput.inputEl.addEventListener('keydown', (evt: KeyboardEvent): void => {
             if (evt.key === 'Enter') {
