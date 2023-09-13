@@ -16,10 +16,11 @@ export default class SmartRenamePlugin extends Plugin {
             id: 'smart-rename',
             name: 'Smart Rename',
             checkCallback: (checking: boolean): boolean => {
+                const activeFile = this.app.workspace.getActiveFile();
                 if (!checking) {
-                    this.smartRename();
+                    this.smartRename(activeFile!);
                 }
-                return this.app.workspace.getActiveFile() !== null;
+                return activeFile !== null;
             }
         });
 
@@ -29,13 +30,7 @@ export default class SmartRenamePlugin extends Plugin {
         this.registerEvent(this.app.metadataCache.on('resolved', this.fixModifiedBacklinks.bind(this)));
     }
 
-    private async smartRename(): Promise<void> {
-        const activeFile = this.app.workspace.getActiveFile();
-
-        if (activeFile === null) {
-            return;
-        }
-
+    private async smartRename(activeFile: TFile): Promise<void> {
         this.currentNoteFile = activeFile;
         this.oldTitle = this.currentNoteFile.basename;
         this.newTitle = await prompt(this.app, 'Enter new title');
