@@ -1,49 +1,46 @@
 import { App, Modal, TextComponent } from 'obsidian';
 
-async function prompt(app: App, promptText: string): Promise<string | null> {
-    const modal = new PromptModal(app, promptText);
-    return await modal.getResult();
+export default async function prompt(app: App, promptText: string): Promise<string> {
+    return await PromptModal.getResult(app, promptText);
 }
 
 class PromptModal extends Modal {
-    private promiseResolve: (value: string | null) => void;
+    private resolve: (value: string) => void;
     private promptText: string;
     private value: string;
     private isCancelled = true;
+    private promise: Promise<string>;
 
     constructor(app: App, promptText: string) {
         super(app);
         this.promptText = promptText;
+        this.promise = new Promise((resolve) => {
+            this.resolve = resolve;
+        });
+        this.open();
     }
 
     onOpen(): void {
         this.titleEl.setText(this.promptText);
-        const textInput = new TextComponent(this.contentEl);
-        textInput.inputEl.style.width = '100%';
-        textInput.setPlaceholder('New title');
-        textInput.onChange(value => (this.value = value));
-        textInput.inputEl.addEventListener('keydown', (evt: KeyboardEvent): void => {
+        const textComponent = new TextComponent(this.contentEl);
+        textComponent.inputEl.style.width = '100%';
+        textComponent.setPlaceholder('New title');
+        textComponent.onChange(value => (this.value = value));
+        textComponent.inputEl.addEventListener('keydown', (evt: KeyboardEvent): void => {
             if (evt.key === 'Enter') {
                 evt.preventDefault();
                 this.isCancelled = false;
                 this.close();
-                this.promiseResolve(this.value);
             }
         });
     }
 
     onClose(): void {
-        if (this.isCancelled) {
-            this.promiseResolve(null);
-        }
+        this.resolve(this.isCancelled ? '' : this.value);
     }
 
-    async getResult(): Promise<string | null> {
-        this.open();
-        return new Promise((resolve: (value: string | null) => void): void => {
-            this.promiseResolve = resolve
-        });
+    static async getResult(app: App, promptText: string) {
+        const modal = new PromptModal(app, promptText);
+        return await modal.promise;
     }
 }
-
-export default prompt;
