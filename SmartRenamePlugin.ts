@@ -5,15 +5,15 @@ import prompt from 'prompt';
 import { InvalidCharacterAction } from 'InvalidCharacterAction';
 
 export default class SmartRenamePlugin extends Plugin {
-    private systemForbiddenCharactersRegExp: RegExp;
+    private systemForbiddenCharactersRegExp!: RegExp;
     private readonly obsidianForbiddenCharactersRegExp = /[#^[\]|]/g;
-    private currentNoteFile: TFile;
-    private oldTitle: string;
-    private newTitle: string;
-    private newPath: string;
+    private currentNoteFile!: TFile;
+    private oldTitle!: string;
+    private newTitle!: string;
+    private newPath!: string;
     private readonly backlinksToFix: Map<string, Set<number>> = new Map<string, Set<number>>();
-    private isReadyToFixBacklinks: boolean;
-    public settings: SmartRenameSettings;
+    private isReadyToFixBacklinks!: boolean;
+    public settings!: SmartRenameSettings;
 
     async onload(): Promise<void> {
         await this.loadSettings();

@@ -1,6 +1,6 @@
 import { InvalidCharacterAction } from 'InvalidCharacterAction';
 import SmartRenamePlugin from 'SmartRenamePlugin';
-import { App, PluginSettingTab, Setting, TextComponent } from 'obsidian';
+import { App, PluginSettingTab, Setting } from 'obsidian';
 
 export default class SmartRenameSettingsTab extends PluginSettingTab {
     private plugin: SmartRenamePlugin;
