@@ -1,17 +1,23 @@
+import SmartRenameSettingsTab from 'SmartRenameSettingsTab';
+import SmartRenameSettings from 'SmartRenameSettings';
 import { Notice, Plugin, TFile, LinkCache, parseFrontMatterAliases } from 'obsidian';
 import prompt from 'prompt';
+import { InvalidCharacterAction } from 'InvalidCharacterAction';
 
 export default class SmartRenamePlugin extends Plugin {
     private systemForbiddenCharactersRegExp: RegExp;
-    private readonly obsidianForbiddenCharactersRegExp = /[#^[\]|]/;
+    private readonly obsidianForbiddenCharactersRegExp = /[#^[\]|]/g;
     private currentNoteFile: TFile;
     private oldTitle: string;
-    private newTitle: string | null;
+    private newTitle: string;
     private newPath: string;
     private readonly backlinksToFix: Map<string, Set<number>> = new Map<string, Set<number>>();
     private isReadyToFixBacklinks: boolean;
+    public settings: SmartRenameSettings;
 
     async onload(): Promise<void> {
+        await this.loadSettings();
+
         this.addCommand({
             id: 'smart-rename',
             name: 'Smart Rename',
@@ -24,8 +30,10 @@ export default class SmartRenamePlugin extends Plugin {
             }
         });
 
+        this.addSettingTab(new SmartRenameSettingsTab(this.app, this));
+
         const isWindows = document.body.hasClass('mod-windows');
-        this.systemForbiddenCharactersRegExp = isWindows ? /[*"\\/<>:|?]/ : /[\\/]/;
+        this.systemForbiddenCharactersRegExp = isWindows ? /[*"\\/<>:|?]/g : /[\\/]/g;
 
         this.registerEvent(this.app.metadataCache.on('resolved', this.fixModifiedBacklinks.bind(this)));
     }
@@ -34,6 +42,21 @@ export default class SmartRenamePlugin extends Plugin {
         this.currentNoteFile = activeFile;
         this.oldTitle = this.currentNoteFile.basename;
         this.newTitle = await prompt(this.app, 'Enter new title');
+
+        if (this.hasInvalidCharacters(this.newTitle)) {
+            switch (this.settings.invalidCharacterAction) {
+                case InvalidCharacterAction.Error:
+                    new Notice('The new title has invalid characters');
+                    return;
+                case InvalidCharacterAction.Remove:
+                    this.newTitle = this.replaceInvalidCharacters(this.newTitle, '');
+                    break;
+                case InvalidCharacterAction.Replace:
+                    this.newTitle = this.replaceInvalidCharacters(this.newTitle, this.settings.replacementCharacter);
+                    break;
+            }
+        }
+
         this.newPath = `${this.currentNoteFile.parent.path}/${this.newTitle}.md`;
 
         const validationError = await this.getValidationError()
@@ -55,10 +78,6 @@ export default class SmartRenamePlugin extends Plugin {
 
         if (this.newTitle === this.oldTitle) {
             return 'The title did not change';
-        }
-
-        if (this.newTitle.match(this.systemForbiddenCharactersRegExp) || this.newTitle.match(this.obsidianForbiddenCharactersRegExp)) {
-            return 'The new title has invalid characters';
         }
 
         if (await this.app.vault.adapter.exists(this.newPath)) {
@@ -162,5 +181,21 @@ export default class SmartRenamePlugin extends Plugin {
         }
 
         this.backlinksToFix.clear();
+    }
+
+    async loadSettings(): Promise<void> {
+        this.settings = Object.assign(new SmartRenameSettings(), await this.loadData());
+    }
+
+    async saveSettings(): Promise<void> {
+        await this.saveData(this.settings);
+    }
+
+    hasInvalidCharacters(str: string): boolean {
+        return this.systemForbiddenCharactersRegExp.test(str) || this.obsidianForbiddenCharactersRegExp.test(str);
+    }
+
+    replaceInvalidCharacters(str: string, replacement: string): string {
+        return str.replace(this.systemForbiddenCharactersRegExp, replacement).replace(this.obsidianForbiddenCharactersRegExp, replacement);
     }
 }
