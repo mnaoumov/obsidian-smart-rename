@@ -133,7 +133,7 @@ export default class SmartRenamePlugin extends Plugin {
         });
     }
 
-    private async editFileLinks(filePath: string, linkProcessor: (link: LinkCache, linkIndex: number) => string | undefined): Promise<void> {
+    private async editFileLinks(filePath: string, linkProcessor: (link: LinkCache, linkIndex: number) => string | void): Promise<void> {
         await this.app.vault.adapter.process(filePath, (content): string => {
             let newContent = '';
             let contentIndex = 0;
@@ -166,7 +166,7 @@ export default class SmartRenamePlugin extends Plugin {
         this.isReadyToFixBacklinks = false;
 
         for (const [backlinkFilePath, indicesToFix] of this.backlinksToFix.entries()) {
-            await this.editFileLinks(backlinkFilePath, (link: LinkCache, linkIndex: number): string | undefined => {
+            await this.editFileLinks(backlinkFilePath, (link: LinkCache, linkIndex: number): string | void => {
                 if (!indicesToFix.has(linkIndex)) {
                     return;
                 }
