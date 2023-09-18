@@ -1,6 +1,6 @@
 import SmartRenameSettingsTab from 'SmartRenameSettingsTab';
 import SmartRenameSettings from 'SmartRenameSettings';
-import { Notice, Plugin, TFile, LinkCache, parseFrontMatterAliases } from 'obsidian';
+import { Notice, Plugin, TFile, LinkCache, parseFrontMatterAliases, CachedMetadata } from 'obsidian';
 import prompt from 'prompt';
 import { InvalidCharacterAction } from 'InvalidCharacterAction';
 
@@ -100,7 +100,7 @@ export default class SmartRenamePlugin extends Plugin {
 
             const linksToFix = new Set(backlinksData[backlinkFilePath]);
 
-            const links = cache.links || [];
+            const links = this.getLinksAndEmbeds(cache);
     
             for (let linkIndex = 0; linkIndex < links.length; linkIndex++) {
                 const link = links[linkIndex];
@@ -142,7 +142,8 @@ export default class SmartRenamePlugin extends Plugin {
                 return content;
             }
 
-            const links = cache.links || [];
+            const links = this.getLinksAndEmbeds(cache);
+
             for (let linkIndex = 0; linkIndex < links.length; linkIndex++) {
                 const link = links[linkIndex];
                 newContent += content.substring(contentIndex, link.position.start.offset);
@@ -156,6 +157,21 @@ export default class SmartRenamePlugin extends Plugin {
             newContent += content.substring(contentIndex, content.length);
             return newContent;
         });
+    }
+
+    private getLinksAndEmbeds(cache: CachedMetadata) : LinkCache[] {
+        const links = new Array<LinkCache>();
+        if (cache.links) {
+            links.push(...cache.links)
+        }
+
+        if (cache.embeds) {
+            links.push(...cache.embeds);
+        }
+
+        links.sort((a, b) => a.position.start.offset - b.position.start.offset);
+
+        return links;
     }
 
     private async fixModifiedBacklinks(): Promise<void> {
