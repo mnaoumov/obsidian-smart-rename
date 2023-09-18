@@ -88,11 +88,9 @@ export default class SmartRenamePlugin extends Plugin {
     }
 
     private prepareBacklinksToFix(): void {
-        for (const [backlinkFilePath, resolvedLinks] of Object.entries(this.app.metadataCache.resolvedLinks)) {
-            if (!resolvedLinks.hasOwnProperty(this.currentNoteFile.path)) {
-                continue;
-            }
-    
+        const backlinksData = this.app.metadataCache.getBacklinksForFile(this.currentNoteFile).data;
+        
+        for (const backlinkFilePath of Object.keys(backlinksData)) {
             const indicesToFix = new Set<number>();
     
             const cache = this.app.metadataCache.getCache(backlinkFilePath);
@@ -100,13 +98,13 @@ export default class SmartRenamePlugin extends Plugin {
                 continue;
             }
 
+            const linksToFix = new Set(backlinksData[backlinkFilePath]);
+
             const links = cache.links || [];
     
             for (let linkIndex = 0; linkIndex < links.length; linkIndex++) {
                 const link = links[linkIndex];
-                const linkPath = link.link.split('#')[0];
-                const resolvedLinkFile = this.app.metadataCache.getFirstLinkpathDest(linkPath, backlinkFilePath);
-                if (resolvedLinkFile !== this.currentNoteFile) {
+                if (!linksToFix.has(link)) {
                     continue;
                 }
     
