@@ -5,9 +5,9 @@ export default async function prompt(app: App, promptText: string): Promise<stri
 }
 
 class PromptModal extends Modal {
-    private resolve: (value: string) => void;
+    private resolve!: (value: string) => void;
     private promptText: string;
-    private value: string;
+    private value: string = '';
     private isCancelled = true;
     private promise: Promise<string>;
 
