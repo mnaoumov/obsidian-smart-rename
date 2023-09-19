@@ -93,7 +93,7 @@ export default class SmartRenameSettingsTab extends PluginSettingTab {
 
         new Setting(storeInvalidTitleSettingEl)
             .setName('Store invalid title')
-            .setDesc('Store invalid title as an alias')
+            .setDesc('If enabled, stores title with invalid characters. If disabled, stores the sanitized version')
             .addToggle(togleComponent => {
                 togleComponent
                     .setValue(this.plugin.settings.shouldStoreInvalidTitle)
