@@ -49,9 +49,15 @@ export default class SmartRenamePlugin extends Plugin {
                     new Notice('The new title has invalid characters');
                     return;
                 case InvalidCharacterAction.Remove:
+                    if (this.settings.shouldStoreInvalidTitle) {
+                        await this.addAlias(this.newTitle);
+                    }
                     this.newTitle = this.replaceInvalidCharacters(this.newTitle, '');
                     break;
                 case InvalidCharacterAction.Replace:
+                    if (this.settings.shouldStoreInvalidTitle) {
+                        await this.addAlias(this.newTitle);
+                    }
                     this.newTitle = this.replaceInvalidCharacters(this.newTitle, this.settings.replacementCharacter);
                     break;
             }
@@ -66,7 +72,8 @@ export default class SmartRenamePlugin extends Plugin {
         }
 
         this.prepareBacklinksToFix();
-        await this.addOldTitleAlias();
+        await this.addAlias(this.oldTitle);
+
         await this.app.fileManager.renameFile(this.currentNoteFile, this.newPath);
         this.isReadyToFixBacklinks = true;
     }
@@ -121,12 +128,12 @@ export default class SmartRenamePlugin extends Plugin {
         }
     }
 
-    private async addOldTitleAlias(): Promise<void> {
+    private async addAlias(alias: string): Promise<void> {
         await this.app.fileManager.processFrontMatter(this.currentNoteFile, (frontMatter: { aliases: string[] | string }): void => {
             const aliases = parseFrontMatterAliases(frontMatter) || [];
         
-            if (!aliases.includes(this.oldTitle)) {
-                aliases.push(this.oldTitle);
+            if (!aliases.includes(alias)) {
+                aliases.push(alias);
             }
         
             frontMatter.aliases = aliases;
