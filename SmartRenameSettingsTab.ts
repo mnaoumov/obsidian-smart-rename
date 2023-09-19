@@ -39,6 +39,18 @@ export default class SmartRenameSettingsTab extends PluginSettingTab {
                 const storeInvalidTitleSettingEl = containerEl.createDiv();
                 this.renderStoreInvalidTitleSettingEl(storeInvalidTitleSettingEl);
             });
+
+        new Setting(containerEl)
+            .setName('Update title key')
+            .setDesc('Update title key in frontmatter')
+            .addToggle(togleComponent => {
+                togleComponent
+                    .setValue(this.plugin.settings.shouldUpdateTitleKey)
+                    .onChange(async (value) => {
+                        this.plugin.settings.shouldUpdateTitleKey = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
     }
 
     private renderReplacementCharacterSettingEl(replacementCharacterSettingEl: HTMLDivElement) {
