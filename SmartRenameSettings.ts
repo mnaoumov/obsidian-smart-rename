@@ -5,5 +5,6 @@ export default class SmartRenameSettings {
     replacementCharacter: string = '_';
     shouldStoreInvalidTitle: boolean = true;
     shouldUpdateTitleKey: boolean = false;
+    shouldUpdateFirstHeader: boolean = false;
 }
 

@@ -51,6 +51,18 @@ export default class SmartRenameSettingsTab extends PluginSettingTab {
                         await this.plugin.saveSettings();
                     });
             });
+
+        new Setting(containerEl)
+            .setName('Update first header')
+            .setDesc('Update first header if it is present in the document. May conflict with the `Filename Heading Sync` plugin')
+            .addToggle(togleComponent => {
+                togleComponent
+                    .setValue(this.plugin.settings.shouldUpdateFirstHeader)
+                    .onChange(async (value) => {
+                        this.plugin.settings.shouldUpdateFirstHeader = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
     }
 
     private renderReplacementCharacterSettingEl(replacementCharacterSettingEl: HTMLDivElement) {

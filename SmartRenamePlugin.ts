@@ -73,6 +73,11 @@ export default class SmartRenamePlugin extends Plugin {
             });
         }
 
+        if (titleToStore && this.settings.shouldUpdateFirstHeader) {
+            await this.app.vault.process(this.currentNoteFile, content => content
+                .replace(/^((---\n(.|\n)+?---\n)?(.|\n)*\n)# .+/, `$1# ${titleToStore}`));
+        }
+
         this.newPath = `${this.currentNoteFile.parent.path}/${this.newTitle}.md`;
 
         const validationError = await this.getValidationError()
