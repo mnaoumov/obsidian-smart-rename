@@ -63,11 +63,11 @@ export default class SmartRenamePlugin extends Plugin {
             titleToStore = this.newTitle;
         }
 
-        if (this.settings.shouldStoreInvalidTitle && titleToStore !== this.newTitle) {
+        if (titleToStore && this.settings.shouldStoreInvalidTitle && titleToStore !== this.newTitle) {
             this.addAlias(titleToStore);
         }
 
-        if (this.settings.shouldUpdateTitleKey) {
+        if (titleToStore && this.settings.shouldUpdateTitleKey) {
             await this.app.fileManager.processFrontMatter(this.currentNoteFile, (frontMatter: { title?: string }): void => {
                 frontMatter.title = titleToStore;
             });
