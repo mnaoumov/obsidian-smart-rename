@@ -59,6 +59,10 @@ export default class SmartRenamePlugin extends Plugin {
             }
         }
 
+        if (!this.settings.shouldStoreInvalidTitle) {
+            titleToStore = this.newTitle;
+        }
+
         if (this.settings.shouldStoreInvalidTitle && titleToStore !== this.newTitle) {
             this.addAlias(titleToStore);
         }
