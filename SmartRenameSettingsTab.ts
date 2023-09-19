@@ -30,10 +30,14 @@ export default class SmartRenameSettingsTab extends PluginSettingTab {
                         this.plugin.settings.invalidCharacterAction = InvalidCharacterAction[value as keyof typeof InvalidCharacterAction];
                         await this.plugin.saveSettings();
                         this.renderReplacementCharacterSettingEl(replacementCharacterSettingEl);
+                        this.renderStoreInvalidTitleSettingEl(storeInvalidTitleSettingEl);
                     });
 
                 const replacementCharacterSettingEl = containerEl.createDiv();
                 this.renderReplacementCharacterSettingEl(replacementCharacterSettingEl);
+
+                const storeInvalidTitleSettingEl = containerEl.createDiv();
+                this.renderStoreInvalidTitleSettingEl(storeInvalidTitleSettingEl);
             });
     }
 
@@ -66,5 +70,25 @@ export default class SmartRenameSettingsTab extends PluginSettingTab {
                         });
                 });
         }
+    }
+
+    private renderStoreInvalidTitleSettingEl(storeInvalidTitleSettingEl: HTMLDivElement) {
+        storeInvalidTitleSettingEl.empty();
+
+        if (this.plugin.settings.invalidCharacterAction === InvalidCharacterAction.Error) {
+            return;
+        }
+
+        new Setting(storeInvalidTitleSettingEl)
+            .setName('Store invalid title')
+            .setDesc('Store invalid title as an alias')
+            .addToggle(togleComponent => {
+                togleComponent
+                    .setValue(this.plugin.settings.shouldStoreInvalidTitle)
+                    .onChange(async (value) => {
+                        this.plugin.settings.shouldStoreInvalidTitle = value;
+                        await this.plugin.saveSettings();
+                    });
+            });
     }
 }
