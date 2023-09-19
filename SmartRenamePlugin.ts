@@ -43,24 +43,30 @@ export default class SmartRenamePlugin extends Plugin {
         this.oldTitle = this.currentNoteFile.basename;
         this.newTitle = await prompt(this.app, 'Enter new title');
 
+        let titleToStore = this.newTitle;
+
         if (this.hasInvalidCharacters(this.newTitle)) {
             switch (this.settings.invalidCharacterAction) {
                 case InvalidCharacterAction.Error:
                     new Notice('The new title has invalid characters');
                     return;
                 case InvalidCharacterAction.Remove:
-                    if (this.settings.shouldStoreInvalidTitle) {
-                        await this.addAlias(this.newTitle);
-                    }
                     this.newTitle = this.replaceInvalidCharacters(this.newTitle, '');
                     break;
                 case InvalidCharacterAction.Replace:
-                    if (this.settings.shouldStoreInvalidTitle) {
-                        await this.addAlias(this.newTitle);
-                    }
                     this.newTitle = this.replaceInvalidCharacters(this.newTitle, this.settings.replacementCharacter);
                     break;
             }
+        }
+
+        if (this.settings.shouldStoreInvalidTitle && titleToStore !== this.newTitle) {
+            this.addAlias(titleToStore);
+        }
+
+        if (this.settings.shouldUpdateTitleKey) {
+            await this.app.fileManager.processFrontMatter(this.currentNoteFile, (frontMatter: { title?: string }): void => {
+                frontMatter.title = titleToStore;
+            });
         }
 
         this.newPath = `${this.currentNoteFile.parent.path}/${this.newTitle}.md`;
