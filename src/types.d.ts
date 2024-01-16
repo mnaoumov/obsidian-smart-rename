@@ -1,6 +1,6 @@
-import { TFile } from 'obsidian';
+import { TFile } from "obsidian";
 
-declare module 'obsidian' {
+declare module "obsidian" {
   interface MetadataCache {
     getBacklinksForFile: (file: TFile) => {
       data: Record<string, LinkCache[]>;
