@@ -1,10 +1,10 @@
-import { InvalidCharacterAction } from 'InvalidCharacterAction';
+import { InvalidCharacterAction } from "./InvalidCharacterAction";
 
 export default class SmartRenameSettings {
-    invalidCharacterAction: InvalidCharacterAction = InvalidCharacterAction.Error;
-    replacementCharacter: string = '_';
-    shouldStoreInvalidTitle: boolean = true;
-    shouldUpdateTitleKey: boolean = false;
-    shouldUpdateFirstHeader: boolean = false;
+  public invalidCharacterAction: InvalidCharacterAction = InvalidCharacterAction.Error;
+  public replacementCharacter = "_";
+  public shouldStoreInvalidTitle = true;
+  public shouldUpdateTitleKey = false;
+  public shouldUpdateFirstHeader = false;
 }
 

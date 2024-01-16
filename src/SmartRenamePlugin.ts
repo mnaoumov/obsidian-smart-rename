@@ -1,8 +1,13 @@
-import SmartRenameSettingsTab from 'SmartRenameSettingsTab';
-import SmartRenameSettings from 'SmartRenameSettings';
-import { Notice, Plugin, TFile, LinkCache, parseFrontMatterAliases, CachedMetadata } from 'obsidian';
-import prompt from 'prompt';
-import { InvalidCharacterAction } from 'InvalidCharacterAction';
+import SmartRenameSettingsTab from "./SmartRenameSettingsTab";
+import SmartRenameSettings from "./SmartRenameSettings";
+import { Notice,
+  Plugin,
+  TFile,
+  LinkCache,
+  parseFrontMatterAliases,
+  CachedMetadata } from "obsidian";
+import prompt from "./prompt";
+import { InvalidCharacterAction } from "./InvalidCharacterAction";
 
 export default class SmartRenamePlugin extends Plugin {
   private systemForbiddenCharactersRegExp!: RegExp;
@@ -15,43 +20,47 @@ export default class SmartRenamePlugin extends Plugin {
   private isReadyToFixBacklinks!: boolean;
   public settings!: SmartRenameSettings;
 
-  async onload(): Promise<void> {
+  public async onload(): Promise<void> {
     await this.loadSettings();
 
     this.addCommand({
-      id: 'smart-rename',
-      name: 'Smart Rename',
+      id: "smart-rename",
+      name: "Smart Rename",
       checkCallback: (checking: boolean): boolean => {
         const activeFile = this.app.workspace.getActiveFile();
-        if (!checking) {
-          this.smartRename(activeFile!);
+        if (!activeFile) {
+          return false;
         }
-        return activeFile !== null;
+
+        if (!checking) {
+          this.smartRename(activeFile);
+        }
+        return true;
       }
     });
 
     this.addSettingTab(new SmartRenameSettingsTab(this.app, this));
 
-    const isWindows = document.body.hasClass('mod-windows');
+    const isWindows = document.body.hasClass("mod-windows");
     this.systemForbiddenCharactersRegExp = isWindows ? /[*"\\/<>:|?]/g : /[\\/]/g;
 
-    this.registerEvent(this.app.metadataCache.on('resolved', this.fixModifiedBacklinks.bind(this)));
+    this.registerEvent(this.app.metadataCache.on("resolved", this.fixModifiedBacklinks.bind(this)));
   }
 
   private async smartRename(activeFile: TFile): Promise<void> {
     this.currentNoteFile = activeFile;
     this.oldTitle = this.currentNoteFile.basename;
-    this.newTitle = await prompt(this.app, 'Enter new title');
+    this.newTitle = await prompt(this.app, "Enter new title");
 
     let titleToStore = this.newTitle;
 
     if (this.hasInvalidCharacters(this.newTitle)) {
       switch (this.settings.invalidCharacterAction) {
         case InvalidCharacterAction.Error:
-          new Notice('The new title has invalid characters');
+          new Notice("The new title has invalid characters");
           return;
         case InvalidCharacterAction.Remove:
-          this.newTitle = this.replaceInvalidCharacters(this.newTitle, '');
+          this.newTitle = this.replaceInvalidCharacters(this.newTitle, "");
           break;
         case InvalidCharacterAction.Replace:
           this.newTitle = this.replaceInvalidCharacters(this.newTitle, this.settings.replacementCharacter);
@@ -80,7 +89,7 @@ export default class SmartRenamePlugin extends Plugin {
 
     this.newPath = `${this.currentNoteFile.parent.path}/${this.newTitle}.md`;
 
-    const validationError = await this.getValidationError()
+    const validationError = await this.getValidationError();
     if (validationError) {
       new Notice(validationError);
       return;
@@ -95,15 +104,15 @@ export default class SmartRenamePlugin extends Plugin {
 
   private async getValidationError(): Promise<string | null> {
     if (!this.newTitle) {
-      return 'No new title provided';
+      return "No new title provided";
     }
 
     if (this.newTitle === this.oldTitle) {
-      return 'The title did not change';
+      return "The title did not change";
     }
 
     if (await this.app.vault.adapter.exists(this.newPath)) {
-      return 'Note with the new title already exists';
+      return "Note with the new title already exists";
     }
 
     return null;
@@ -130,7 +139,7 @@ export default class SmartRenamePlugin extends Plugin {
           continue;
         }
 
-        const displayText = link.displayText?.split(' > ')[0].split('/').pop();
+        const displayText = link.displayText?.split(" > ")[0].split("/").pop();
 
         if (displayText === this.oldTitle || link.original.includes(`[${this.oldTitle}]`)) {
           indicesToFix.add(linkIndex);
@@ -157,7 +166,7 @@ export default class SmartRenamePlugin extends Plugin {
 
   private async editFileLinks(filePath: string, linkProcessor: (link: LinkCache, linkIndex: number) => string | void): Promise<void> {
     await this.app.vault.adapter.process(filePath, (content): string => {
-      let newContent = '';
+      let newContent = "";
       let contentIndex = 0;
       const cache = this.app.metadataCache.getCache(filePath);
       if (cache === null) {
@@ -184,7 +193,7 @@ export default class SmartRenamePlugin extends Plugin {
   private getLinksAndEmbeds(cache: CachedMetadata): LinkCache[] {
     const links = new Array<LinkCache>();
     if (cache.links) {
-      links.push(...cache.links)
+      links.push(...cache.links);
     }
 
     if (cache.embeds) {
@@ -209,7 +218,7 @@ export default class SmartRenamePlugin extends Plugin {
           return;
         }
 
-        const isWikilink = link.original.includes(']]');
+        const isWikilink = link.original.includes("]]");
         return isWikilink
           ? link.original.replace(/(\|.+)?\]\]/, `|${this.oldTitle}]]`)
           : link.original.replace(`[${this.newTitle}]`, `[${this.oldTitle}]`);
@@ -219,19 +228,19 @@ export default class SmartRenamePlugin extends Plugin {
     this.backlinksToFix.clear();
   }
 
-  async loadSettings(): Promise<void> {
+  private async loadSettings(): Promise<void> {
     this.settings = Object.assign(new SmartRenameSettings(), await this.loadData());
   }
 
-  async saveSettings(): Promise<void> {
+  private async saveSettings(): Promise<void> {
     await this.saveData(this.settings);
   }
 
-  hasInvalidCharacters(str: string): boolean {
+  private hasInvalidCharacters(str: string): boolean {
     return this.systemForbiddenCharactersRegExp.test(str) || this.obsidianForbiddenCharactersRegExp.test(str);
   }
 
-  replaceInvalidCharacters(str: string, replacement: string): string {
+  private replaceInvalidCharacters(str: string, replacement: string): string {
     return str.replace(this.systemForbiddenCharactersRegExp, replacement).replace(this.obsidianForbiddenCharactersRegExp, replacement);
   }
 }
