@@ -1,11 +1,13 @@
 import SmartRenameSettingsTab from "./SmartRenameSettingsTab";
 import SmartRenameSettings from "./SmartRenameSettings";
-import { Notice,
+import {
+  Notice,
   Plugin,
   TFile,
   LinkCache,
   parseFrontMatterAliases,
-  CachedMetadata } from "obsidian";
+  CachedMetadata
+} from "obsidian";
 import prompt from "./prompt";
 import { InvalidCharacterAction } from "./InvalidCharacterAction";
 
@@ -87,7 +89,7 @@ export default class SmartRenamePlugin extends Plugin {
         .replace(/^((---\n(.|\n)+?---\n)?(.|\n)*\n)# .+/, `$1# ${titleToStore}`));
     }
 
-    this.newPath = `${this.currentNoteFile.parent.path}/${this.newTitle}.md`;
+    this.newPath = `${this.currentNoteFile.parent!.path}/${this.newTitle}.md`;
 
     const validationError = await this.getValidationError();
     if (validationError) {
@@ -191,7 +193,7 @@ export default class SmartRenamePlugin extends Plugin {
   }
 
   private getLinksAndEmbeds(cache: CachedMetadata): LinkCache[] {
-    const links = new Array<LinkCache>();
+    const links: LinkCache[] = [];
     if (cache.links) {
       links.push(...cache.links);
     }
@@ -232,11 +234,11 @@ export default class SmartRenamePlugin extends Plugin {
     this.settings = Object.assign(new SmartRenameSettings(), await this.loadData());
   }
 
-  private async saveSettings(): Promise<void> {
+  public async saveSettings(): Promise<void> {
     await this.saveData(this.settings);
   }
 
-  private hasInvalidCharacters(str: string): boolean {
+  public hasInvalidCharacters(str: string): boolean {
     return this.systemForbiddenCharactersRegExp.test(str) || this.obsidianForbiddenCharactersRegExp.test(str);
   }
 
