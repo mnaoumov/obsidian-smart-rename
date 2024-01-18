@@ -1,8 +1,10 @@
 import { InvalidCharacterAction } from "./InvalidCharacterAction";
 import SmartRenamePlugin from "./SmartRenamePlugin";
-import { App,
+import {
+  App,
   PluginSettingTab,
-  Setting } from "obsidian";
+  Setting
+} from "obsidian";
 
 export default class SmartRenameSettingsTab extends PluginSettingTab {
   public plugin: SmartRenamePlugin;
@@ -108,8 +110,8 @@ export default class SmartRenameSettingsTab extends PluginSettingTab {
     new Setting(storeInvalidTitleSettingEl)
       .setName("Store invalid title")
       .setDesc("If enabled, stores title with invalid characters. If disabled, stores the sanitized version")
-      .addToggle(togleComponent => {
-        togleComponent
+      .addToggle(toggleComponent => {
+        toggleComponent
           .setValue(this.plugin.settings.shouldStoreInvalidTitle)
           .onChange(async (value) => {
             this.plugin.settings.shouldStoreInvalidTitle = value;
