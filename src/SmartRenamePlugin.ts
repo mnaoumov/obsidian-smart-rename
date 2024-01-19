@@ -35,7 +35,7 @@ export default class SmartRenamePlugin extends Plugin {
         }
 
         if (!checking) {
-          this.smartRename(activeFile);
+          void this.smartRename(activeFile);
         }
         return true;
       }
@@ -75,7 +75,7 @@ export default class SmartRenamePlugin extends Plugin {
     }
 
     if (titleToStore && this.settings.shouldStoreInvalidTitle && titleToStore !== this.newTitle) {
-      this.addAlias(titleToStore);
+      await this.addAlias(titleToStore);
     }
 
     if (titleToStore && this.settings.shouldUpdateTitleKey) {
@@ -231,7 +231,7 @@ export default class SmartRenamePlugin extends Plugin {
   }
 
   private async loadSettings(): Promise<void> {
-    this.settings = Object.assign(new SmartRenameSettings(), await this.loadData());
+    this.settings = Object.assign(new SmartRenameSettings(), await this.loadData() as SmartRenameSettings | undefined);
   }
 
   public async saveSettings(): Promise<void> {
