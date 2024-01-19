@@ -1,6 +1,6 @@
 {
   "name": "smart-rename",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Renames notes keeping previous title in existing links",
   "scripts": {
     "build": "tsc --build && tsx esbuild.config.ts production",
