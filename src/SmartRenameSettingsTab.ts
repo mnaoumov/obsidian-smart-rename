@@ -1,5 +1,5 @@
-import { InvalidCharacterAction } from "./InvalidCharacterAction";
-import SmartRenamePlugin from "./SmartRenamePlugin";
+import { InvalidCharacterAction } from "./InvalidCharacterAction.ts";
+import SmartRenamePlugin from "./SmartRenamePlugin.ts";
 import {
   App,
   PluginSettingTab,
@@ -7,7 +7,7 @@ import {
 } from "obsidian";
 
 export default class SmartRenameSettingsTab extends PluginSettingTab {
-  public plugin: SmartRenamePlugin;
+  public override plugin: SmartRenamePlugin;
 
   public constructor(app: App, plugin: SmartRenamePlugin) {
     super(app, plugin);
@@ -47,8 +47,8 @@ export default class SmartRenameSettingsTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName("Update title key")
       .setDesc("Update title key in frontmatter")
-      .addToggle(togleComponent => {
-        togleComponent
+      .addToggle(toggleComponent => {
+        toggleComponent
           .setValue(this.plugin.settings.shouldUpdateTitleKey)
           .onChange(async (value) => {
             this.plugin.settings.shouldUpdateTitleKey = value;
@@ -59,8 +59,8 @@ export default class SmartRenameSettingsTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName("Update first header")
       .setDesc("Update first header if it is present in the document. May conflict with the `Filename Heading Sync` plugin")
-      .addToggle(togleComponent => {
-        togleComponent
+      .addToggle(toggleComponent => {
+        toggleComponent
           .setValue(this.plugin.settings.shouldUpdateFirstHeader)
           .onChange(async (value) => {
             this.plugin.settings.shouldUpdateFirstHeader = value;

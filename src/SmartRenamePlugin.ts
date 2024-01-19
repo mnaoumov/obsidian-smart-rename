@@ -1,5 +1,5 @@
-import SmartRenameSettingsTab from "./SmartRenameSettingsTab";
-import SmartRenameSettings from "./SmartRenameSettings";
+import SmartRenameSettingsTab from "./SmartRenameSettingsTab.ts";
+import SmartRenameSettings from "./SmartRenameSettings.ts";
 import {
   Notice,
   Plugin,
@@ -8,8 +8,8 @@ import {
   parseFrontMatterAliases,
   CachedMetadata
 } from "obsidian";
-import prompt from "./prompt";
-import { InvalidCharacterAction } from "./InvalidCharacterAction";
+import prompt from "./prompt.ts";
+import { InvalidCharacterAction } from "./InvalidCharacterAction.ts";
 
 export default class SmartRenamePlugin extends Plugin {
   private systemForbiddenCharactersRegExp!: RegExp;
@@ -22,7 +22,7 @@ export default class SmartRenamePlugin extends Plugin {
   private isReadyToFixBacklinks!: boolean;
   public settings!: SmartRenameSettings;
 
-  public async onload(): Promise<void> {
+  public override async onload(): Promise<void> {
     await this.loadSettings();
 
     this.addCommand({
@@ -136,12 +136,12 @@ export default class SmartRenamePlugin extends Plugin {
       const links = this.getLinksAndEmbeds(cache);
 
       for (let linkIndex = 0; linkIndex < links.length; linkIndex++) {
-        const link = links[linkIndex];
+        const link = links[linkIndex]!;
         if (!linksToFix.has(link)) {
           continue;
         }
 
-        const displayText = link.displayText?.split(" > ")[0].split("/").pop();
+        const displayText = link.displayText?.split(" > ")[0]?.split("/")?.pop();
 
         if (displayText === this.oldTitle || link.original.includes(`[${this.oldTitle}]`)) {
           indicesToFix.add(linkIndex);
@@ -178,7 +178,7 @@ export default class SmartRenamePlugin extends Plugin {
       const links = this.getLinksAndEmbeds(cache);
 
       for (let linkIndex = 0; linkIndex < links.length; linkIndex++) {
-        const link = links[linkIndex];
+        const link = links[linkIndex]!;
         newContent += content.substring(contentIndex, link.position.start.offset);
         let newLink = linkProcessor(link, linkIndex);
         if (newLink === undefined) {
