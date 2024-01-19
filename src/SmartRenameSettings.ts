@@ -1,4 +1,4 @@
-import { InvalidCharacterAction } from "./InvalidCharacterAction";
+import { InvalidCharacterAction } from "./InvalidCharacterAction.ts";
 
 export default class SmartRenameSettings {
   public invalidCharacterAction = InvalidCharacterAction.Error;

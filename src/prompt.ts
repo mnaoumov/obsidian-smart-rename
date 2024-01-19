@@ -24,7 +24,7 @@ class PromptModal extends Modal {
     this.open();
   }
 
-  public onOpen(): void {
+  public override onOpen(): void {
     this.titleEl.setText(this.promptText);
     const textComponent = new TextComponent(this.contentEl);
     textComponent.inputEl.style.width = "100%";
@@ -39,7 +39,7 @@ class PromptModal extends Modal {
     });
   }
 
-  public onClose(): void {
+  public override onClose(): void {
     this.resolve(this.isCancelled ? "" : this.value);
   }
 
