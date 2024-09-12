@@ -61,6 +61,10 @@ Current plugin's aim is to preserve `OldName` display text in links 1, 2, 4
 - `Smart Rename` is available on [the official Community Plugins repository](https://obsidian.md/plugins) now.
 - Beta releases can be installed through [BRAT](https://github.com/TfTHacker/obsidian42-brat)
 
+## Support
+
+<a href="https://www.buymeacoffee.com/mnaoumov" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;"></a>
+
 ## License
 
  © [Michael Naumov](https://github.com/mnaoumov/)
