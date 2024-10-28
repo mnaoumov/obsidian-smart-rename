@@ -6,5 +6,6 @@
   "description": "Renames notes keeping previous title in existing links",
   "author": "mnaoumov",
   "authorUrl": "https://github.com/mnaoumov",
-  "isDesktopOnly": false
+  "isDesktopOnly": false,
+  "fundingUrl": "https://www.buymeacoffee.com/mnaoumov"
 }
