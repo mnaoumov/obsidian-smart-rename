@@ -1,5 +1,5 @@
 export enum InvalidCharacterAction {
-  Error = "Error",
-  Remove = "Remove",
-  Replace = "Replace"
+  Error = 'Error',
+  Remove = 'Remove',
+  Replace = 'Replace'
 }
