@@ -4,9 +4,9 @@ import {
   Notice,
   Plugin,
   TFile,
-  LinkCache,
+  type LinkCache,
   parseFrontMatterAliases,
-  CachedMetadata
+  type CachedMetadata
 } from "obsidian";
 import prompt from "./prompt.ts";
 import { InvalidCharacterAction } from "./InvalidCharacterAction.ts";
@@ -131,7 +131,7 @@ export default class SmartRenamePlugin extends Plugin {
         continue;
       }
 
-      const linksToFix = new Set(backlinksData[backlinkFilePath]);
+      const linksToFix = new Set(backlinksData.get(backlinkFilePath));
 
       const links = this.getLinksAndEmbeds(cache);
 
