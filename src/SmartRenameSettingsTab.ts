@@ -1,10 +1,11 @@
-import { InvalidCharacterAction } from "./InvalidCharacterAction.ts";
-import SmartRenamePlugin from "./SmartRenamePlugin.ts";
 import {
   App,
   PluginSettingTab,
   Setting
-} from "obsidian";
+} from 'obsidian';
+
+import { InvalidCharacterAction } from './InvalidCharacterAction.ts';
+import type SmartRenamePlugin from './SmartRenamePlugin.ts';
 
 export default class SmartRenameSettingsTab extends PluginSettingTab {
   public override plugin: SmartRenamePlugin;
@@ -17,17 +18,17 @@ export default class SmartRenameSettingsTab extends PluginSettingTab {
   public display(): void {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "Smart Rename" });
+    containerEl.createEl('h2', { text: 'Smart Rename' });
 
     new Setting(containerEl)
-      .setName("Invalid characters action")
-      .setDesc("How to process invalid characters in the new title")
+      .setName('Invalid characters action')
+      .setDesc('How to process invalid characters in the new title')
       .addDropdown((dropdownComponent) => {
         dropdownComponent
           .addOptions({
-            Error: "Show error",
-            Remove: "Remove invalid characters",
-            Replace: "Replace invalid character with"
+            Error: 'Show error',
+            Remove: 'Remove invalid characters',
+            Replace: 'Replace invalid character with'
           })
           .setValue(this.plugin.settings.invalidCharacterAction)
           .onChange(async (value) => {
@@ -45,9 +46,9 @@ export default class SmartRenameSettingsTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName("Update title key")
-      .setDesc("Update title key in frontmatter")
-      .addToggle(toggleComponent => {
+      .setName('Update title key')
+      .setDesc('Update title key in frontmatter')
+      .addToggle((toggleComponent) => {
         toggleComponent
           .setValue(this.plugin.settings.shouldUpdateTitleKey)
           .onChange(async (value) => {
@@ -57,9 +58,9 @@ export default class SmartRenameSettingsTab extends PluginSettingTab {
       });
 
     new Setting(containerEl)
-      .setName("Update first header")
-      .setDesc("Update first header if it is present in the document. May conflict with the `Filename Heading Sync` plugin")
-      .addToggle(toggleComponent => {
+      .setName('Update first header')
+      .setDesc('Update first header if it is present in the document. May conflict with the `Filename Heading Sync` plugin')
+      .addToggle((toggleComponent) => {
         toggleComponent
           .setValue(this.plugin.settings.shouldUpdateFirstHeader)
           .onChange(async (value) => {
@@ -74,21 +75,21 @@ export default class SmartRenameSettingsTab extends PluginSettingTab {
 
     if (this.plugin.settings.invalidCharacterAction === InvalidCharacterAction.Replace) {
       new Setting(replacementCharacterSettingEl)
-        .setName("Replacement character")
-        .setDesc("Character to replace invalid character with")
-        .addText(textComponent => {
+        .setName('Replacement character')
+        .setDesc('Character to replace invalid character with')
+        .addText((textComponent) => {
           textComponent.inputEl.maxLength = 1;
           textComponent.inputEl.required = true;
-          textComponent.inputEl.addEventListener("blur", () => {
+          textComponent.inputEl.addEventListener('blur', () => {
             textComponent.inputEl.reportValidity();
           });
           textComponent
             .setValue(this.plugin.settings.replacementCharacter)
             .onChange(async (value) => {
               if (this.plugin.hasInvalidCharacters(value)) {
-                textComponent.inputEl.setCustomValidity("Invalid replacement character");
+                textComponent.inputEl.setCustomValidity('Invalid replacement character');
               } else {
-                textComponent.inputEl.setCustomValidity("");
+                textComponent.inputEl.setCustomValidity('');
               }
 
               if (textComponent.inputEl.reportValidity()) {
@@ -108,9 +109,9 @@ export default class SmartRenameSettingsTab extends PluginSettingTab {
     }
 
     new Setting(storeInvalidTitleSettingEl)
-      .setName("Store invalid title")
-      .setDesc("If enabled, stores title with invalid characters. If disabled, stores the sanitized version")
-      .addToggle(toggleComponent => {
+      .setName('Store invalid title')
+      .setDesc('If enabled, stores title with invalid characters. If disabled, stores the sanitized version')
+      .addToggle((toggleComponent) => {
         toggleComponent
           .setValue(this.plugin.settings.shouldStoreInvalidTitle)
           .onChange(async (value) => {

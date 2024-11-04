@@ -1,15 +1,19 @@
-import SmartRenameSettingsTab from "./SmartRenameSettingsTab.ts";
-import SmartRenameSettings from "./SmartRenameSettings.ts";
+import type {
+  CachedMetadata,
+  LinkCache
+} from 'obsidian';
 import {
   Notice,
-  Plugin,
-  TFile,
-  type LinkCache,
   parseFrontMatterAliases,
-  type CachedMetadata
-} from "obsidian";
-import prompt from "./prompt.ts";
-import { InvalidCharacterAction } from "./InvalidCharacterAction.ts";
+  Plugin,
+  TFile
+} from 'obsidian';
+import { invokeAsyncSafely } from 'obsidian-dev-utils/Async';
+
+import { InvalidCharacterAction } from './InvalidCharacterAction.ts';
+import prompt from './prompt.ts';
+import SmartRenameSettings from './SmartRenameSettings.ts';
+import SmartRenameSettingsTab from './SmartRenameSettingsTab.ts';
 
 export default class SmartRenamePlugin extends Plugin {
   private systemForbiddenCharactersRegExp!: RegExp;
@@ -26,8 +30,8 @@ export default class SmartRenamePlugin extends Plugin {
     await this.loadSettings();
 
     this.addCommand({
-      id: "smart-rename",
-      name: "Smart Rename",
+      id: 'smart-rename',
+      name: 'Smart Rename',
       checkCallback: (checking: boolean): boolean => {
         const activeFile = this.app.workspace.getActiveFile();
         if (!activeFile) {
@@ -43,26 +47,28 @@ export default class SmartRenamePlugin extends Plugin {
 
     this.addSettingTab(new SmartRenameSettingsTab(this.app, this));
 
-    const isWindows = document.body.hasClass("mod-windows");
+    const isWindows = document.body.hasClass('mod-windows');
     this.systemForbiddenCharactersRegExp = isWindows ? /[*"\\/<>:|?]/g : /[\\/]/g;
 
-    this.registerEvent(this.app.metadataCache.on("resolved", this.fixModifiedBacklinks.bind(this)));
+    this.registerEvent(this.app.metadataCache.on('resolved', () => {
+      invokeAsyncSafely(() => this.fixModifiedBacklinks());
+    }));
   }
 
   private async smartRename(activeFile: TFile): Promise<void> {
     this.currentNoteFile = activeFile;
     this.oldTitle = this.currentNoteFile.basename;
-    this.newTitle = await prompt(this.app, "Enter new title");
+    this.newTitle = await prompt(this.app, 'Enter new title');
 
     let titleToStore = this.newTitle;
 
     if (this.hasInvalidCharacters(this.newTitle)) {
       switch (this.settings.invalidCharacterAction) {
         case InvalidCharacterAction.Error:
-          new Notice("The new title has invalid characters");
+          new Notice('The new title has invalid characters');
           return;
         case InvalidCharacterAction.Remove:
-          this.newTitle = this.replaceInvalidCharacters(this.newTitle, "");
+          this.newTitle = this.replaceInvalidCharacters(this.newTitle, '');
           break;
         case InvalidCharacterAction.Replace:
           this.newTitle = this.replaceInvalidCharacters(this.newTitle, this.settings.replacementCharacter);
@@ -85,11 +91,11 @@ export default class SmartRenamePlugin extends Plugin {
     }
 
     if (titleToStore && this.settings.shouldUpdateFirstHeader) {
-      await this.app.vault.process(this.currentNoteFile, content => content
+      await this.app.vault.process(this.currentNoteFile, (content) => content
         .replace(/^((---\n(.|\n)+?---\n)?(.|\n)*\n)# .+/, `$1# ${titleToStore}`));
     }
 
-    this.newPath = `${this.currentNoteFile.parent!.path}/${this.newTitle}.md`;
+    this.newPath = `${this.currentNoteFile.parent?.path ?? ''}/${this.newTitle}.md`;
 
     const validationError = await this.getValidationError();
     if (validationError) {
@@ -106,15 +112,15 @@ export default class SmartRenamePlugin extends Plugin {
 
   private async getValidationError(): Promise<string | null> {
     if (!this.newTitle) {
-      return "No new title provided";
+      return 'No new title provided';
     }
 
     if (this.newTitle === this.oldTitle) {
-      return "The title did not change";
+      return 'The title did not change';
     }
 
     if (await this.app.vault.adapter.exists(this.newPath)) {
-      return "Note with the new title already exists";
+      return 'Note with the new title already exists';
     }
 
     return null;
@@ -136,12 +142,16 @@ export default class SmartRenamePlugin extends Plugin {
       const links = this.getLinksAndEmbeds(cache);
 
       for (let linkIndex = 0; linkIndex < links.length; linkIndex++) {
-        const link = links[linkIndex]!;
+        const link = links[linkIndex];
+        if (!link) {
+          continue;
+        }
+
         if (!linksToFix.has(link)) {
           continue;
         }
 
-        const displayText = link.displayText?.split(" > ")[0]?.split("/")?.pop();
+        const displayText = link.displayText?.split(' > ')[0]?.split('/')?.pop();
 
         if (displayText === this.oldTitle || link.original.includes(`[${this.oldTitle}]`)) {
           indicesToFix.add(linkIndex);
@@ -156,7 +166,7 @@ export default class SmartRenamePlugin extends Plugin {
 
   private async addAlias(alias: string): Promise<void> {
     await this.app.fileManager.processFrontMatter(this.currentNoteFile, (frontMatter: { aliases: string[] | string }): void => {
-      const aliases = parseFrontMatterAliases(frontMatter) || [];
+      const aliases = parseFrontMatterAliases(frontMatter) ?? [];
 
       if (!aliases.includes(alias)) {
         aliases.push(alias);
@@ -166,9 +176,10 @@ export default class SmartRenamePlugin extends Plugin {
     });
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
   private async editFileLinks(filePath: string, linkProcessor: (link: LinkCache, linkIndex: number) => string | void): Promise<void> {
     await this.app.vault.adapter.process(filePath, (content): string => {
-      let newContent = "";
+      let newContent = '';
       let contentIndex = 0;
       const cache = this.app.metadataCache.getCache(filePath);
       if (cache === null) {
@@ -178,7 +189,11 @@ export default class SmartRenamePlugin extends Plugin {
       const links = this.getLinksAndEmbeds(cache);
 
       for (let linkIndex = 0; linkIndex < links.length; linkIndex++) {
-        const link = links[linkIndex]!;
+        const link = links[linkIndex];
+        if (!link) {
+          continue;
+        }
+
         newContent += content.substring(contentIndex, link.position.start.offset);
         let newLink = linkProcessor(link, linkIndex);
         if (newLink === undefined) {
@@ -215,12 +230,13 @@ export default class SmartRenamePlugin extends Plugin {
     this.isReadyToFixBacklinks = false;
 
     for (const [backlinkFilePath, indicesToFix] of this.backlinksToFix.entries()) {
+      // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
       await this.editFileLinks(backlinkFilePath, (link: LinkCache, linkIndex: number): string | void => {
         if (!indicesToFix.has(linkIndex)) {
           return;
         }
 
-        const isWikilink = link.original.includes("]]");
+        const isWikilink = link.original.includes(']]');
         return isWikilink
           ? link.original.replace(/(\|.+)?\]\]/, `|${this.oldTitle}]]`)
           : link.original.replace(`[${this.newTitle}]`, `[${this.oldTitle}]`);
