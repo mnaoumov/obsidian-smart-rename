@@ -3,32 +3,23 @@
   "version": "1.1.2",
   "description": "Renames notes keeping previous title in existing links",
   "scripts": {
-    "build": "tsc --build && tsx esbuild.config.ts production",
-    "dev": "tsc --build && tsx esbuild.config.ts",
-    "lint": "eslint-ts . --fix",
-    "version": "tsx version-bump.ts && git add manifest.json package.json versions.json"
+    "build:validate": "obsidian-dev-utils build:validate",
+    "build": "obsidian-dev-utils build",
+    "dev": "obsidian-dev-utils dev",
+    "lint:fix": "obsidian-dev-utils lint:fix",
+    "lint": "obsidian-dev-utils lint",
+    "spellcheck": "obsidian-dev-utils spellcheck",
+    "version": "obsidian-dev-utils version"
   },
   "keywords": [],
-  "author": "${AUTHOR_GITHUB_NAME}",
+  "author": "mnaoumov",
   "license": "MIT",
   "devDependencies": {
-    "@stylistic/eslint-plugin": "latest",
-    "@tsconfig/strictest": "latest",
-    "@types/eslint": "latest",
-    "@types/node": "latest",
-    "@types/obsidian-typings": "github:Fevol/obsidian-typings",
-    "@typescript-eslint/eslint-plugin": "latest",
-    "@typescript-eslint/parser": "latest",
-    "builtin-modules": "latest",
-    "esbuild": "latest",
-    "eslint": "latest",
-    "eslint-import-resolver-typescript": "latest",
-    "eslint-plugin-import": "latest",
-    "eslint-plugin-modules-newlines": "latest",
-    "eslint-ts-patch": "latest",
-    "globals": "latest",
-    "obsidian": "latest",
-    "tsx": "latest"
+    "@tsconfig/strictest": "^2.0.5",
+    "@types/node": "^22.8.7",
+    "obsidian": "^1.7.2",
+    "obsidian-dev-utils": "^4.0.0",
+    "obsidian-typings": "^2.2.1-beta.34"
   },
   "type": "module"
 }
