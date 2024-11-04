@@ -67,4 +67,4 @@ Current plugin's aim is to preserve `OldName` display text in links 1, 2, 4
 
 ## License
 
- © [Michael Naumov](https://github.com/mnaoumov/)
+© [Michael Naumov](https://github.com/mnaoumov/)

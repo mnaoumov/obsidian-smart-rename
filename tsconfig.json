@@ -17,8 +17,15 @@
     "moduleResolution": "NodeNext",
     "noEmit": true,
     "target": "ESNext",
+    "skipLibCheck": false,
+    "types": [
+      "node",
+      "obsidian-typings"
+    ],
+    "verbatimModuleSyntax": true
   },
   "include": [
-    "**/*.ts"
+    "./src/**/*.ts",
+    "./scripts/**/*.ts"
   ]
 }

@@ -1,1 +1,1 @@
-export { default } from "./SmartRenamePlugin.ts";
+export { default } from './SmartRenamePlugin.ts';
