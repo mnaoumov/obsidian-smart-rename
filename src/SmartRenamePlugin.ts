@@ -237,6 +237,10 @@ export default class SmartRenamePlugin extends PluginBase<SmartRenamePluginSetti
       return 'The title did not change';
     }
 
+    if (newTitle.toLowerCase() === oldTitle.toLowerCase()) {
+      return null;
+    }
+
     if (await this.app.vault.exists(newPath)) {
       return 'Note with the new title already exists';
     }
