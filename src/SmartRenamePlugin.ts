@@ -26,6 +26,7 @@ import { prompt } from 'obsidian-dev-utils/obsidian/Modal/Prompt';
 import { PluginBase } from 'obsidian-dev-utils/obsidian/Plugin/PluginBase';
 import { process } from 'obsidian-dev-utils/obsidian/Vault';
 import { join } from 'obsidian-dev-utils/Path';
+import { insertAt } from 'obsidian-dev-utils/String';
 
 import { InvalidCharacterAction } from './InvalidCharacterAction.ts';
 import SmartRenamePluginSettings from './SmartRenamePluginSettings.ts';
@@ -64,8 +65,7 @@ export default class SmartRenamePlugin extends PluginBase<SmartRenamePluginSetti
       }
     });
 
-    const isWindows = Platform.isWin;
-    this.systemForbiddenCharactersRegExp = isWindows ? /[*"\\/<>:|?]/g : /[\\/]/g;
+    this.systemForbiddenCharactersRegExp = Platform.isWin ? /[*"\\/<>:|?]/g : /[\\/]/g;
   }
 
   private async smartRename(activeFile: TFile): Promise<void> {
@@ -170,7 +170,7 @@ export default class SmartRenamePlugin extends PluginBase<SmartRenamePluginSetti
             return content;
           }
 
-          return content.slice(0, firstHeading.position.start.offset) + `# ${titleToStore}` + content.slice(firstHeading.position.end.offset);
+          return insertAt(content, `# ${titleToStore}`, firstHeading.position.start.offset, firstHeading.position.end.offset);
         });
       }
     });
