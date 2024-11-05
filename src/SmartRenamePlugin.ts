@@ -8,6 +8,7 @@ import {
 import type { MaybePromise } from 'obsidian-dev-utils/Async';
 import { invokeAsyncSafely } from 'obsidian-dev-utils/Async';
 import { toJson } from 'obsidian-dev-utils/Object';
+import { chain } from 'obsidian-dev-utils/obsidian/ChainedPromise';
 import {
   addAlias,
   processFrontMatter
@@ -105,6 +106,7 @@ export default class SmartRenamePlugin extends PluginBase<SmartRenamePluginSetti
     }
 
     const backlinks = await getBacklinksForFileSafe(this.app, this.currentNoteFile);
+    const oldPath = this.currentNoteFile.path;
 
     try {
       await this.app.vault.rename(this.currentNoteFile, this.newPath);
@@ -114,56 +116,64 @@ export default class SmartRenamePlugin extends PluginBase<SmartRenamePluginSetti
       return;
     }
 
-    for (const backlinkNotePath of backlinks.keys()) {
-      const links = backlinks.get(backlinkNotePath);
-      if (!links) {
-        continue;
+    chain(this.app, async () => {
+      for (let backlinkNotePath of backlinks.keys()) {
+        const links = backlinks.get(backlinkNotePath);
+        if (!links) {
+          continue;
+        }
+
+        if (backlinkNotePath === oldPath) {
+          backlinkNotePath = this.newPath;
+        }
+
+        const linkJsons = new Set(links.map((link) => toJson(link)));
+
+        await editLinks(this.app, backlinkNotePath, (link) => {
+          if (extractLinkFile(this.app, link, backlinkNotePath) !== this.currentNoteFile && !linkJsons.has(toJson(link))) {
+            return;
+          }
+
+          const alias = (link.displayText ?? '').toLowerCase() === this.newTitle.toLowerCase() ? this.oldTitle : link.displayText;
+
+          return generateMarkdownLink({
+            app: this.app,
+            pathOrFile: this.newPath,
+            sourcePathOrFile: backlinkNotePath,
+            alias,
+            originalLink: link.original
+          });
+        });
       }
 
-      const linkJsons = new Set(links.map((link) => toJson(link)));
+      await addAlias(this.app, this.newPath, this.oldTitle);
 
-      await editLinks(this.app, backlinkNotePath, (link) => {
-        if (extractLinkFile(this.app, link, backlinkNotePath) !== this.currentNoteFile && !linkJsons.has(toJson(link))) {
-          return;
-        }
+      if (this.settings.shouldStoreInvalidTitle && titleToStore !== this.newTitle) {
+        await addAlias(this.app, this.newPath, titleToStore);
+      }
 
-        return generateMarkdownLink({
-          app: this.app,
-          pathOrFile: this.newPath,
-          sourcePathOrFile: backlinkNotePath,
-          alias: link.displayText ?? this.oldTitle,
-          originalLink: link.original
+      if (this.settings.shouldUpdateTitleKey) {
+        await processFrontMatter(this.app, this.newPath, (frontMatter) => {
+          frontMatter['title'] = titleToStore;
         });
-      });
-    }
+      }
 
-    await addAlias(this.app, this.newPath, this.oldTitle);
+      if (this.settings.shouldUpdateFirstHeader) {
+        await process(this.app, this.newPath, async (content) => {
+          const cache = await getCacheSafe(this.app, this.newPath);
+          if (cache === null) {
+            return null;
+          }
 
-    if (this.settings.shouldStoreInvalidTitle && titleToStore !== this.newTitle) {
-      await addAlias(this.app, this.newPath, titleToStore);
-    }
+          const firstHeading = cache.headings?.filter((h) => h.level === 1).sort((a, b) => a.position.start.offset - b.position.start.offset)[0];
+          if (!firstHeading) {
+            return content;
+          }
 
-    if (this.settings.shouldUpdateTitleKey) {
-      await processFrontMatter(this.app, this.newPath, (frontMatter) => {
-        frontMatter['title'] = titleToStore;
-      });
-    }
-
-    if (this.settings.shouldUpdateFirstHeader) {
-      await process(this.app, this.newPath, async (content) => {
-        const cache = await getCacheSafe(this.app, this.newPath);
-        if (cache === null) {
-          return null;
-        }
-
-        const firstHeading = cache.headings?.filter((h) => h.level === 1).sort((a, b) => a.position.start.offset - b.position.start.offset)[0];
-        if (!firstHeading) {
-          return content;
-        }
-
-        return content.slice(0, firstHeading.position.start.offset) + `# ${titleToStore}` + content.slice(firstHeading.position.end.offset);
-      });
-    }
+          return content.slice(0, firstHeading.position.start.offset) + `# ${titleToStore}` + content.slice(firstHeading.position.end.offset);
+        });
+      }
+    });
   }
 
   private async getValidationError(): Promise<string | null> {
