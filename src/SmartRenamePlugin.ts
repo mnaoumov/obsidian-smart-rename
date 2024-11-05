@@ -1,21 +1,24 @@
 import type {
   CachedMetadata,
-  LinkCache
+  LinkCache,
+  PluginSettingTab
 } from 'obsidian';
 import {
   Notice,
   parseFrontMatterAliases,
-  Plugin,
+  Platform,
   TFile
 } from 'obsidian';
+import type { MaybePromise } from 'obsidian-dev-utils/Async';
 import { invokeAsyncSafely } from 'obsidian-dev-utils/Async';
+import { PluginBase } from 'obsidian-dev-utils/obsidian/Plugin/PluginBase';
 
 import { InvalidCharacterAction } from './InvalidCharacterAction.ts';
 import prompt from './prompt.ts';
-import SmartRenameSettings from './SmartRenameSettings.ts';
-import SmartRenameSettingsTab from './SmartRenameSettingsTab.ts';
+import SmartRenamePluginSettings from './SmartRenamePluginSettings.ts';
+import SmartRenamePluginSettingsTab from './SmartRenamePluginSettingsTab.ts';
 
-export default class SmartRenamePlugin extends Plugin {
+export default class SmartRenamePlugin extends PluginBase<SmartRenamePluginSettings> {
   private systemForbiddenCharactersRegExp!: RegExp;
   private readonly obsidianForbiddenCharactersRegExp = /[#^[\]|]/g;
   private currentNoteFile!: TFile;
@@ -24,11 +27,16 @@ export default class SmartRenamePlugin extends Plugin {
   private newPath!: string;
   private readonly backlinksToFix: Map<string, Set<number>> = new Map<string, Set<number>>();
   private isReadyToFixBacklinks!: boolean;
-  public settings!: SmartRenameSettings;
 
-  public override async onload(): Promise<void> {
-    await this.loadSettings();
+  protected override createDefaultPluginSettings(): SmartRenamePluginSettings {
+    return new SmartRenamePluginSettings();
+  }
 
+  protected override createPluginSettingsTab(): PluginSettingTab | null {
+    return new SmartRenamePluginSettingsTab(this);
+  }
+
+  protected override onloadComplete(): MaybePromise<void> {
     this.addCommand({
       id: 'smart-rename',
       name: 'Smart Rename',
@@ -39,15 +47,13 @@ export default class SmartRenamePlugin extends Plugin {
         }
 
         if (!checking) {
-          void this.smartRename(activeFile);
+          invokeAsyncSafely(() => this.smartRename(activeFile));
         }
         return true;
       }
     });
 
-    this.addSettingTab(new SmartRenameSettingsTab(this.app, this));
-
-    const isWindows = document.body.hasClass('mod-windows');
+    const isWindows = Platform.isWin;
     this.systemForbiddenCharactersRegExp = isWindows ? /[*"\\/<>:|?]/g : /[\\/]/g;
 
     this.registerEvent(this.app.metadataCache.on('resolved', () => {
@@ -244,14 +250,6 @@ export default class SmartRenamePlugin extends Plugin {
     }
 
     this.backlinksToFix.clear();
-  }
-
-  private async loadSettings(): Promise<void> {
-    this.settings = Object.assign(new SmartRenameSettings(), await this.loadData() as SmartRenameSettings | undefined);
-  }
-
-  public async saveSettings(): Promise<void> {
-    await this.saveData(this.settings);
   }
 
   public hasInvalidCharacters(str: string): boolean {
