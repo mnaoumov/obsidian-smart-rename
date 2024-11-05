@@ -1,6 +1,10 @@
-import type { PluginSettingTab } from 'obsidian';
+import type {
+  Menu,
+  PluginSettingTab,
+  Reference,
+  TAbstractFile
+} from 'obsidian';
 import {
-  normalizePath,
   Notice,
   Platform,
   TFile
@@ -13,6 +17,7 @@ import {
   addAlias,
   processFrontMatter
 } from 'obsidian-dev-utils/obsidian/FileManager';
+import { getFile } from 'obsidian-dev-utils/obsidian/FileSystem';
 import {
   editLinks,
   extractLinkFile,
@@ -25,9 +30,14 @@ import {
 import { prompt } from 'obsidian-dev-utils/obsidian/Modal/Prompt';
 import { PluginBase } from 'obsidian-dev-utils/obsidian/Plugin/PluginBase';
 import { process } from 'obsidian-dev-utils/obsidian/Vault';
-import { join } from 'obsidian-dev-utils/Path';
+import {
+  basename,
+  extname,
+  join
+} from 'obsidian-dev-utils/Path';
 import { escapeRegExp } from 'obsidian-dev-utils/RegExp';
 import { insertAt } from 'obsidian-dev-utils/String';
+import type { CustomArrayDict } from 'obsidian-typings';
 
 import { InvalidCharacterAction } from './InvalidCharacterAction.ts';
 import SmartRenamePluginSettings from './SmartRenamePluginSettings.ts';
@@ -48,29 +58,11 @@ export default class SmartRenamePlugin extends PluginBase<SmartRenamePluginSetti
     this.addCommand({
       id: 'smart-rename',
       name: 'Smart Rename',
-      checkCallback: (checking: boolean): boolean => {
-        const activeFile = this.app.workspace.getActiveFile();
-        if (!activeFile) {
-          return false;
-        }
-
-        if (!checking) {
-          invokeAsyncSafely(() => this.smartRename(activeFile));
-        }
-        return true;
-      }
+      checkCallback: this.smartRenameCommandCheck.bind(this)
     });
 
     this.registerEvent(this.app.workspace.on('file-menu', (menu, file) => {
-      if (!(file instanceof TFile)) {
-        return;
-      }
-
-      menu.addItem((item) =>
-        item.setTitle('Smart Rename')
-          .setIcon('edit-3')
-          .onClick(async () => this.smartRename(file))
-      );
+      this.fileMenuHandler(menu, file);
     }));
 
     const OBSIDIAN_FORBIDDEN_CHARACTERS = '#^[]|';
@@ -79,9 +71,32 @@ export default class SmartRenamePlugin extends PluginBase<SmartRenamePluginSetti
     this.invalidCharactersRegExp = new RegExp(`[${escapeRegExp(invalidCharacters)}]`, 'g');
   }
 
-  private async smartRename(activeFile: TFile): Promise<void> {
-    const currentNoteFile = activeFile;
-    const oldTitle = currentNoteFile.basename;
+  private fileMenuHandler(menu: Menu, file: TAbstractFile): void {
+    if (!(file instanceof TFile)) {
+      return;
+    }
+
+    menu.addItem((item) =>
+      item.setTitle('Smart Rename')
+        .setIcon('edit-3')
+        .onClick(() => { invokeAsyncSafely(() => this.smartRename(file)); })
+    );
+  }
+
+  private smartRenameCommandCheck(checking: boolean): boolean {
+    const activeFile = this.app.workspace.getActiveFile();
+    if (!activeFile) {
+      return false;
+    }
+
+    if (!checking) {
+      invokeAsyncSafely(() => this.smartRename(activeFile));
+    }
+    return true;
+  }
+
+  private async smartRename(file: TFile): Promise<void> {
+    const oldTitle = file.basename;
     let newTitle = await prompt({
       app: this.app,
       title: 'Enter new title',
@@ -108,7 +123,7 @@ export default class SmartRenamePlugin extends PluginBase<SmartRenamePluginSetti
       titleToStore = newTitle;
     }
 
-    const newPath = normalizePath(join(currentNoteFile.parent?.path ?? '', `${newTitle}.md`));
+    const newPath = join(file.parent?.getParentPrefix() ?? '', `${newTitle}.md`);
 
     const validationError = await this.getValidationError(oldTitle, newTitle, newPath);
     if (validationError) {
@@ -116,11 +131,11 @@ export default class SmartRenamePlugin extends PluginBase<SmartRenamePluginSetti
       return;
     }
 
-    const backlinks = await getBacklinksForFileSafe(this.app, currentNoteFile);
-    const oldPath = currentNoteFile.path;
+    const backlinks = await getBacklinksForFileSafe(this.app, file);
+    const oldPath = file.path;
 
     try {
-      await this.app.vault.rename(currentNoteFile, newPath);
+      await this.app.vault.rename(file, newPath);
     } catch (error) {
       new Notice('Failed to rename file');
       console.error(new Error('Failed to rename file', { cause: error }));
@@ -128,62 +143,88 @@ export default class SmartRenamePlugin extends PluginBase<SmartRenamePluginSetti
     }
 
     chain(this.app, async () => {
-      for (let backlinkNotePath of backlinks.keys()) {
-        const links = backlinks.get(backlinkNotePath);
-        if (!links) {
-          continue;
+      await this.processRename(oldPath, newPath, titleToStore, backlinks);
+    });
+  }
+
+  private async processRename(oldPath: string, newPath: string, titleToStore: string, backlinks: CustomArrayDict<Reference>): Promise<void> {
+    const oldTitle = basename(oldPath, extname(oldPath));
+    await this.processBacklinks(oldPath, newPath, backlinks);
+    await this.addAliases(newPath, oldTitle, titleToStore);
+    await this.updateTitle(newPath, titleToStore);
+    await this.updateFirstHeader(newPath, titleToStore);
+  }
+
+  private async processBacklinks(oldPath: string, newPath: string, backlinks: CustomArrayDict<Reference>): Promise<void> {
+    const newFile = getFile(this.app, newPath);
+    const oldTitle = basename(oldPath, extname(oldPath));
+    const newTitle = newFile.basename;
+
+    for (let backlinkNotePath of backlinks.keys()) {
+      const links = backlinks.get(backlinkNotePath);
+      if (!links) {
+        continue;
+      }
+
+      if (backlinkNotePath === oldPath) {
+        backlinkNotePath = newPath;
+      }
+
+      const linkJsons = new Set(links.map((link) => toJson(link)));
+
+      await editLinks(this.app, backlinkNotePath, (link) => {
+        if (extractLinkFile(this.app, link, backlinkNotePath) !== newFile && !linkJsons.has(toJson(link))) {
+          return;
         }
 
-        if (backlinkNotePath === oldPath) {
-          backlinkNotePath = newPath;
-        }
+        const alias = (link.displayText ?? '').toLowerCase() === newTitle.toLowerCase() ? oldTitle : link.displayText;
 
-        const linkJsons = new Set(links.map((link) => toJson(link)));
-
-        await editLinks(this.app, backlinkNotePath, (link) => {
-          if (extractLinkFile(this.app, link, backlinkNotePath) !== currentNoteFile && !linkJsons.has(toJson(link))) {
-            return;
-          }
-
-          const alias = (link.displayText ?? '').toLowerCase() === newTitle.toLowerCase() ? oldTitle : link.displayText;
-
-          return generateMarkdownLink({
-            app: this.app,
-            pathOrFile: newPath,
-            sourcePathOrFile: backlinkNotePath,
-            alias,
-            originalLink: link.original
-          });
+        return generateMarkdownLink({
+          app: this.app,
+          pathOrFile: newPath,
+          sourcePathOrFile: backlinkNotePath,
+          alias,
+          originalLink: link.original
         });
+      });
+    }
+  }
+
+  private async addAliases(newPath: string, oldTitle: string, titleToStore: string): Promise<void> {
+    const newTitle = basename(newPath, extname(newPath));
+    await addAlias(this.app, newPath, oldTitle);
+
+    if (this.settings.shouldStoreInvalidTitle && titleToStore !== newTitle) {
+      await addAlias(this.app, newPath, titleToStore);
+    }
+  }
+
+  private async updateTitle(newPath: string, titleToStore: string): Promise<void> {
+    if (!this.settings.shouldUpdateTitleKey) {
+      return;
+    }
+    await processFrontMatter(this.app, newPath, (frontMatter) => {
+      frontMatter['title'] = titleToStore;
+    });
+  }
+
+  private async updateFirstHeader(newPath: string, titleToStore: string): Promise<void> {
+    if (!this.settings.shouldUpdateFirstHeader) {
+      return;
+    }
+
+    await process(this.app, newPath, async (content) => {
+      const cache = await getCacheSafe(this.app, newPath);
+      if (cache === null) {
+        return null;
       }
 
-      await addAlias(this.app, newPath, oldTitle);
-
-      if (this.settings.shouldStoreInvalidTitle && titleToStore !== newTitle) {
-        await addAlias(this.app, newPath, titleToStore);
+      const firstHeading = cache.headings?.filter((h) => h.level === 1).sort((a, b) => a.position.start.offset - b.position.start.offset)[0];
+      if (!firstHeading) {
+        return content;
       }
 
-      if (this.settings.shouldUpdateTitleKey) {
-        await processFrontMatter(this.app, newPath, (frontMatter) => {
-          frontMatter['title'] = titleToStore;
-        });
-      }
-
-      if (this.settings.shouldUpdateFirstHeader) {
-        await process(this.app, newPath, async (content) => {
-          const cache = await getCacheSafe(this.app, newPath);
-          if (cache === null) {
-            return null;
-          }
-
-          const firstHeading = cache.headings?.filter((h) => h.level === 1).sort((a, b) => a.position.start.offset - b.position.start.offset)[0];
-          if (!firstHeading) {
-            return content;
-          }
-
-          return insertAt(content, `# ${titleToStore}`, firstHeading.position.start.offset, firstHeading.position.end.offset);
-        });
-      }
+      return insertAt(content, `# ${titleToStore}`, firstHeading.position.start.offset, firstHeading.position.end.offset);
     });
   }
 
