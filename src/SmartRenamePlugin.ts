@@ -61,6 +61,18 @@ export default class SmartRenamePlugin extends PluginBase<SmartRenamePluginSetti
       }
     });
 
+    this.registerEvent(this.app.workspace.on('file-menu', (menu, file) => {
+      if (!(file instanceof TFile)) {
+        return;
+      }
+
+      menu.addItem((item) =>
+        item.setTitle('Smart Rename')
+          .setIcon('edit-3')
+          .onClick(async () => this.smartRename(file))
+      );
+    }));
+
     const OBSIDIAN_FORBIDDEN_CHARACTERS = '#^[]|';
     const SYSTEM_FORBIDDEN_CHARACTERS = Platform.isWin ? '*\\/<>:|?"' : '\0/';
     const invalidCharacters = Array.from(new Set([...OBSIDIAN_FORBIDDEN_CHARACTERS, ...SYSTEM_FORBIDDEN_CHARACTERS])).join('');
