@@ -241,6 +241,10 @@ export default class SmartRenamePlugin extends PluginBase<SmartRenamePluginSetti
       return 'Note with the new title already exists';
     }
 
+    if (newTitle.startsWith('.')) {
+      return 'The title cannot start with a dot';
+    }
+
     return null;
   }
 
