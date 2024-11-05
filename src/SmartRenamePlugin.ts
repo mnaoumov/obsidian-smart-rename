@@ -11,10 +11,10 @@ import {
 } from 'obsidian';
 import type { MaybePromise } from 'obsidian-dev-utils/Async';
 import { invokeAsyncSafely } from 'obsidian-dev-utils/Async';
+import { prompt } from 'obsidian-dev-utils/obsidian/Modal/Prompt';
 import { PluginBase } from 'obsidian-dev-utils/obsidian/Plugin/PluginBase';
 
 import { InvalidCharacterAction } from './InvalidCharacterAction.ts';
-import prompt from './prompt.ts';
 import SmartRenamePluginSettings from './SmartRenamePluginSettings.ts';
 import SmartRenamePluginSettingsTab from './SmartRenamePluginSettingsTab.ts';
 
@@ -64,7 +64,11 @@ export default class SmartRenamePlugin extends PluginBase<SmartRenamePluginSetti
   private async smartRename(activeFile: TFile): Promise<void> {
     this.currentNoteFile = activeFile;
     this.oldTitle = this.currentNoteFile.basename;
-    this.newTitle = await prompt(this.app, 'Enter new title');
+    this.newTitle = await prompt({
+      app: this.app,
+      title: 'Enter new title',
+      defaultValue: this.oldTitle
+    }) ?? '';
 
     let titleToStore = this.newTitle;
 
