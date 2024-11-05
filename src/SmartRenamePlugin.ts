@@ -1,18 +1,30 @@
-import type {
-  CachedMetadata,
-  LinkCache,
-  PluginSettingTab
-} from 'obsidian';
+import type { PluginSettingTab } from 'obsidian';
 import {
+  normalizePath,
   Notice,
-  parseFrontMatterAliases,
   Platform,
   TFile
 } from 'obsidian';
 import type { MaybePromise } from 'obsidian-dev-utils/Async';
 import { invokeAsyncSafely } from 'obsidian-dev-utils/Async';
+import { toJson } from 'obsidian-dev-utils/Object';
+import {
+  addAlias,
+  processFrontMatter
+} from 'obsidian-dev-utils/obsidian/FileManager';
+import {
+  editLinks,
+  extractLinkFile,
+  generateMarkdownLink
+} from 'obsidian-dev-utils/obsidian/Link';
+import {
+  getBacklinksForFileSafe,
+  getCacheSafe
+} from 'obsidian-dev-utils/obsidian/MetadataCache';
 import { prompt } from 'obsidian-dev-utils/obsidian/Modal/Prompt';
 import { PluginBase } from 'obsidian-dev-utils/obsidian/Plugin/PluginBase';
+import { process } from 'obsidian-dev-utils/obsidian/Vault';
+import { join } from 'obsidian-dev-utils/Path';
 
 import { InvalidCharacterAction } from './InvalidCharacterAction.ts';
 import SmartRenamePluginSettings from './SmartRenamePluginSettings.ts';
@@ -25,8 +37,6 @@ export default class SmartRenamePlugin extends PluginBase<SmartRenamePluginSetti
   private oldTitle!: string;
   private newTitle!: string;
   private newPath!: string;
-  private readonly backlinksToFix: Map<string, Set<number>> = new Map<string, Set<number>>();
-  private isReadyToFixBacklinks!: boolean;
 
   protected override createDefaultPluginSettings(): SmartRenamePluginSettings {
     return new SmartRenamePluginSettings();
@@ -55,10 +65,6 @@ export default class SmartRenamePlugin extends PluginBase<SmartRenamePluginSetti
 
     const isWindows = Platform.isWin;
     this.systemForbiddenCharactersRegExp = isWindows ? /[*"\\/<>:|?]/g : /[\\/]/g;
-
-    this.registerEvent(this.app.metadataCache.on('resolved', () => {
-      invokeAsyncSafely(() => this.fixModifiedBacklinks());
-    }));
   }
 
   private async smartRename(activeFile: TFile): Promise<void> {
@@ -90,22 +96,7 @@ export default class SmartRenamePlugin extends PluginBase<SmartRenamePluginSetti
       titleToStore = this.newTitle;
     }
 
-    if (titleToStore && this.settings.shouldStoreInvalidTitle && titleToStore !== this.newTitle) {
-      await this.addAlias(titleToStore);
-    }
-
-    if (titleToStore && this.settings.shouldUpdateTitleKey) {
-      await this.app.fileManager.processFrontMatter(this.currentNoteFile, (frontMatter: { title?: string }): void => {
-        frontMatter.title = titleToStore;
-      });
-    }
-
-    if (titleToStore && this.settings.shouldUpdateFirstHeader) {
-      await this.app.vault.process(this.currentNoteFile, (content) => content
-        .replace(/^((---\n(.|\n)+?---\n)?(.|\n)*\n)# .+/, `$1# ${titleToStore}`));
-    }
-
-    this.newPath = `${this.currentNoteFile.parent?.path ?? ''}/${this.newTitle}.md`;
+    this.newPath = normalizePath(join(this.currentNoteFile.parent?.path ?? '', `${this.newTitle}.md`));
 
     const validationError = await this.getValidationError();
     if (validationError) {
@@ -113,11 +104,66 @@ export default class SmartRenamePlugin extends PluginBase<SmartRenamePluginSetti
       return;
     }
 
-    this.prepareBacklinksToFix();
-    await this.addAlias(this.oldTitle);
+    const backlinks = await getBacklinksForFileSafe(this.app, this.currentNoteFile);
 
-    await this.app.fileManager.renameFile(this.currentNoteFile, this.newPath);
-    this.isReadyToFixBacklinks = true;
+    try {
+      await this.app.vault.rename(this.currentNoteFile, this.newPath);
+    } catch (error) {
+      new Notice('Failed to rename file');
+      console.error(new Error('Failed to rename file', { cause: error }));
+      return;
+    }
+
+    for (const backlinkNotePath of backlinks.keys()) {
+      const links = backlinks.get(backlinkNotePath);
+      if (!links) {
+        continue;
+      }
+
+      const linkJsons = new Set(links.map((link) => toJson(link)));
+
+      await editLinks(this.app, backlinkNotePath, (link) => {
+        if (extractLinkFile(this.app, link, backlinkNotePath) !== this.currentNoteFile && !linkJsons.has(toJson(link))) {
+          return;
+        }
+
+        return generateMarkdownLink({
+          app: this.app,
+          pathOrFile: this.newPath,
+          sourcePathOrFile: backlinkNotePath,
+          alias: link.displayText ?? this.oldTitle,
+          originalLink: link.original
+        });
+      });
+    }
+
+    await addAlias(this.app, this.newPath, this.oldTitle);
+
+    if (this.settings.shouldStoreInvalidTitle && titleToStore !== this.newTitle) {
+      await addAlias(this.app, this.newPath, titleToStore);
+    }
+
+    if (this.settings.shouldUpdateTitleKey) {
+      await processFrontMatter(this.app, this.newPath, (frontMatter) => {
+        frontMatter['title'] = titleToStore;
+      });
+    }
+
+    if (this.settings.shouldUpdateFirstHeader) {
+      await process(this.app, this.newPath, async (content) => {
+        const cache = await getCacheSafe(this.app, this.newPath);
+        if (cache === null) {
+          return null;
+        }
+
+        const firstHeading = cache.headings?.filter((h) => h.level === 1).sort((a, b) => a.position.start.offset - b.position.start.offset)[0];
+        if (!firstHeading) {
+          return content;
+        }
+
+        return content.slice(0, firstHeading.position.start.offset) + `# ${titleToStore}` + content.slice(firstHeading.position.end.offset);
+      });
+    }
   }
 
   private async getValidationError(): Promise<string | null> {
@@ -129,131 +175,11 @@ export default class SmartRenamePlugin extends PluginBase<SmartRenamePluginSetti
       return 'The title did not change';
     }
 
-    if (await this.app.vault.adapter.exists(this.newPath)) {
+    if (await this.app.vault.exists(this.newPath)) {
       return 'Note with the new title already exists';
     }
 
     return null;
-  }
-
-  private prepareBacklinksToFix(): void {
-    const backlinksData = this.app.metadataCache.getBacklinksForFile(this.currentNoteFile).data;
-
-    for (const backlinkFilePath of Object.keys(backlinksData)) {
-      const indicesToFix = new Set<number>();
-
-      const cache = this.app.metadataCache.getCache(backlinkFilePath);
-      if (cache === null) {
-        continue;
-      }
-
-      const linksToFix = new Set(backlinksData.get(backlinkFilePath));
-
-      const links = this.getLinksAndEmbeds(cache);
-
-      for (let linkIndex = 0; linkIndex < links.length; linkIndex++) {
-        const link = links[linkIndex];
-        if (!link) {
-          continue;
-        }
-
-        if (!linksToFix.has(link)) {
-          continue;
-        }
-
-        const displayText = link.displayText?.split(' > ')[0]?.split('/')?.pop();
-
-        if (displayText === this.oldTitle || link.original.includes(`[${this.oldTitle}]`)) {
-          indicesToFix.add(linkIndex);
-        }
-      }
-
-      if (indicesToFix.size > 0) {
-        this.backlinksToFix.set(backlinkFilePath, indicesToFix);
-      }
-    }
-  }
-
-  private async addAlias(alias: string): Promise<void> {
-    await this.app.fileManager.processFrontMatter(this.currentNoteFile, (frontMatter: { aliases: string[] | string }): void => {
-      const aliases = parseFrontMatterAliases(frontMatter) ?? [];
-
-      if (!aliases.includes(alias)) {
-        aliases.push(alias);
-      }
-
-      frontMatter.aliases = aliases;
-    });
-  }
-
-  // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
-  private async editFileLinks(filePath: string, linkProcessor: (link: LinkCache, linkIndex: number) => string | void): Promise<void> {
-    await this.app.vault.adapter.process(filePath, (content): string => {
-      let newContent = '';
-      let contentIndex = 0;
-      const cache = this.app.metadataCache.getCache(filePath);
-      if (cache === null) {
-        return content;
-      }
-
-      const links = this.getLinksAndEmbeds(cache);
-
-      for (let linkIndex = 0; linkIndex < links.length; linkIndex++) {
-        const link = links[linkIndex];
-        if (!link) {
-          continue;
-        }
-
-        newContent += content.substring(contentIndex, link.position.start.offset);
-        let newLink = linkProcessor(link, linkIndex);
-        if (newLink === undefined) {
-          newLink = link.original;
-        }
-        newContent += newLink;
-        contentIndex = link.position.end.offset;
-      }
-      newContent += content.substring(contentIndex, content.length);
-      return newContent;
-    });
-  }
-
-  private getLinksAndEmbeds(cache: CachedMetadata): LinkCache[] {
-    const links: LinkCache[] = [];
-    if (cache.links) {
-      links.push(...cache.links);
-    }
-
-    if (cache.embeds) {
-      links.push(...cache.embeds);
-    }
-
-    links.sort((a, b) => a.position.start.offset - b.position.start.offset);
-
-    return links;
-  }
-
-  private async fixModifiedBacklinks(): Promise<void> {
-    if (!this.isReadyToFixBacklinks) {
-      return;
-    }
-
-    this.isReadyToFixBacklinks = false;
-
-    for (const [backlinkFilePath, indicesToFix] of this.backlinksToFix.entries()) {
-      // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
-      await this.editFileLinks(backlinkFilePath, (link: LinkCache, linkIndex: number): string | void => {
-        if (!indicesToFix.has(linkIndex)) {
-          return;
-        }
-
-        const isWikilink = link.original.includes(']]');
-        return isWikilink
-          ? link.original.replace(/(\|.+)?\]\]/, `|${this.oldTitle}]]`)
-          : link.original.replace(`[${this.newTitle}]`, `[${this.oldTitle}]`);
-      });
-    }
-
-    this.backlinksToFix.clear();
   }
 
   public hasInvalidCharacters(str: string): boolean {
