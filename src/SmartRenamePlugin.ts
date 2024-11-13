@@ -4,12 +4,14 @@ import type {
   Reference,
   TAbstractFile
 } from 'obsidian';
+import type { MaybePromise } from 'obsidian-dev-utils/Async';
+import type { CustomArrayDict } from 'obsidian-typings';
+
 import {
   Notice,
   Platform,
   TFile
 } from 'obsidian';
-import type { MaybePromise } from 'obsidian-dev-utils/Async';
 import { invokeAsyncSafely } from 'obsidian-dev-utils/Async';
 import { toJson } from 'obsidian-dev-utils/Object';
 import { chain } from 'obsidian-dev-utils/obsidian/ChainedPromise';
@@ -37,7 +39,6 @@ import {
 } from 'obsidian-dev-utils/Path';
 import { escapeRegExp } from 'obsidian-dev-utils/RegExp';
 import { insertAt } from 'obsidian-dev-utils/String';
-import type { CustomArrayDict } from 'obsidian-typings';
 
 import { InvalidCharacterAction } from './InvalidCharacterAction.ts';
 import SmartRenamePluginSettings from './SmartRenamePluginSettings.ts';
@@ -50,15 +51,15 @@ export default class SmartRenamePlugin extends PluginBase<SmartRenamePluginSetti
     return new SmartRenamePluginSettings();
   }
 
-  protected override createPluginSettingsTab(): PluginSettingTab | null {
+  protected override createPluginSettingsTab(): null | PluginSettingTab {
     return new SmartRenamePluginSettingsTab(this);
   }
 
   protected override onloadComplete(): MaybePromise<void> {
     this.addCommand({
+      checkCallback: this.smartRenameCommandCheck.bind(this),
       id: 'smart-rename',
-      name: 'Smart Rename',
-      checkCallback: this.smartRenameCommandCheck.bind(this)
+      name: 'Smart Rename'
     });
 
     this.registerEvent(this.app.workspace.on('file-menu', (menu, file) => {
@@ -69,6 +70,15 @@ export default class SmartRenamePlugin extends PluginBase<SmartRenamePluginSetti
     const SYSTEM_FORBIDDEN_CHARACTERS = Platform.isWin ? '*\\/<>:|?"' : '\0/';
     const invalidCharacters = Array.from(new Set([...OBSIDIAN_FORBIDDEN_CHARACTERS, ...SYSTEM_FORBIDDEN_CHARACTERS])).join('');
     this.invalidCharactersRegExp = new RegExp(`[${escapeRegExp(invalidCharacters)}]`, 'g');
+  }
+
+  private async addAliases(newPath: string, oldTitle: string, titleToStore: string): Promise<void> {
+    const newTitle = basename(newPath, extname(newPath));
+    await addAlias(this.app, newPath, oldTitle);
+
+    if (this.settings.shouldStoreInvalidTitle && titleToStore !== newTitle) {
+      await addAlias(this.app, newPath, titleToStore);
+    }
   }
 
   private fileMenuHandler(menu: Menu, file: TAbstractFile): void {
@@ -83,24 +93,83 @@ export default class SmartRenamePlugin extends PluginBase<SmartRenamePluginSetti
     );
   }
 
-  private smartRenameCommandCheck(checking: boolean): boolean {
-    const activeFile = this.app.workspace.getActiveFile();
-    if (!activeFile) {
-      return false;
+  private async getValidationError(oldTitle: string, newTitle: string, newPath: string): Promise<null | string> {
+    if (!newTitle) {
+      return 'No new title provided';
     }
 
-    if (!checking) {
-      invokeAsyncSafely(() => this.smartRename(activeFile));
+    if (newTitle === oldTitle) {
+      return 'The title did not change';
     }
-    return true;
+
+    if (newTitle.toLowerCase() === oldTitle.toLowerCase()) {
+      return null;
+    }
+
+    if (await this.app.vault.exists(newPath)) {
+      return 'Note with the new title already exists';
+    }
+
+    if (newTitle.startsWith('.')) {
+      return 'The title cannot start with a dot';
+    }
+
+    return null;
+  }
+
+  private async processBacklinks(oldPath: string, newPath: string, backlinks: CustomArrayDict<Reference>): Promise<void> {
+    const newFile = getFile(this.app, newPath);
+    const oldTitle = basename(oldPath, extname(oldPath));
+    const newTitle = newFile.basename;
+
+    for (let backlinkNotePath of backlinks.keys()) {
+      const links = backlinks.get(backlinkNotePath);
+      if (!links) {
+        continue;
+      }
+
+      if (backlinkNotePath === oldPath) {
+        backlinkNotePath = newPath;
+      }
+
+      const linkJsons = new Set(links.map((link) => toJson(link)));
+
+      await editLinks(this.app, backlinkNotePath, (link) => {
+        if (extractLinkFile(this.app, link, backlinkNotePath) !== newFile && !linkJsons.has(toJson(link))) {
+          return;
+        }
+
+        const alias = (link.displayText ?? '').toLowerCase() === newTitle.toLowerCase() ? oldTitle : link.displayText;
+
+        return generateMarkdownLink({
+          alias,
+          app: this.app,
+          originalLink: link.original,
+          pathOrFile: newPath,
+          sourcePathOrFile: backlinkNotePath
+        });
+      });
+    }
+  }
+
+  private async processRename(oldPath: string, newPath: string, titleToStore: string, backlinks: CustomArrayDict<Reference>): Promise<void> {
+    const oldTitle = basename(oldPath, extname(oldPath));
+    await this.processBacklinks(oldPath, newPath, backlinks);
+    await this.addAliases(newPath, oldTitle, titleToStore);
+    await this.updateTitle(newPath, titleToStore);
+    await this.updateFirstHeader(newPath, titleToStore);
+  }
+
+  private replaceInvalidCharacters(str: string, replacement: string): string {
+    return str.replace(this.invalidCharactersRegExp, replacement);
   }
 
   private async smartRename(file: TFile): Promise<void> {
     const oldTitle = file.basename;
     let newTitle = await prompt({
       app: this.app,
-      title: 'Enter new title',
-      defaultValue: oldTitle
+      defaultValue: oldTitle,
+      title: 'Enter new title'
     }) ?? '';
 
     let titleToStore = newTitle;
@@ -147,65 +216,16 @@ export default class SmartRenamePlugin extends PluginBase<SmartRenamePluginSetti
     });
   }
 
-  private async processRename(oldPath: string, newPath: string, titleToStore: string, backlinks: CustomArrayDict<Reference>): Promise<void> {
-    const oldTitle = basename(oldPath, extname(oldPath));
-    await this.processBacklinks(oldPath, newPath, backlinks);
-    await this.addAliases(newPath, oldTitle, titleToStore);
-    await this.updateTitle(newPath, titleToStore);
-    await this.updateFirstHeader(newPath, titleToStore);
-  }
-
-  private async processBacklinks(oldPath: string, newPath: string, backlinks: CustomArrayDict<Reference>): Promise<void> {
-    const newFile = getFile(this.app, newPath);
-    const oldTitle = basename(oldPath, extname(oldPath));
-    const newTitle = newFile.basename;
-
-    for (let backlinkNotePath of backlinks.keys()) {
-      const links = backlinks.get(backlinkNotePath);
-      if (!links) {
-        continue;
-      }
-
-      if (backlinkNotePath === oldPath) {
-        backlinkNotePath = newPath;
-      }
-
-      const linkJsons = new Set(links.map((link) => toJson(link)));
-
-      await editLinks(this.app, backlinkNotePath, (link) => {
-        if (extractLinkFile(this.app, link, backlinkNotePath) !== newFile && !linkJsons.has(toJson(link))) {
-          return;
-        }
-
-        const alias = (link.displayText ?? '').toLowerCase() === newTitle.toLowerCase() ? oldTitle : link.displayText;
-
-        return generateMarkdownLink({
-          app: this.app,
-          pathOrFile: newPath,
-          sourcePathOrFile: backlinkNotePath,
-          alias,
-          originalLink: link.original
-        });
-      });
+  private smartRenameCommandCheck(checking: boolean): boolean {
+    const activeFile = this.app.workspace.getActiveFile();
+    if (!activeFile) {
+      return false;
     }
-  }
 
-  private async addAliases(newPath: string, oldTitle: string, titleToStore: string): Promise<void> {
-    const newTitle = basename(newPath, extname(newPath));
-    await addAlias(this.app, newPath, oldTitle);
-
-    if (this.settings.shouldStoreInvalidTitle && titleToStore !== newTitle) {
-      await addAlias(this.app, newPath, titleToStore);
+    if (!checking) {
+      invokeAsyncSafely(() => this.smartRename(activeFile));
     }
-  }
-
-  private async updateTitle(newPath: string, titleToStore: string): Promise<void> {
-    if (!this.settings.shouldUpdateTitleKey) {
-      return;
-    }
-    await processFrontMatter(this.app, newPath, (frontMatter) => {
-      frontMatter['title'] = titleToStore;
-    });
+    return true;
   }
 
   private async updateFirstHeader(newPath: string, titleToStore: string): Promise<void> {
@@ -228,35 +248,16 @@ export default class SmartRenamePlugin extends PluginBase<SmartRenamePluginSetti
     });
   }
 
-  private async getValidationError(oldTitle: string, newTitle: string, newPath: string): Promise<string | null> {
-    if (!newTitle) {
-      return 'No new title provided';
+  private async updateTitle(newPath: string, titleToStore: string): Promise<void> {
+    if (!this.settings.shouldUpdateTitleKey) {
+      return;
     }
-
-    if (newTitle === oldTitle) {
-      return 'The title did not change';
-    }
-
-    if (newTitle.toLowerCase() === oldTitle.toLowerCase()) {
-      return null;
-    }
-
-    if (await this.app.vault.exists(newPath)) {
-      return 'Note with the new title already exists';
-    }
-
-    if (newTitle.startsWith('.')) {
-      return 'The title cannot start with a dot';
-    }
-
-    return null;
+    await processFrontMatter(this.app, newPath, (frontMatter) => {
+      frontMatter['title'] = titleToStore;
+    });
   }
 
   public hasInvalidCharacters(str: string): boolean {
     return this.invalidCharactersRegExp.test(str);
-  }
-
-  private replaceInvalidCharacters(str: string, replacement: string): string {
-    return str.replace(this.invalidCharactersRegExp, replacement);
   }
 }
