@@ -2,8 +2,9 @@ import { Setting } from 'obsidian';
 import { PluginSettingsTabBase } from 'obsidian-dev-utils/obsidian/Plugin/PluginSettingsTabBase';
 import { extend } from 'obsidian-dev-utils/obsidian/Plugin/ValueComponent';
 
-import { InvalidCharacterAction } from './InvalidCharacterAction.ts';
 import type SmartRenamePlugin from './SmartRenamePlugin.ts';
+
+import { InvalidCharacterAction } from './InvalidCharacterAction.ts';
 
 export default class SmartRenamePluginSettingsTab extends PluginSettingsTabBase<SmartRenamePlugin> {
   public display(): void {
