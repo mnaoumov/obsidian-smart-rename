@@ -14,7 +14,6 @@ import {
 } from 'obsidian';
 import { invokeAsyncSafely } from 'obsidian-dev-utils/Async';
 import { toJson } from 'obsidian-dev-utils/Object';
-import { chain } from 'obsidian-dev-utils/obsidian/ChainedPromise';
 import {
   addAlias,
   processFrontMatter
@@ -31,6 +30,7 @@ import {
 } from 'obsidian-dev-utils/obsidian/MetadataCache';
 import { prompt } from 'obsidian-dev-utils/obsidian/Modal/Prompt';
 import { PluginBase } from 'obsidian-dev-utils/obsidian/Plugin/PluginBase';
+import { addToQueue } from 'obsidian-dev-utils/obsidian/Queue';
 import { process } from 'obsidian-dev-utils/obsidian/Vault';
 import {
   basename,
@@ -46,6 +46,10 @@ import SmartRenamePluginSettingsTab from './SmartRenamePluginSettingsTab.ts';
 
 export default class SmartRenamePlugin extends PluginBase<SmartRenamePluginSettings> {
   private invalidCharactersRegExp!: RegExp;
+
+  public hasInvalidCharacters(str: string): boolean {
+    return this.invalidCharactersRegExp.test(str);
+  }
 
   protected override createDefaultPluginSettings(): SmartRenamePluginSettings {
     return new SmartRenamePluginSettings();
@@ -211,7 +215,7 @@ export default class SmartRenamePlugin extends PluginBase<SmartRenamePluginSetti
       return;
     }
 
-    chain(this.app, async () => {
+    addToQueue(this.app, async () => {
       await this.processRename(oldPath, newPath, titleToStore, backlinks);
     });
   }
@@ -255,9 +259,5 @@ export default class SmartRenamePlugin extends PluginBase<SmartRenamePluginSetti
     await processFrontMatter(this.app, newPath, (frontMatter) => {
       frontMatter['title'] = titleToStore;
     });
-  }
-
-  public hasInvalidCharacters(str: string): boolean {
-    return this.invalidCharactersRegExp.test(str);
   }
 }
