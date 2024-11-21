@@ -41,10 +41,10 @@ import { escapeRegExp } from 'obsidian-dev-utils/RegExp';
 import { insertAt } from 'obsidian-dev-utils/String';
 
 import { InvalidCharacterAction } from './InvalidCharacterAction.ts';
-import SmartRenamePluginSettings from './SmartRenamePluginSettings.ts';
-import SmartRenamePluginSettingsTab from './SmartRenamePluginSettingsTab.ts';
+import { SmartRenamePluginSettings } from './SmartRenamePluginSettings.ts';
+import { SmartRenamePluginSettingsTab } from './SmartRenamePluginSettingsTab.ts';
 
-export default class SmartRenamePlugin extends PluginBase<SmartRenamePluginSettings> {
+export class SmartRenamePlugin extends PluginBase<SmartRenamePluginSettings> {
   private invalidCharactersRegExp!: RegExp;
 
   public hasInvalidCharacters(str: string): boolean {
