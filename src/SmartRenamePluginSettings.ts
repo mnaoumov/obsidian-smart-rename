@@ -1,6 +1,6 @@
 import { InvalidCharacterAction } from './InvalidCharacterAction.ts';
 
-export default class SmartRenamePluginSettings {
+export class SmartRenamePluginSettings {
   public invalidCharacterAction = InvalidCharacterAction.Error;
   public replacementCharacter = '_';
   public shouldStoreInvalidTitle = true;
