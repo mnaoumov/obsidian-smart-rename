@@ -5,6 +5,7 @@ import type {
   TAbstractFile
 } from 'obsidian';
 import type { MaybePromise } from 'obsidian-dev-utils/Async';
+import type { GenerateMarkdownLinkOptions } from 'obsidian-dev-utils/obsidian/Link';
 import type { CustomArrayDict } from 'obsidian-typings';
 
 import {
@@ -13,16 +14,20 @@ import {
   TFile
 } from 'obsidian';
 import { invokeAsyncSafely } from 'obsidian-dev-utils/Async';
-import { toJson } from 'obsidian-dev-utils/Object';
+import {
+  normalizeOptionalProperties,
+  toJson
+} from 'obsidian-dev-utils/Object';
 import {
   addAlias,
-  processFrontMatter
+  processFrontmatter
 } from 'obsidian-dev-utils/obsidian/FileManager';
 import { getFile } from 'obsidian-dev-utils/obsidian/FileSystem';
 import {
   editLinks,
   extractLinkFile,
   generateMarkdownLink
+
 } from 'obsidian-dev-utils/obsidian/Link';
 import {
   getBacklinksForFileSafe,
@@ -51,8 +56,8 @@ export class SmartRenamePlugin extends PluginBase<SmartRenamePluginSettings> {
     return this.invalidCharactersRegExp.test(str);
   }
 
-  protected override createDefaultPluginSettings(): SmartRenamePluginSettings {
-    return new SmartRenamePluginSettings();
+  protected override createPluginSettings(data: unknown): SmartRenamePluginSettings {
+    return new SmartRenamePluginSettings(data);
   }
 
   protected override createPluginSettingsTab(): null | PluginSettingTab {
@@ -145,13 +150,13 @@ export class SmartRenamePlugin extends PluginBase<SmartRenamePluginSettings> {
 
         const alias = (link.displayText ?? '').toLowerCase() === newTitle.toLowerCase() ? oldTitle : link.displayText;
 
-        return generateMarkdownLink({
+        return generateMarkdownLink(normalizeOptionalProperties<GenerateMarkdownLinkOptions>({
           alias,
           app: this.app,
           originalLink: link.original,
-          pathOrFile: newPath,
-          sourcePathOrFile: backlinkNotePath
-        });
+          sourcePathOrFile: backlinkNotePath,
+          targetPathOrFile: newPath
+        }));
       });
     }
   }
@@ -256,7 +261,7 @@ export class SmartRenamePlugin extends PluginBase<SmartRenamePluginSettings> {
     if (!this.settings.shouldUpdateTitleKey) {
       return;
     }
-    await processFrontMatter(this.app, newPath, (frontMatter) => {
+    await processFrontmatter(this.app, newPath, (frontMatter) => {
       frontMatter['title'] = titleToStore;
     });
   }
