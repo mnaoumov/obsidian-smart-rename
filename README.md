@@ -59,7 +59,7 @@ Current plugin's aim is to preserve `OldName` display text in links 1, 2, 4
 ## Installation
 
 - `Smart Rename` is available on [the official Community Plugins repository](https://obsidian.md/plugins?id=smart-rename).
-- Beta releases can be installed through [BRAT](https://github.com/TfTHacker/obsidian42-brat)
+- Beta releases can be installed through [BRAT](https://obsidian.md/plugins?id=obsidian42-brat).
 
 ## Support
 
