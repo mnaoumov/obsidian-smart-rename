@@ -24,7 +24,7 @@ export class SmartRenamePluginSettingsTab extends PluginSettingsTabBase<SmartRen
         });
       });
 
-    if (this.plugin.settingsCopy.invalidCharacterAction === InvalidCharacterAction.Replace) {
+    if (this.plugin.settings.invalidCharacterAction === InvalidCharacterAction.Replace) {
       new Setting(this.containerEl)
         .setName('Replacement character')
         .setDesc('Character to replace invalid character with')
@@ -44,7 +44,7 @@ export class SmartRenamePluginSettingsTab extends PluginSettingsTabBase<SmartRen
         });
     }
 
-    if (this.plugin.settingsCopy.invalidCharacterAction !== InvalidCharacterAction.Error) {
+    if (this.plugin.settings.invalidCharacterAction !== InvalidCharacterAction.Error) {
       new Setting(this.containerEl)
         .setName('Store invalid title')
         .setDesc('If enabled, stores title with invalid characters. If disabled, stores the sanitized version')
