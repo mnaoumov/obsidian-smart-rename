@@ -77,7 +77,7 @@ export class SmartRenamePlugin extends PluginBase<SmartRenamePluginSettings> {
 
     const OBSIDIAN_FORBIDDEN_CHARACTERS = '#^[]|';
     const SYSTEM_FORBIDDEN_CHARACTERS = Platform.isWin ? '*\\/<>:|?"' : '\0/';
-    const invalidCharacters = Array.from(new Set([...OBSIDIAN_FORBIDDEN_CHARACTERS, ...SYSTEM_FORBIDDEN_CHARACTERS])).join('');
+    const invalidCharacters = Array.from(new Set([...OBSIDIAN_FORBIDDEN_CHARACTERS.split(''), ...SYSTEM_FORBIDDEN_CHARACTERS.split('')])).join('');
     this.invalidCharactersRegExp = new RegExp(`[${escapeRegExp(invalidCharacters)}]`, 'g');
   }
 
