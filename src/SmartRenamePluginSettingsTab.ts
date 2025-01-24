@@ -20,7 +20,9 @@ export class SmartRenamePluginSettingsTab extends PluginSettingsTabBase<SmartRen
             Replace: 'Replace invalid character with'
           });
         this.bind(dropdown, 'invalidCharacterAction', {
-          onChanged: () => { this.display(); }
+          onChanged: () => {
+            this.display();
+          }
         });
       });
 
@@ -48,17 +50,13 @@ export class SmartRenamePluginSettingsTab extends PluginSettingsTabBase<SmartRen
       new Setting(this.containerEl)
         .setName('Store invalid title')
         .setDesc('If enabled, stores title with invalid characters. If disabled, stores the sanitized version')
-        .addToggle((toggle) =>
-          this.bind(toggle, 'shouldStoreInvalidTitle')
-        );
+        .addToggle((toggle) => this.bind(toggle, 'shouldStoreInvalidTitle'));
     }
 
     new Setting(this.containerEl)
       .setName('Update title key')
       .setDesc('Update title key in frontmatter')
-      .addToggle((toggle) =>
-        this.bind(toggle, 'shouldUpdateTitleKey')
-      );
+      .addToggle((toggle) => this.bind(toggle, 'shouldUpdateTitleKey'));
 
     new Setting(this.containerEl)
       .setName('Update first header')
@@ -72,8 +70,6 @@ export class SmartRenamePluginSettingsTab extends PluginSettingsTabBase<SmartRen
         });
         f.appendText(' plugin.');
       }))
-      .addToggle((toggle) =>
-        this.bind(toggle, 'shouldUpdateFirstHeader')
-      );
+      .addToggle((toggle) => this.bind(toggle, 'shouldUpdateFirstHeader'));
   }
 }
