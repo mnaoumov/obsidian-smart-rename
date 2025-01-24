@@ -27,7 +27,6 @@ import {
   editLinks,
   extractLinkFile,
   generateMarkdownLink
-
 } from 'obsidian-dev-utils/obsidian/Link';
 import {
   getBacklinksForFileSafe,
@@ -98,7 +97,9 @@ export class SmartRenamePlugin extends PluginBase<SmartRenamePluginSettings> {
     menu.addItem((item) =>
       item.setTitle('Smart Rename')
         .setIcon('edit-3')
-        .onClick(() => { invokeAsyncSafely(() => this.smartRename(file)); })
+        .onClick(() => {
+          invokeAsyncSafely(() => this.smartRename(file));
+        })
     );
   }
 
