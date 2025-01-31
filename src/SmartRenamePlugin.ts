@@ -195,6 +195,8 @@ export class SmartRenamePlugin extends PluginBase<SmartRenamePluginSettings> {
         case InvalidCharacterAction.Replace:
           newTitle = this.replaceInvalidCharacters(newTitle, this.settings.replacementCharacter);
           break;
+        default:
+          throw new Error('Invalid character action');
       }
     }
 

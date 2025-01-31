@@ -35,11 +35,10 @@ export class SmartRenamePluginSettingsTab extends PluginSettingsTabBase<SmartRen
           text.inputEl.required = true;
 
           this.bind(text, 'replacementCharacter', {
-            valueValidator: (value) => {
+            // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
+            valueValidator: (value): string | void => {
               if (this.plugin.hasInvalidCharacters(value)) {
                 return 'Invalid replacement character';
-              } else {
-                return;
               }
             }
           });
