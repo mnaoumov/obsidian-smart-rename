@@ -1,5 +1,5 @@
-import { Setting } from 'obsidian';
 import { PluginSettingsTabBase } from 'obsidian-dev-utils/obsidian/Plugin/PluginSettingsTabBase';
+import { SettingEx } from 'obsidian-dev-utils/obsidian/SettingEx';
 
 import type { SmartRenamePlugin } from './SmartRenamePlugin.ts';
 
@@ -9,16 +9,15 @@ export class SmartRenamePluginSettingsTab extends PluginSettingsTabBase<SmartRen
   public display(): void {
     this.containerEl.empty();
 
-    new Setting(this.containerEl)
+    new SettingEx(this.containerEl)
       .setName('Invalid characters action')
       .setDesc('How to process invalid characters in the new title')
       .addDropdown((dropdown) => {
-        dropdown
-          .addOptions({
-            Error: 'Show error',
-            Remove: 'Remove invalid characters',
-            Replace: 'Replace invalid character with'
-          });
+        dropdown.addOptions({
+          Error: 'Show error',
+          Remove: 'Remove invalid characters',
+          Replace: 'Replace invalid character with'
+        });
         this.bind(dropdown, 'invalidCharacterAction', {
           onChanged: () => {
             this.display();
@@ -27,7 +26,7 @@ export class SmartRenamePluginSettingsTab extends PluginSettingsTabBase<SmartRen
       });
 
     if (this.plugin.settings.invalidCharacterAction === InvalidCharacterAction.Replace) {
-      new Setting(this.containerEl)
+      new SettingEx(this.containerEl)
         .setName('Replacement character')
         .setDesc('Character to replace invalid character with')
         .addText((text) => {
@@ -46,18 +45,22 @@ export class SmartRenamePluginSettingsTab extends PluginSettingsTabBase<SmartRen
     }
 
     if (this.plugin.settings.invalidCharacterAction !== InvalidCharacterAction.Error) {
-      new Setting(this.containerEl)
+      new SettingEx(this.containerEl)
         .setName('Store invalid title')
         .setDesc('If enabled, stores title with invalid characters. If disabled, stores the sanitized version')
-        .addToggle((toggle) => this.bind(toggle, 'shouldStoreInvalidTitle'));
+        .addToggle((toggle) => {
+          this.bind(toggle, 'shouldStoreInvalidTitle');
+        });
     }
 
-    new Setting(this.containerEl)
+    new SettingEx(this.containerEl)
       .setName('Update title key')
       .setDesc('Update title key in frontmatter')
-      .addToggle((toggle) => this.bind(toggle, 'shouldUpdateTitleKey'));
+      .addToggle((toggle) => {
+        this.bind(toggle, 'shouldUpdateTitleKey');
+      });
 
-    new Setting(this.containerEl)
+    new SettingEx(this.containerEl)
       .setName('Update first header')
       .setDesc(createFragment((f) => {
         f.appendText('Update first header if it is present in the document. May conflict with the ');
@@ -69,6 +72,8 @@ export class SmartRenamePluginSettingsTab extends PluginSettingsTabBase<SmartRen
         });
         f.appendText(' plugin.');
       }))
-      .addToggle((toggle) => this.bind(toggle, 'shouldUpdateFirstHeader'));
+      .addToggle((toggle) => {
+        this.bind(toggle, 'shouldUpdateFirstHeader');
+      });
   }
 }
