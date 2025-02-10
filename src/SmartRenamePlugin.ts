@@ -32,7 +32,7 @@ import {
   getBacklinksForFileSafe,
   getCacheSafe
 } from 'obsidian-dev-utils/obsidian/MetadataCache';
-import { prompt } from 'obsidian-dev-utils/obsidian/Modal/Prompt';
+import { prompt } from 'obsidian-dev-utils/obsidian/Modals/Prompt';
 import { PluginBase } from 'obsidian-dev-utils/obsidian/Plugin/PluginBase';
 import { addToQueue } from 'obsidian-dev-utils/obsidian/Queue';
 import { process } from 'obsidian-dev-utils/obsidian/Vault';
