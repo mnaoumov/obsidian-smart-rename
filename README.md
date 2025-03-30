@@ -58,8 +58,15 @@ Current plugin's aim is to preserve `OldName` display text in links 1, 2, 4
 
 ## Installation
 
-- The plugin is available on [the official Community Plugins repository](https://obsidian.md/plugins?id=smart-rename).
-- [Beta releases](obsidian://brat?plugin=https://github.com/mnaoumov/obsidian-smart-rename) can be installed via [BRAT](https://obsidian.md/plugins?id=obsidian42-brat).
+The plugin is available in [the official Community Plugins repository](https://obsidian.md/plugins?id=smart-rename).
+
+### Beta versions
+
+To install the latest beta release of this plugin (regardless if it is available in [the official Community Plugins repository](https://obsidian.md/plugins) or not), follow these steps:
+
+1. Ensure you have the [BRAT plugin](https://obsidian.md/plugins?id=obsidian42-brat) installed and enabled.
+2. Click [Install via BRAT](https://intradeus.github.io/http-protocol-redirector?r=obsidian://brat?plugin=https://github.com/mnaoumov/obsidian-smart-rename).
+3. An Obsidian pop-up window should appear. In the window, click the `Add plugin` button once and wait a few seconds for the plugin to install.
 
 ## Debugging
 
