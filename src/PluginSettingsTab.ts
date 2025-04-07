@@ -1,11 +1,11 @@
 import { PluginSettingsTabBase } from 'obsidian-dev-utils/obsidian/Plugin/PluginSettingsTabBase';
 import { SettingEx } from 'obsidian-dev-utils/obsidian/SettingEx';
 
-import type { SmartRenamePlugin } from './SmartRenamePlugin.ts';
+import type { PluginTypes } from './PluginTypes.ts';
 
 import { InvalidCharacterAction } from './InvalidCharacterAction.ts';
 
-export class SmartRenamePluginSettingsTab extends PluginSettingsTabBase<SmartRenamePlugin> {
+export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
   public display(): void {
     this.containerEl.empty();
 
@@ -33,14 +33,7 @@ export class SmartRenamePluginSettingsTab extends PluginSettingsTabBase<SmartRen
           text.inputEl.maxLength = 1;
           text.inputEl.required = true;
 
-          this.bind(text, 'replacementCharacter', {
-            // eslint-disable-next-line @typescript-eslint/no-invalid-void-type
-            valueValidator: (value): string | void => {
-              if (this.plugin.hasInvalidCharacters(value)) {
-                return 'Invalid replacement character';
-              }
-            }
-          });
+          this.bind(text, 'replacementCharacter');
         });
     }
 
