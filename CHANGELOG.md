@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2.0.15
+
+- Update libs
+- New template
+- Update README
+- ESLint template
+
 ## 2.0.14
 
 - https://github.com/mnaoumov/obsidian-dev-utils/releases/tag/19.17.1
