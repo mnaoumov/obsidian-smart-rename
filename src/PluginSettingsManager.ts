@@ -7,15 +7,15 @@ import type { PluginTypes } from './PluginTypes.ts';
 import { PluginSettings } from './PluginSettings.ts';
 
 export class PluginSettingsManager extends PluginSettingsManagerBase<PluginTypes> {
-  protected override addValidators(): void {
-    this.addValidator('replacementCharacter', (value): MaybeReturn<string> => {
+  protected override createDefaultSettings(): PluginSettings {
+    return new PluginSettings();
+  }
+
+  protected override registerValidators(): void {
+    this.registerValidator('replacementCharacter', (value): MaybeReturn<string> => {
       if (this.plugin.hasInvalidCharacters(value)) {
         return 'Invalid replacement character';
       }
     });
-  }
-
-  protected override createDefaultSettings(): PluginSettings {
-    return new PluginSettings();
   }
 }
