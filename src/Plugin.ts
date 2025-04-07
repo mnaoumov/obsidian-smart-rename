@@ -1,10 +1,8 @@
 import type {
   Menu,
-  PluginSettingTab,
   Reference,
   TAbstractFile
 } from 'obsidian';
-import type { MaybePromise } from 'obsidian-dev-utils/Async';
 import type { GenerateMarkdownLinkOptions } from 'obsidian-dev-utils/obsidian/Link';
 import type { CustomArrayDict } from 'obsidian-typings';
 
@@ -44,26 +42,29 @@ import {
 import { escapeRegExp } from 'obsidian-dev-utils/RegExp';
 import { insertAt } from 'obsidian-dev-utils/String';
 
-import { InvalidCharacterAction } from './InvalidCharacterAction.ts';
-import { SmartRenamePluginSettings } from './SmartRenamePluginSettings.ts';
-import { SmartRenamePluginSettingsTab } from './SmartRenamePluginSettingsTab.ts';
+import type { PluginTypes } from './PluginTypes.ts';
 
-export class SmartRenamePlugin extends PluginBase<SmartRenamePluginSettings> {
+import { InvalidCharacterAction } from './InvalidCharacterAction.ts';
+import { PluginSettingsManager } from './PluginSettingsManager.ts';
+import { PluginSettingsTab } from './PluginSettingsTab.ts';
+
+export class Plugin extends PluginBase<PluginTypes> {
   private invalidCharactersRegExp!: RegExp;
 
   public hasInvalidCharacters(str: string): boolean {
     return this.invalidCharactersRegExp.test(str);
   }
 
-  protected override createPluginSettings(data: unknown): SmartRenamePluginSettings {
-    return new SmartRenamePluginSettings(data);
+  protected override createPluginSettingsTab(): null | PluginSettingsTab {
+    return new PluginSettingsTab(this);
   }
 
-  protected override createPluginSettingsTab(): null | PluginSettingTab {
-    return new SmartRenamePluginSettingsTab(this);
+  protected override createSettingsManager(): PluginSettingsManager {
+    return new PluginSettingsManager(this);
   }
 
-  protected override onloadComplete(): MaybePromise<void> {
+  protected override async onloadImpl(): Promise<void> {
+    await super.onloadImpl();
     this.addCommand({
       checkCallback: this.smartRenameCommandCheck.bind(this),
       id: 'smart-rename',

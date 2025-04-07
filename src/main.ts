@@ -1,4 +1,4 @@
-import { SmartRenamePlugin } from './SmartRenamePlugin.ts';
+import { Plugin } from './Plugin.ts';
 
 // eslint-disable-next-line import-x/no-default-export
-export default SmartRenamePlugin;
+export default Plugin;
