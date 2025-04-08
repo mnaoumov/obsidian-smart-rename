@@ -6,7 +6,8 @@ import type { PluginTypes } from './PluginTypes.ts';
 import { InvalidCharacterAction } from './InvalidCharacterAction.ts';
 
 export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
-  public display(): void {
+  public override display(): void {
+    super.display();
     this.containerEl.empty();
 
     new SettingEx(this.containerEl)
