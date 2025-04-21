@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 2.0.19
+
+- Fix initialization
+- https://github.com/mnaoumov/obsidian-dev-utils/releases/tag/26.9.0
+
 ## 2.0.18
 
 - https://github.com/mnaoumov/obsidian-dev-utils/releases/tag/24.1.1
