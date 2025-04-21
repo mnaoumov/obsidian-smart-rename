@@ -79,7 +79,6 @@ export class Plugin extends PluginBase<PluginTypes> {
     this.registerEvent(this.app.workspace.on('file-menu', (menu, file) => {
       this.fileMenuHandler(menu, file);
     }));
-
   }
 
   private async addAliases(newPath: string, oldTitle: string, titleToStore: string): Promise<void> {
