@@ -64,6 +64,11 @@ export class Plugin extends PluginBase<PluginTypes> {
   }
 
   protected override async onloadImpl(): Promise<void> {
+    const OBSIDIAN_FORBIDDEN_CHARACTERS = '#^[]|';
+    const SYSTEM_FORBIDDEN_CHARACTERS = Platform.isWin ? '*\\/<>:|?"' : '\0/';
+    const invalidCharacters = Array.from(new Set([...OBSIDIAN_FORBIDDEN_CHARACTERS.split(''), ...SYSTEM_FORBIDDEN_CHARACTERS.split('')])).join('');
+    this.invalidCharactersRegExp = new RegExp(`[${escapeRegExp(invalidCharacters)}]`, 'g');
+
     await super.onloadImpl();
     this.addCommand({
       checkCallback: this.smartRenameCommandCheck.bind(this),
@@ -75,10 +80,6 @@ export class Plugin extends PluginBase<PluginTypes> {
       this.fileMenuHandler(menu, file);
     }));
 
-    const OBSIDIAN_FORBIDDEN_CHARACTERS = '#^[]|';
-    const SYSTEM_FORBIDDEN_CHARACTERS = Platform.isWin ? '*\\/<>:|?"' : '\0/';
-    const invalidCharacters = Array.from(new Set([...OBSIDIAN_FORBIDDEN_CHARACTERS.split(''), ...SYSTEM_FORBIDDEN_CHARACTERS.split('')])).join('');
-    this.invalidCharactersRegExp = new RegExp(`[${escapeRegExp(invalidCharacters)}]`, 'g');
   }
 
   private async addAliases(newPath: string, oldTitle: string, titleToStore: string): Promise<void> {
