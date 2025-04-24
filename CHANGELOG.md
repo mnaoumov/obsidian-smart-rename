@@ -1,5 +1,10 @@
 # CHANGELOG
 
+## 2.0.20
+
+- Improve performance
+- https://github.com/mnaoumov/obsidian-dev-utils/releases/tag/26.15.2
+
 ## 2.0.19
 
 - Fix initialization
