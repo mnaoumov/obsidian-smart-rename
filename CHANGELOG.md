@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2.0.21
+
+- Update libs
+
 ## 2.0.20
 
 - Improve performance
