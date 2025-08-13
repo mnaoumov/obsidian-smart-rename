@@ -28,7 +28,8 @@
     "obsidian-typings": "^3.16.0"
   },
   "overrides": {
-    "@antfu/utils": "9.2.0"
+    "@antfu/utils": "9.2.0",
+    "dompurify": "3.0.1"
   },
   "type": "module"
 }
