@@ -8,7 +8,6 @@ import type { CustomArrayDict } from 'obsidian-typings';
 
 import {
   Notice,
-  Platform,
   TFile
 } from 'obsidian';
 import { invokeAsyncSafely } from 'obsidian-dev-utils/Async';
@@ -33,13 +32,13 @@ import {
 import { prompt } from 'obsidian-dev-utils/obsidian/Modals/Prompt';
 import { PluginBase } from 'obsidian-dev-utils/obsidian/Plugin/PluginBase';
 import { addToQueue } from 'obsidian-dev-utils/obsidian/Queue';
+import { getOsAndObsidianUnsafePathCharsRegExp } from 'obsidian-dev-utils/obsidian/Validation';
 import { process } from 'obsidian-dev-utils/obsidian/Vault';
 import {
   basename,
   extname,
   join
 } from 'obsidian-dev-utils/Path';
-import { escapeRegExp } from 'obsidian-dev-utils/RegExp';
 import { insertAt } from 'obsidian-dev-utils/String';
 
 import type { PluginTypes } from './PluginTypes.ts';
@@ -49,10 +48,8 @@ import { PluginSettingsManager } from './PluginSettingsManager.ts';
 import { PluginSettingsTab } from './PluginSettingsTab.ts';
 
 export class Plugin extends PluginBase<PluginTypes> {
-  private invalidCharactersRegExp!: RegExp;
-
   public hasInvalidCharacters(str: string): boolean {
-    return this.invalidCharactersRegExp.test(str);
+    return getOsAndObsidianUnsafePathCharsRegExp().test(str);
   }
 
   protected override createSettingsManager(): PluginSettingsManager {
@@ -64,11 +61,6 @@ export class Plugin extends PluginBase<PluginTypes> {
   }
 
   protected override async onloadImpl(): Promise<void> {
-    const OBSIDIAN_FORBIDDEN_CHARACTERS = '#^[]|';
-    const SYSTEM_FORBIDDEN_CHARACTERS = Platform.isWin ? '*\\/<>:|?"' : '\0/';
-    const invalidCharacters = Array.from(new Set([...OBSIDIAN_FORBIDDEN_CHARACTERS.split(''), ...SYSTEM_FORBIDDEN_CHARACTERS.split('')])).join('');
-    this.invalidCharactersRegExp = new RegExp(`[${escapeRegExp(invalidCharacters)}]`, 'g');
-
     await super.onloadImpl();
     this.addCommand({
       checkCallback: this.smartRenameCommandCheck.bind(this),
@@ -172,7 +164,7 @@ export class Plugin extends PluginBase<PluginTypes> {
   }
 
   private replaceInvalidCharacters(str: string, replacement: string): string {
-    return str.replace(this.invalidCharactersRegExp, replacement);
+    return str.replace(getOsAndObsidianUnsafePathCharsRegExp(), replacement);
   }
 
   private async smartRename(file: TFile): Promise<void> {
