@@ -246,8 +246,10 @@ export class Plugin extends PluginBase<PluginTypes> {
       return;
     }
 
-    await process(this.app, newPath, async (content) => {
+    await process(this.app, newPath, async (abortSignal, content) => {
+      abortSignal.throwIfAborted();
       const cache = await getCacheSafe(this.app, newPath);
+      abortSignal.throwIfAborted();
       if (cache === null) {
         return null;
       }
