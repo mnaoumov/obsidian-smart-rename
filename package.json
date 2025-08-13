@@ -27,5 +27,8 @@
     "obsidian-dev-utils": "^31.0.0",
     "obsidian-typings": "^3.16.0"
   },
+  "overrides": {
+    "@antfu/utils": "9.2.0"
+  },
   "type": "module"
 }
