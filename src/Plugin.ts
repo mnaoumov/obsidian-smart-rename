@@ -15,7 +15,7 @@ import { invokeAsyncSafely } from 'obsidian-dev-utils/Async';
 import {
   normalizeOptionalProperties,
   toJson
-} from 'obsidian-dev-utils/Object';
+} from 'obsidian-dev-utils/ObjectUtils';
 import {
   addAlias,
   processFrontmatter
