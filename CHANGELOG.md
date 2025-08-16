@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2.0.26
+
+- Update libs
+
 ## 2.0.25
 
 - Use getOsAndObsidianUnsafePathCharsRegExp
