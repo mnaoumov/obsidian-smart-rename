@@ -19,7 +19,10 @@ import {
   addAlias,
   processFrontmatter
 } from 'obsidian-dev-utils/obsidian/FileManager';
-import { getFile } from 'obsidian-dev-utils/obsidian/FileSystem';
+import {
+  getFile,
+  isMarkdownFile
+} from 'obsidian-dev-utils/obsidian/FileSystem';
 import {
   editLinks,
   extractLinkFile,
@@ -37,7 +40,8 @@ import { process } from 'obsidian-dev-utils/obsidian/Vault';
 import {
   basename,
   extname,
-  join
+  join,
+  makeFileName
 } from 'obsidian-dev-utils/Path';
 import { insertAt } from 'obsidian-dev-utils/String';
 
@@ -158,6 +162,11 @@ export class Plugin extends PluginBase<PluginTypes> {
   private async processRename(oldPath: string, newPath: string, titleToStore: string, backlinks: CustomArrayDict<Reference>): Promise<void> {
     const oldTitle = basename(oldPath, extname(oldPath));
     await this.processBacklinks(oldPath, newPath, backlinks);
+
+    if (!isMarkdownFile(this.app, newPath)) {
+      return;
+    }
+
     await this.addAliases(newPath, oldTitle, titleToStore);
     await this.updateTitle(newPath, titleToStore);
     await this.updateFirstHeader(newPath, titleToStore);
@@ -197,7 +206,7 @@ export class Plugin extends PluginBase<PluginTypes> {
       titleToStore = newTitle;
     }
 
-    const newPath = join(file.parent?.getParentPrefix() ?? '', `${newTitle}.md`);
+    const newPath = join(file.parent?.getParentPrefix() ?? '', makeFileName(newTitle, file.extension));
 
     const validationError = await this.getValidationError(oldTitle, newTitle, newPath);
     if (validationError) {
