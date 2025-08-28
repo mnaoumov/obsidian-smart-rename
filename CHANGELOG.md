@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2.1.0
+
+- shouldSupportNonMarkdownFiles config
+- Update settings UI
+- Don't edit non-md files
+- Fix validation for default invalid char
+
 ## 2.0.27
 
 - Update libs
