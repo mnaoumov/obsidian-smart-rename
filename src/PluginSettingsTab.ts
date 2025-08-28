@@ -39,24 +39,28 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
 
     if (this.plugin.settings.invalidCharacterAction !== InvalidCharacterAction.Error) {
       new SettingEx(this.containerEl)
-        .setName('Store invalid title')
-        .setDesc('If enabled, stores title with invalid characters. If disabled, stores the sanitized version')
+        .setName('Should store invalid title')
+        .setDesc(createFragment((f) => {
+          f.appendText('Whether to store the title with invalid characters.');
+          f.createEl('br');
+          f.appendText('If disabled, stores the sanitized version');
+        }))
         .addToggle((toggle) => {
           this.bind(toggle, 'shouldStoreInvalidTitle');
         });
     }
 
     new SettingEx(this.containerEl)
-      .setName('Update title key')
-      .setDesc('Update title key in frontmatter')
+      .setName('Should update title key')
+      .setDesc('Whether to update the title key in frontmatter.')
       .addToggle((toggle) => {
         this.bind(toggle, 'shouldUpdateTitleKey');
       });
 
     new SettingEx(this.containerEl)
-      .setName('Update first header')
+      .setName('Should update first header')
       .setDesc(createFragment((f) => {
-        f.appendText('Update first header if it is present in the document. May conflict with the ');
+        f.appendText('Whether to update the first header if it is present in the note. May conflict with the ');
         f.createEl('a', {
           attr: {
             href: 'https://obsidian.md/plugins?id=obsidian-filename-heading-sync'
