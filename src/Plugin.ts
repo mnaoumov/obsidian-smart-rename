@@ -91,6 +91,10 @@ export class Plugin extends PluginBase<PluginTypes> {
       return;
     }
 
+    if (!this.settings.shouldSupportNonMarkdownFiles && !isMarkdownFile(this.app, file)) {
+      return;
+    }
+
     menu.addItem((item) =>
       item.setTitle('Smart Rename')
         .setIcon('edit-3')
@@ -233,6 +237,10 @@ export class Plugin extends PluginBase<PluginTypes> {
   private smartRenameCommandCheck(checking: boolean): boolean {
     const activeFile = this.app.workspace.getActiveFile();
     if (!activeFile) {
+      return false;
+    }
+
+    if (!this.settings.shouldSupportNonMarkdownFiles && !isMarkdownFile(this.app, activeFile)) {
       return false;
     }
 
