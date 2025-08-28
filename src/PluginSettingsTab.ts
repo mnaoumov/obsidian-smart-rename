@@ -1,3 +1,4 @@
+import { appendCodeBlock } from 'obsidian-dev-utils/HTMLElement';
 import { PluginSettingsTabBase } from 'obsidian-dev-utils/obsidian/Plugin/PluginSettingsTabBase';
 import { SettingEx } from 'obsidian-dev-utils/obsidian/SettingEx';
 
@@ -71,6 +72,19 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
       }))
       .addToggle((toggle) => {
         this.bind(toggle, 'shouldUpdateFirstHeader');
+      });
+
+    new SettingEx(this.containerEl)
+      .setName('Should support non-markdown files')
+      .setDesc(createFragment((f) => {
+        f.appendText('Whether to support non-markdown files.');
+        f.createEl('br');
+        f.appendText('If disabled, context menu and ');
+        appendCodeBlock(f, 'Smart rename');
+        f.appendText(' command will not be available for non-markdown files.');
+      }))
+      .addToggle((toggle) => {
+        this.bind(toggle, 'shouldSupportNonMarkdownFiles');
       });
   }
 }

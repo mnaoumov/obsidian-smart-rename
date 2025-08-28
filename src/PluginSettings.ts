@@ -5,6 +5,7 @@ export class PluginSettings {
 
   public replacementCharacter = '_';
   public shouldStoreInvalidTitle = true;
+  public shouldSupportNonMarkdownFiles = true;
   public shouldUpdateFirstHeader = false;
   public shouldUpdateTitleKey = false;
 }
