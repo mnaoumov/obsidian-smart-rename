@@ -32,7 +32,6 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
         .setDesc('Character to replace invalid character with')
         .addText((text) => {
           text.inputEl.maxLength = 1;
-          text.inputEl.required = true;
 
           this.bind(text, 'replacementCharacter');
         });
