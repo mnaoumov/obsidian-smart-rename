@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2.1.1
+
+- Minor changes
+
 ## 2.1.0
 
 - shouldSupportNonMarkdownFiles config
@@ -9,121 +13,112 @@
 
 ## 2.0.27
 
-- Update libs
+- Minor changes
 
 ## 2.0.26
 
-- Update libs
+- Minor changes
 
 ## 2.0.25
 
 - Use getOsAndObsidianUnsafePathCharsRegExp
-- Update libs
 
 ## 2.0.24
 
-- Update libs
+- Minor changes
 
 ## 2.0.23
 
-- Update libs
+- Minor changes
 
 ## 2.0.22
 
-- Update libs
+- Minor changes
 
 ## 2.0.21
 
-- Update libs
+- Minor changes
 
 ## 2.0.20
 
 - Improve performance
-- https://github.com/mnaoumov/obsidian-dev-utils/releases/tag/26.15.2
 
 ## 2.0.19
 
 - Fix initialization
-- https://github.com/mnaoumov/obsidian-dev-utils/releases/tag/26.9.0
 
 ## 2.0.18
 
-- https://github.com/mnaoumov/obsidian-dev-utils/releases/tag/24.1.1
+- Minor changes
 
 ## 2.0.17
 
-- https://github.com/mnaoumov/obsidian-dev-utils/releases/tag/24.1.0
+- Minor changes
 
 ## 2.0.16
 
-- https://github.com/mnaoumov/obsidian-dev-utils/releases/tag/24.0.1
+- Minor changes
 
 ## 2.0.15
 
-- Update libs
 - New template
-- Update README
 - ESLint template
 
 ## 2.0.14
 
-- https://github.com/mnaoumov/obsidian-dev-utils/releases/tag/19.17.1
+- Minor changes
 
 ## 2.0.13
 
-- https://github.com/mnaoumov/obsidian-dev-utils/releases/tag/19.6.0
+- Minor changes
 
 ## 2.0.12
 
-- Update libs to make patch
-- https://github.com/mnaoumov/obsidian-dev-utils/releases/tag/19.2.1
+- Minor changes
 
 ## 2.0.11
 
 - Update template
-- https://github.com/mnaoumov/obsidian-dev-utils/releases/tag/18.4.2
 
 ## 2.0.10
 
-- Lint
-- https://github.com/mnaoumov/obsidian-dev-utils/releases/tag/17.2.2
+- Minor changes
 
 ## 2.0.9
 
-- Format
+- Minor changes
 
 ## 2.0.8
 
-- https://github.com/mnaoumov/obsidian-dev-utils/releases/tag/16.1.0
+- Minor changes
 
 ## 2.0.7
 
-- https://github.com/mnaoumov/obsidian-dev-utils/releases/tag/16.0.3
+- Minor changes
 
 ## 2.0.6
 
-- https://github.com/mnaoumov/obsidian-dev-utils/releases/tag/15.0.0
+- Minor changes
 
 ## 2.0.5
 
-- Update libs
+- Minor changes
 
 ## 2.0.4
 
-- Update libs
+- Minor changes
 
 ## 2.0.3
 
-- Update libs
 - Avoid default exports
 
 ## 2.0.2
 
-- Update libs
+- Minor changes
 
 ## 2.0.1
 
-- Update libs
+- Minor changes
 
 ## 2.0.0
 
@@ -135,11 +130,11 @@
 
 # 1.1.2
 
-- Minor refactoring
+- Minor changes
 
 # 1.1.1
 
-- Minor refactoring
+- Minor changes
 
 # 1.1.0
 
