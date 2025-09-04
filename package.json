@@ -1,6 +1,6 @@
 {
   "name": "smart-rename",
-  "version": "2.1.3",
+  "version": "2.1.4",
   "description": "Renames notes keeping previous title in existing links",
   "scripts": {
     "build": "obsidian-dev-utils build",
