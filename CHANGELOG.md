@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2.1.5
+
+- Minor changes
+
 ## 2.1.4
 
 - Minor changes
