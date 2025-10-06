@@ -7,7 +7,9 @@ This is a plugin for [Obsidian](https://obsidian.md/) that adds the command `Sma
 
 ## Detailed explanation
 
-1. You have
+### Step 1
+
+You have
 
 `OldName.md`:
 
@@ -27,9 +29,13 @@ This note references
 5. Markdown link with a custom display text [Custom display text](OldName.md)
 ```
 
-2. You invoke current plugin providing `NewName` as a new title
+### Step 2
 
-3. Now you have
+You invoke current plugin providing `NewName` as a new title
+
+### Step 3
+
+Now you have
 
 `NewName.md`:
 
@@ -82,7 +88,9 @@ For more details, refer to the [documentation](https://github.com/mnaoumov/obsid
 
 ## Support
 
-<a href="https://www.buymeacoffee.com/mnaoumov" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;"></a>
+<!-- markdownlint-disable MD033 -->
+<a href="https://www.buymeacoffee.com/mnaoumov" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="60" width="217"></a>
+<!-- markdownlint-enable MD033 -->
 
 ## License
 
