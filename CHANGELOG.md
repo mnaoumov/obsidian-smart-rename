@@ -161,15 +161,15 @@
 - Handle link from the same file
 - Use newer prompt
 
-# 1.1.2
+## 1.1.2
 
 - Minor changes
 
-# 1.1.1
+## 1.1.1
 
 - Minor changes
 
-# 1.1.0
+## 1.1.0
 
 - Improve performance
 - Add process of invalid title characters
@@ -177,10 +177,10 @@
 - Store title into title frontmatter key
 - Store title into first heading
 
-# 1.0.1
+## 1.0.1
 
 - Applied suggestions after [code review](https://github.com/obsidianmd/obsidian-releases/pull/1782#issuecomment-1482613623)
 
-# 1.0.0
+## 1.0.0
 
 - Initial version
