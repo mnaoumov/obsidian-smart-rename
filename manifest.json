@@ -1,7 +1,7 @@
 {
   "id": "smart-rename",
   "name": "Smart Rename",
-  "version": "2.1.9",
+  "version": "2.1.10",
   "minAppVersion": "1.9.14",
   "description": "Renames notes keeping previous title in existing links",
   "author": "mnaoumov",
