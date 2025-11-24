@@ -68,8 +68,8 @@ export class Plugin extends PluginBase<PluginTypes> {
     await super.onloadImpl();
     this.addCommand({
       checkCallback: this.smartRenameCommandCheck.bind(this),
-      id: 'smart-rename',
-      name: 'Smart Rename'
+      id: 'invoke',
+      name: 'Invoke'
     });
 
     this.registerEvent(this.app.workspace.on('file-menu', (menu, file) => {
@@ -96,7 +96,7 @@ export class Plugin extends PluginBase<PluginTypes> {
     }
 
     menu.addItem((item) =>
-      item.setTitle('Smart Rename')
+      item.setTitle('Smart rename')
         .setIcon('edit-3')
         .onClick(() => {
           invokeAsyncSafely(() => this.smartRename(file));
