@@ -229,8 +229,12 @@ export class Plugin extends PluginBase<PluginTypes> {
       return;
     }
 
-    addToQueue(this.app, async () => {
-      await this.processRename(oldPath, newPath, titleToStore, backlinks);
+    addToQueue({
+      app: this.app,
+      operationFn: async () => {
+        await this.processRename(oldPath, newPath, titleToStore, backlinks);
+      },
+      operationName: 'Smart rename'
     });
   }
 
