@@ -1,8 +1,4 @@
-import type {
-  Menu,
-  Reference,
-  TAbstractFile
-} from 'obsidian';
+import type { Reference } from 'obsidian';
 import type { GenerateMarkdownLinkOptions } from 'obsidian-dev-utils/obsidian/Link';
 import type { CustomArrayDict } from 'obsidian-typings';
 
@@ -10,7 +6,6 @@ import {
   Notice,
   TFile
 } from 'obsidian';
-import { invokeAsyncSafely } from 'obsidian-dev-utils/Async';
 import {
   normalizeOptionalProperties,
   toJson
@@ -47,6 +42,7 @@ import { insertAt } from 'obsidian-dev-utils/String';
 
 import type { PluginTypes } from './PluginTypes.ts';
 
+import { InvokeCommand } from './Commands/InvokeCommand.ts';
 import { InvalidCharacterAction } from './InvalidCharacterAction.ts';
 import { PluginSettingsManager } from './PluginSettingsManager.ts';
 import { PluginSettingsTab } from './PluginSettingsTab.ts';
@@ -54,6 +50,64 @@ import { PluginSettingsTab } from './PluginSettingsTab.ts';
 export class Plugin extends PluginBase<PluginTypes> {
   public hasInvalidCharacters(str: string): boolean {
     return getOsAndObsidianUnsafePathCharsRegExp().test(str);
+  }
+
+  public async smartRename(file: TFile): Promise<void> {
+    const oldTitle = file.basename;
+    let newTitle = await prompt({
+      app: this.app,
+      defaultValue: oldTitle,
+      title: 'Enter new title'
+    }) ?? '';
+
+    let titleToStore = newTitle;
+
+    if (this.hasInvalidCharacters(newTitle)) {
+      switch (this.settings.invalidCharacterAction) {
+        case InvalidCharacterAction.Error:
+          new Notice('The new title has invalid characters');
+          return;
+        case InvalidCharacterAction.Remove:
+          newTitle = this.replaceInvalidCharacters(newTitle, '');
+          break;
+        case InvalidCharacterAction.Replace:
+          newTitle = this.replaceInvalidCharacters(newTitle, this.settings.replacementCharacter);
+          break;
+        default:
+          throw new Error('Invalid character action');
+      }
+    }
+
+    if (!this.settings.shouldStoreInvalidTitle) {
+      titleToStore = newTitle;
+    }
+
+    const newPath = join(file.parent?.getParentPrefix() ?? '', makeFileName(newTitle, file.extension));
+
+    const validationError = await this.getValidationError(oldTitle, newTitle, newPath);
+    if (validationError) {
+      new Notice(validationError);
+      return;
+    }
+
+    const backlinks = await getBacklinksForFileSafe(this.app, file);
+    const oldPath = file.path;
+
+    try {
+      await this.app.vault.rename(file, newPath);
+    } catch (error) {
+      new Notice('Failed to rename file');
+      console.error(new Error('Failed to rename file', { cause: error }));
+      return;
+    }
+
+    addToQueue({
+      app: this.app,
+      operationFn: async () => {
+        await this.processRename(oldPath, newPath, titleToStore, backlinks);
+      },
+      operationName: 'Smart rename'
+    });
   }
 
   protected override createSettingsManager(): PluginSettingsManager {
@@ -66,15 +120,7 @@ export class Plugin extends PluginBase<PluginTypes> {
 
   protected override async onloadImpl(): Promise<void> {
     await super.onloadImpl();
-    this.addCommand({
-      checkCallback: this.smartRenameCommandCheck.bind(this),
-      id: 'invoke',
-      name: 'Invoke'
-    });
-
-    this.registerEvent(this.app.workspace.on('file-menu', (menu, file) => {
-      this.fileMenuHandler(menu, file);
-    }));
+    new InvokeCommand(this).register();
   }
 
   private async addAliases(newPath: string, oldTitle: string, titleToStore: string): Promise<void> {
@@ -84,24 +130,6 @@ export class Plugin extends PluginBase<PluginTypes> {
     if (this.settings.shouldStoreInvalidTitle && titleToStore !== newTitle) {
       await addAlias(this.app, newPath, titleToStore);
     }
-  }
-
-  private fileMenuHandler(menu: Menu, file: TAbstractFile): void {
-    if (!(file instanceof TFile)) {
-      return;
-    }
-
-    if (!this.settings.shouldSupportNonMarkdownFiles && !isMarkdownFile(this.app, file)) {
-      return;
-    }
-
-    menu.addItem((item) =>
-      item.setTitle('Smart rename')
-        .setIcon('edit-3')
-        .onClick(() => {
-          invokeAsyncSafely(() => this.smartRename(file));
-        })
-    );
   }
 
   private async getValidationError(oldTitle: string, newTitle: string, newPath: string): Promise<null | string> {
@@ -178,80 +206,6 @@ export class Plugin extends PluginBase<PluginTypes> {
 
   private replaceInvalidCharacters(str: string, replacement: string): string {
     return str.replace(getOsAndObsidianUnsafePathCharsRegExp(), replacement);
-  }
-
-  private async smartRename(file: TFile): Promise<void> {
-    const oldTitle = file.basename;
-    let newTitle = await prompt({
-      app: this.app,
-      defaultValue: oldTitle,
-      title: 'Enter new title'
-    }) ?? '';
-
-    let titleToStore = newTitle;
-
-    if (this.hasInvalidCharacters(newTitle)) {
-      switch (this.settings.invalidCharacterAction) {
-        case InvalidCharacterAction.Error:
-          new Notice('The new title has invalid characters');
-          return;
-        case InvalidCharacterAction.Remove:
-          newTitle = this.replaceInvalidCharacters(newTitle, '');
-          break;
-        case InvalidCharacterAction.Replace:
-          newTitle = this.replaceInvalidCharacters(newTitle, this.settings.replacementCharacter);
-          break;
-        default:
-          throw new Error('Invalid character action');
-      }
-    }
-
-    if (!this.settings.shouldStoreInvalidTitle) {
-      titleToStore = newTitle;
-    }
-
-    const newPath = join(file.parent?.getParentPrefix() ?? '', makeFileName(newTitle, file.extension));
-
-    const validationError = await this.getValidationError(oldTitle, newTitle, newPath);
-    if (validationError) {
-      new Notice(validationError);
-      return;
-    }
-
-    const backlinks = await getBacklinksForFileSafe(this.app, file);
-    const oldPath = file.path;
-
-    try {
-      await this.app.vault.rename(file, newPath);
-    } catch (error) {
-      new Notice('Failed to rename file');
-      console.error(new Error('Failed to rename file', { cause: error }));
-      return;
-    }
-
-    addToQueue({
-      app: this.app,
-      operationFn: async () => {
-        await this.processRename(oldPath, newPath, titleToStore, backlinks);
-      },
-      operationName: 'Smart rename'
-    });
-  }
-
-  private smartRenameCommandCheck(checking: boolean): boolean {
-    const activeFile = this.app.workspace.getActiveFile();
-    if (!activeFile) {
-      return false;
-    }
-
-    if (!this.settings.shouldSupportNonMarkdownFiles && !isMarkdownFile(this.app, activeFile)) {
-      return false;
-    }
-
-    if (!checking) {
-      invokeAsyncSafely(() => this.smartRename(activeFile));
-    }
-    return true;
   }
 
   private async updateFirstHeader(newPath: string, titleToStore: string): Promise<void> {
