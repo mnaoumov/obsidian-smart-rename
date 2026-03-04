@@ -1,5 +1,5 @@
 import type { Reference } from 'obsidian';
-import type { GenerateMarkdownLinkOptions } from 'obsidian-dev-utils/obsidian/Link';
+import type { GenerateMarkdownLinkParams } from 'obsidian-dev-utils/obsidian/Link';
 import type { CustomArrayDict } from 'obsidian-typings';
 
 import {
@@ -180,7 +180,7 @@ export class Plugin extends PluginBase<PluginTypes> {
 
         const alias = (link.displayText ?? '').toLowerCase() === newTitle.toLowerCase() ? oldTitle : link.displayText;
 
-        return generateMarkdownLink(normalizeOptionalProperties<GenerateMarkdownLinkOptions>({
+        return generateMarkdownLink(normalizeOptionalProperties<GenerateMarkdownLinkParams>({
           alias,
           app: this.app,
           originalLink: link.original,
