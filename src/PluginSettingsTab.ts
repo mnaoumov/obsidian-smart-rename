@@ -73,6 +73,25 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
       });
 
     new SettingGroupEx(this.containerEl)
+      .setHeading('Previous display text')
+      .addSettingEx((setting) => {
+        setting
+          .setName('Should preserve previous display text in note links')
+          .setDesc('Whether to preserve the previous display text in note links.')
+          .addToggle((toggle) => {
+            this.bind(toggle, 'shouldPreservePreviousDisplayTextInNoteLinks');
+          });
+      })
+      .addSettingEx((setting) => {
+        setting
+          .setName('Should preserve previous display text in frontmatter links')
+          .setDesc('Whether to preserve the previous display text in frontmatter links.')
+          .addToggle((toggle) => {
+            this.bind(toggle, 'shouldPreservePreviousDisplayTextInFrontmatterLinks');
+          });
+      });
+
+    new SettingGroupEx(this.containerEl)
       .setHeading('Other')
       .addSettingEx((setting) => {
         setting
