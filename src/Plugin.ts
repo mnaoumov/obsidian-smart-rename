@@ -39,6 +39,10 @@ import {
   makeFileName
 } from 'obsidian-dev-utils/Path';
 import { insertAt } from 'obsidian-dev-utils/String';
+import {
+  isFrontmatterLinkCache,
+  isReferenceCache
+} from 'obsidian-typings/implementations';
 
 import type { PluginTypes } from './PluginTypes.ts';
 
@@ -178,7 +182,11 @@ export class Plugin extends PluginBase<PluginTypes> {
           return;
         }
 
-        const alias = (link.displayText ?? '').toLowerCase() === newTitle.toLowerCase() ? oldTitle : link.displayText;
+        const isNewTitle = (link.displayText ?? '').toLowerCase() === newTitle.toLowerCase();
+        const shouldPreservePreviousDisplayText = (isReferenceCache(link) && this.settings.shouldPreservePreviousDisplayTextInNoteLinks)
+          || (isFrontmatterLinkCache(link) && this.settings.shouldPreservePreviousDisplayTextInFrontmatterLinks);
+
+        const alias = isNewTitle && shouldPreservePreviousDisplayText ? oldTitle : link.displayText;
 
         return generateMarkdownLink(normalizeOptionalProperties<GenerateMarkdownLinkParams>({
           alias,
