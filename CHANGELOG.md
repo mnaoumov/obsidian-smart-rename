@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2.2.0
+
+- feat: allow configuring preserving old titles re #14
+- feat: add setting groups
+- chore: update libs
+
 ## 2.1.14
 
 - refactor: commands
