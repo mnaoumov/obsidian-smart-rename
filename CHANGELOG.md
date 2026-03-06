@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2.2.1
+
+- chore: update template
+
 ## 2.2.0
 
 - feat: allow configuring preserving old titles re #14
