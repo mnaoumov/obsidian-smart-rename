@@ -9,7 +9,7 @@ import {
 import {
   normalizeOptionalProperties,
   toJson
-} from 'obsidian-dev-utils/ObjectUtils';
+} from 'obsidian-dev-utils/object-utils';
 import {
   addAlias,
   processFrontmatter
@@ -28,8 +28,8 @@ import {
   getCacheSafe
 } from 'obsidian-dev-utils/obsidian/MetadataCache';
 import { prompt } from 'obsidian-dev-utils/obsidian/Modals/Prompt';
-import { PluginBase } from 'obsidian-dev-utils/obsidian/Plugin/PluginBase';
-import { addToQueue } from 'obsidian-dev-utils/obsidian/Queue';
+import { PluginBase } from 'obsidian-dev-utils/obsidian/plugin/plugin-base';
+import { addToQueue } from 'obsidian-dev-utils/obsidian/queue';
 import { getOsAndObsidianUnsafePathCharsRegExp } from 'obsidian-dev-utils/obsidian/Validation';
 import { process } from 'obsidian-dev-utils/obsidian/Vault';
 import {
@@ -37,8 +37,8 @@ import {
   extname,
   join,
   makeFileName
-} from 'obsidian-dev-utils/Path';
-import { insertAt } from 'obsidian-dev-utils/String';
+} from 'obsidian-dev-utils/path';
+import { insertAt } from 'obsidian-dev-utils/string';
 import {
   isFrontmatterLinkCache,
   isReferenceCache
