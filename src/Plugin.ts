@@ -1,5 +1,5 @@
 import type { Reference } from 'obsidian';
-import type { GenerateMarkdownLinkParams } from 'obsidian-dev-utils/obsidian/Link';
+import type { GenerateMarkdownLinkParams } from 'obsidian-dev-utils/obsidian/link';
 import type { CustomArrayDict } from 'obsidian-typings';
 
 import {
@@ -13,25 +13,25 @@ import {
 import {
   addAlias,
   processFrontmatter
-} from 'obsidian-dev-utils/obsidian/FileManager';
+} from 'obsidian-dev-utils/obsidian/file-manager';
 import {
   getFile,
   isMarkdownFile
-} from 'obsidian-dev-utils/obsidian/FileSystem';
+} from 'obsidian-dev-utils/obsidian/file-system';
 import {
   editLinks,
   extractLinkFile,
   generateMarkdownLink
-} from 'obsidian-dev-utils/obsidian/Link';
+} from 'obsidian-dev-utils/obsidian/link';
 import {
   getBacklinksForFileSafe,
   getCacheSafe
-} from 'obsidian-dev-utils/obsidian/MetadataCache';
-import { prompt } from 'obsidian-dev-utils/obsidian/Modals/Prompt';
+} from 'obsidian-dev-utils/obsidian/metadata-cache';
+import { prompt } from 'obsidian-dev-utils/obsidian/modals/prompt';
 import { PluginBase } from 'obsidian-dev-utils/obsidian/plugin/plugin-base';
 import { addToQueue } from 'obsidian-dev-utils/obsidian/queue';
-import { getOsAndObsidianUnsafePathCharsRegExp } from 'obsidian-dev-utils/obsidian/Validation';
-import { process } from 'obsidian-dev-utils/obsidian/Vault';
+import { getOsAndObsidianUnsafePathCharsRegExp } from 'obsidian-dev-utils/obsidian/validation';
+import { process } from 'obsidian-dev-utils/obsidian/vault';
 import {
   basename,
   extname,
