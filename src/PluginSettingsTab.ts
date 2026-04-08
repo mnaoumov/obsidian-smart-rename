@@ -1,5 +1,5 @@
-import { appendCodeBlock } from 'obsidian-dev-utils/HTMLElement';
-import { PluginSettingsTabBase } from 'obsidian-dev-utils/obsidian/Plugin/PluginSettingsTabBase';
+import { appendCodeBlock } from 'obsidian-dev-utils/html-element';
+import { PluginSettingsTabBase } from 'obsidian-dev-utils/obsidian/plugin/plugin-settings-tab-base';
 import { SettingGroupEx } from 'obsidian-dev-utils/obsidian/SettingGroupEx';
 
 import type { PluginTypes } from './PluginTypes.ts';
