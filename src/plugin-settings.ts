@@ -1,4 +1,4 @@
-import { InvalidCharacterAction } from './InvalidCharacterAction.ts';
+import { InvalidCharacterAction } from './invalid-character-action.ts';
 
 export class PluginSettings {
   public invalidCharacterAction = InvalidCharacterAction.Error;

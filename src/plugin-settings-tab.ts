@@ -1,15 +1,15 @@
 import { appendCodeBlock } from 'obsidian-dev-utils/html-element';
-import { PluginSettingsTabBase } from 'obsidian-dev-utils/obsidian/plugin/plugin-settings-tab-base';
+import { PluginSettingsTabBase } from 'obsidian-dev-utils/obsidian/plugin/plugin-settings-tab';
 import { SettingGroupEx } from 'obsidian-dev-utils/obsidian/setting-group-ex';
 
-import type { PluginTypes } from './PluginTypes.ts';
+import type { PluginSettings } from './plugin-settings.ts';
 
-import { InvalidCharacterAction } from './InvalidCharacterAction.ts';
+import { InvalidCharacterAction } from './invalid-character-action.ts';
 
-export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
+export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
   public override display(): void {
+    // eslint-disable-next-line @typescript-eslint/no-deprecated -- super.display() calls the PluginSettingsTabBase override; the inherited @deprecated tag on Obsidian's SettingTab.display propagates via TS getJsDocTags.
     super.display();
-    this.containerEl.empty();
 
     new SettingGroupEx(this.containerEl)
       .setHeading('Invalid characters')
@@ -25,6 +25,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
             });
             this.bind(dropdown, 'invalidCharacterAction', {
               onChanged: () => {
+                // eslint-disable-next-line @typescript-eslint/no-deprecated -- this.display() re-renders the tab to refresh dependent settings; the inherited @deprecated tag on Obsidian's SettingTab.display propagates via TS getJsDocTags.
                 this.display();
               }
             });
@@ -42,7 +43,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginTypes> {
             appendCodeBlock(f, 'Replace invalid characters');
             f.appendText('.');
           }))
-          .setDisabled(this.plugin.settings.invalidCharacterAction !== InvalidCharacterAction.Replace)
+          .setDisabled(this.pluginSettingsComponent.settings.invalidCharacterAction !== InvalidCharacterAction.Replace)
           .addText((text) => {
             text.inputEl.maxLength = 1;
             this.bind(text, 'replacementCharacter');

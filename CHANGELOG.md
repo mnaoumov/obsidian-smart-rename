@@ -211,7 +211,7 @@
 
 ## 1.0.1
 
-- Applied suggestions after [code review](https://github.com/obsidianmd/obsidian-releases/pull/1782#issuecomment-1482613623)
+- Applied suggestions after code review
 
 ## 1.0.0
 
