@@ -1,7 +1,15 @@
-import type { Reference } from 'obsidian';
+import type { CustomArrayDict } from '@obsidian-typings/obsidian-public-latest';
+import type {
+  App,
+  PluginManifest,
+  Reference
+} from 'obsidian';
 import type { GenerateMarkdownLinkParams } from 'obsidian-dev-utils/obsidian/link';
-import type { CustomArrayDict } from 'obsidian-typings';
 
+import {
+  isFrontmatterLinkCache,
+  isReferenceCache
+} from '@obsidian-typings/obsidian-public-latest/implementations';
 import {
   Notice,
   TFile
@@ -10,6 +18,12 @@ import {
   normalizeOptionalProperties,
   toJson
 } from 'obsidian-dev-utils/object-utils';
+import { AppActiveFileProvider } from 'obsidian-dev-utils/obsidian/active-file-provider';
+import { CommandHandlerComponent } from 'obsidian-dev-utils/obsidian/command-handlers/command-handler-component';
+import { PluginCommandRegistrar } from 'obsidian-dev-utils/obsidian/command-registrar';
+import { MenuEventRegistrarComponent } from 'obsidian-dev-utils/obsidian/components/menu-event-registrar-component';
+import { PluginSettingsTabComponent } from 'obsidian-dev-utils/obsidian/components/plugin-settings-tab-component';
+import { PluginDataHandler } from 'obsidian-dev-utils/obsidian/data-handler';
 import {
   addAlias,
   processFrontmatter
@@ -28,7 +42,7 @@ import {
   getCacheSafe
 } from 'obsidian-dev-utils/obsidian/metadata-cache';
 import { prompt } from 'obsidian-dev-utils/obsidian/modals/prompt';
-import { PluginBase } from 'obsidian-dev-utils/obsidian/plugin/plugin-base';
+import { PluginBase } from 'obsidian-dev-utils/obsidian/plugin/plugin';
 import { addToQueue } from 'obsidian-dev-utils/obsidian/queue';
 import { getOsAndObsidianUnsafePathCharsRegExp } from 'obsidian-dev-utils/obsidian/validation';
 import { process } from 'obsidian-dev-utils/obsidian/vault';
@@ -39,19 +53,54 @@ import {
   makeFileName
 } from 'obsidian-dev-utils/path';
 import { insertAt } from 'obsidian-dev-utils/string';
-import {
-  isFrontmatterLinkCache,
-  isReferenceCache
-} from 'obsidian-typings/implementations';
 
-import type { PluginTypes } from './PluginTypes.ts';
+import { InvokeCommandHandler } from './command-handlers/invoke-command-handler.ts';
+import { InvalidCharacterAction } from './invalid-character-action.ts';
+import { PluginSettingsComponent } from './plugin-settings-component.ts';
+import { PluginSettingsTab } from './plugin-settings-tab.ts';
+import { PluginSettings } from './plugin-settings.ts';
 
-import { InvokeCommand } from './Commands/InvokeCommand.ts';
-import { InvalidCharacterAction } from './InvalidCharacterAction.ts';
-import { PluginSettingsManager } from './PluginSettingsManager.ts';
-import { PluginSettingsTab } from './PluginSettingsTab.ts';
+export class Plugin extends PluginBase {
+  private readonly pluginSettingsComponent: PluginSettingsComponent;
 
-export class Plugin extends PluginBase<PluginTypes> {
+  public constructor(app: App, manifest: PluginManifest) {
+    super(app, manifest);
+    const dataHandler = new PluginDataHandler(this);
+    this.pluginSettingsComponent = this.addChild(
+      new PluginSettingsComponent({
+        dataHandler,
+        hasInvalidCharacters: this.hasInvalidCharacters.bind(this),
+        pluginEventSource: this,
+        pluginSettingsClass: PluginSettings
+      })
+    );
+    this.addChild(
+      new PluginSettingsTabComponent({
+        plugin: this,
+        pluginSettingsTab: new PluginSettingsTab({
+          plugin: this,
+          pluginSettingsComponent: this.pluginSettingsComponent
+        })
+      })
+    );
+    const menuEventRegistrar = this.addChild(new MenuEventRegistrarComponent(app));
+    this.addChild(
+      new CommandHandlerComponent({
+        activeFileProvider: new AppActiveFileProvider(app),
+        commandHandlers: [
+          new InvokeCommandHandler({
+            checkIsMarkdownFile: (file): boolean => isMarkdownFile(app, file),
+            getSettings: (): PluginSettings => this.pluginSettingsComponent.settings,
+            smartRename: this.smartRename.bind(this)
+          })
+        ],
+        commandRegistrar: new PluginCommandRegistrar(this),
+        menuEventRegistrar,
+        pluginName: manifest.name
+      })
+    );
+  }
+
   public hasInvalidCharacters(str: string): boolean {
     return getOsAndObsidianUnsafePathCharsRegExp().test(str);
   }
@@ -67,7 +116,7 @@ export class Plugin extends PluginBase<PluginTypes> {
     let titleToStore = newTitle;
 
     if (this.hasInvalidCharacters(newTitle)) {
-      switch (this.settings.invalidCharacterAction) {
+      switch (this.pluginSettingsComponent.settings.invalidCharacterAction) {
         case InvalidCharacterAction.Error:
           new Notice('The new title has invalid characters');
           return;
@@ -75,14 +124,14 @@ export class Plugin extends PluginBase<PluginTypes> {
           newTitle = this.replaceInvalidCharacters(newTitle, '');
           break;
         case InvalidCharacterAction.Replace:
-          newTitle = this.replaceInvalidCharacters(newTitle, this.settings.replacementCharacter);
+          newTitle = this.replaceInvalidCharacters(newTitle, this.pluginSettingsComponent.settings.replacementCharacter);
           break;
         default:
           throw new Error('Invalid character action');
       }
     }
 
-    if (!this.settings.shouldStoreInvalidTitle) {
+    if (!this.pluginSettingsComponent.settings.shouldStoreInvalidTitle) {
       titleToStore = newTitle;
     }
 
@@ -114,24 +163,11 @@ export class Plugin extends PluginBase<PluginTypes> {
     });
   }
 
-  protected override createSettingsManager(): PluginSettingsManager {
-    return new PluginSettingsManager(this);
-  }
-
-  protected override createSettingsTab(): null | PluginSettingsTab {
-    return new PluginSettingsTab(this);
-  }
-
-  protected override async onloadImpl(): Promise<void> {
-    await super.onloadImpl();
-    new InvokeCommand(this).register();
-  }
-
   private async addAliases(newPath: string, oldTitle: string, titleToStore: string): Promise<void> {
     const newTitle = basename(newPath, extname(newPath));
     await addAlias(this.app, newPath, oldTitle);
 
-    if (this.settings.shouldStoreInvalidTitle && titleToStore !== newTitle) {
+    if (this.pluginSettingsComponent.settings.shouldStoreInvalidTitle && titleToStore !== newTitle) {
       await addAlias(this.app, newPath, titleToStore);
     }
   }
@@ -183,8 +219,8 @@ export class Plugin extends PluginBase<PluginTypes> {
         }
 
         const isNewTitle = (link.displayText ?? '').toLowerCase() === newTitle.toLowerCase();
-        const shouldPreservePreviousDisplayText = (isReferenceCache(link) && this.settings.shouldPreservePreviousDisplayTextInNoteLinks)
-          || (isFrontmatterLinkCache(link) && this.settings.shouldPreservePreviousDisplayTextInFrontmatterLinks);
+        const shouldPreservePreviousDisplayText = (isReferenceCache(link) && this.pluginSettingsComponent.settings.shouldPreservePreviousDisplayTextInNoteLinks)
+          || (isFrontmatterLinkCache(link) && this.pluginSettingsComponent.settings.shouldPreservePreviousDisplayTextInFrontmatterLinks);
 
         const alias = isNewTitle && shouldPreservePreviousDisplayText ? oldTitle : link.displayText;
 
@@ -217,11 +253,11 @@ export class Plugin extends PluginBase<PluginTypes> {
   }
 
   private async updateFirstHeader(newPath: string, titleToStore: string): Promise<void> {
-    if (!this.settings.shouldUpdateFirstHeader) {
+    if (!this.pluginSettingsComponent.settings.shouldUpdateFirstHeader) {
       return;
     }
 
-    await process(this.app, newPath, async (abortSignal, content) => {
+    await process(this.app, newPath, async ({ abortSignal, content }) => {
       abortSignal.throwIfAborted();
       const cache = await getCacheSafe(this.app, newPath);
       abortSignal.throwIfAborted();
@@ -239,7 +275,7 @@ export class Plugin extends PluginBase<PluginTypes> {
   }
 
   private async updateTitle(newPath: string, titleToStore: string): Promise<void> {
-    if (!this.settings.shouldUpdateTitleKey) {
+    if (!this.pluginSettingsComponent.settings.shouldUpdateTitleKey) {
       return;
     }
     await processFrontmatter(this.app, newPath, (frontMatter) => {

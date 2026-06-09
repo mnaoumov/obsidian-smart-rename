@@ -1,6 +1,7 @@
 {
   "version": "0.2",
   "ignorePaths": [
+    "coverage",
     "dist",
     "node_modules",
     "tsconfig.tsbuildinfo"
@@ -15,7 +16,10 @@
     "mnaoumov",
     "Naumov",
     "obsidianmd",
+    "OLDTITLE",
     "Promisable",
+    "tfile",
+    "tfolder",
     "tsbuildinfo",
     "Wikilink"
   ],
