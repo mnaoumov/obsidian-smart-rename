@@ -118,7 +118,6 @@ export class Plugin extends PluginBase {
     }
 
     addToQueue({
-      app: this.app,
       operationFn: async () => {
         await this.processRename(oldPath, newPath, titleToStore, backlinks);
       },
