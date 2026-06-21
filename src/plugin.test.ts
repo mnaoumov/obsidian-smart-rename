@@ -463,7 +463,7 @@ describe('Plugin', () => {
     }
 
     it('should call processBacklinks for all backlinks', async () => {
-      const mockLink = { displayText: 'NewTitle', original: '[[Old Title]]' };
+      const mockLink = { displayText: 'NewTitle', original: '[[OldTitle]]' };
       hoisted.mockExtractLinkFile.mockReturnValue(null);
       hoisted.mockEditLinks.mockResolvedValue(undefined);
       await runProcessRename({
@@ -578,7 +578,7 @@ describe('Plugin', () => {
     }
 
     it('should return undefined for link not matching newFile or linkJsons', async () => {
-      const mockLink = { displayText: 'OtherNote', original: '[[Other Note]]' };
+      const mockLink = { displayText: 'OtherNote', original: '[[OtherNote]]' };
       const callback = await setupBacklinkCallback({
         backlinks: {
           get: (): unknown[] => [mockLink],
@@ -588,12 +588,12 @@ describe('Plugin', () => {
       });
 
       hoisted.mockExtractLinkFile.mockReturnValue(null);
-      const result = callback({ displayText: 'SomeOther', original: '[[Some Other]]' });
+      const result = callback({ displayText: 'SomeOther', original: '[[SomeOther]]' });
       expect(result).toBeUndefined();
     });
 
     it('should generate markdown link for matching link', async () => {
-      const mockLink = { displayText: 'OldTitle', original: '[[Old Title]]' };
+      const mockLink = { displayText: 'OldTitle', original: '[[OldTitle]]' };
       const newFile = { basename: 'NewTitle', path: 'NewTitle.md' };
       hoisted.mockGenerateMarkdownLink.mockReturnValue('[[NewTitle|OldTitle]]');
 
@@ -612,7 +612,7 @@ describe('Plugin', () => {
 
     it('should use oldTitle as alias when displayText matches newTitle and shouldPreservePreviousDisplayTextInNoteLinks is true', async () => {
       hoisted.mockIsReferenceCache.mockReturnValue(true);
-      const mockLink = { displayText: 'NewTitle', original: '[[Old Title]]' };
+      const mockLink = { displayText: 'NewTitle', original: '[[OldTitle]]' };
       const newFile = { basename: 'NewTitle', path: 'NewTitle.md' };
       hoisted.mockGenerateMarkdownLink.mockReturnValue('[[NewTitle|OldTitle]]');
 
@@ -633,7 +633,7 @@ describe('Plugin', () => {
     });
 
     it('should handle backlink path equal to oldPath (remapping to newPath)', async () => {
-      const mockLink = { displayText: 'OldTitle', original: '[[Old Title]]' };
+      const mockLink = { displayText: 'OldTitle', original: '[[OldTitle]]' };
       hoisted.mockGenerateMarkdownLink.mockReturnValue('[[NewTitle]]');
       hoisted.mockEditLinks.mockResolvedValue(undefined);
 
@@ -673,7 +673,7 @@ describe('Plugin', () => {
     });
 
     it('should handle link with undefined displayText (covers ?? empty string branch)', async () => {
-      const mockLink: BacklinkLink = { original: '[[Old Title]]' };
+      const mockLink: BacklinkLink = { original: '[[OldTitle]]' };
       const newFile = { basename: 'NewTitle', path: 'NewTitle.md' };
       hoisted.mockGenerateMarkdownLink.mockReturnValue('[[NewTitle]]');
 
@@ -693,7 +693,7 @@ describe('Plugin', () => {
     it('should use oldTitle as alias when frontmatter link displayText matches newTitle and shouldPreservePreviousDisplayTextInFrontmatterLinks is true', async () => {
       hoisted.mockIsFrontmatterLinkCache.mockReturnValue(true);
       hoisted.mockIsReferenceCache.mockReturnValue(false);
-      const mockLink = { displayText: 'NewTitle', original: '[[Old Title]]' };
+      const mockLink = { displayText: 'NewTitle', original: '[[OldTitle]]' };
       const newFile = { basename: 'NewTitle', path: 'NewTitle.md' };
       hoisted.mockGenerateMarkdownLink.mockReturnValue('[[NewTitle|OldTitle]]');
 
