@@ -1,9 +1,19 @@
-/* eslint-disable @typescript-eslint/no-extraneous-class, @typescript-eslint/no-useless-constructor, @typescript-eslint/no-empty-function -- Test mocks require empty constructors and flexible patterns. */
-import type { TFile } from 'obsidian';
+import type {
+  Menu,
+  TFile
+} from 'obsidian';
+import type { CommandHandlerRegistrationContext } from 'obsidian-dev-utils/obsidian/command-handlers/command-handler';
+import type {
+  FileMenuEventHandler,
+  FilesMenuEventHandler
+} from 'obsidian-dev-utils/obsidian/menu-event-registrar';
 import type { ReadonlyDeep } from 'type-fest';
 
 import { noopAsync } from 'obsidian-dev-utils/function';
+import { castTo } from 'obsidian-dev-utils/object-utils';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
+import { ensureNonNullable } from 'obsidian-dev-utils/type-guards';
+import { App } from 'obsidian-test-mocks/obsidian';
 import {
   describe,
   expect,
@@ -15,11 +25,9 @@ import type { PluginSettings } from '../plugin-settings.ts';
 
 import { InvokeCommandHandler } from './invoke-command-handler.ts';
 
-vi.mock('obsidian-dev-utils/obsidian/command-handlers/file-command-handler', () => ({
-  FileCommandHandler: class MockFileCommandHandler {
-    public constructor(_params: unknown) {}
-  }
-}));
+const PLUGIN_NAME = 'Smart Rename';
+const MARKDOWN_FILE_PATH = 'note.md';
+const NON_MARKDOWN_FILE_PATH = 'image.png';
 
 interface CreateHandlerOptions {
   checkIsMarkdownFile?(file: TFile): boolean;
@@ -27,12 +35,64 @@ interface CreateHandlerOptions {
   smartRename?(file: TFile): Promise<void>;
 }
 
+interface MockContext {
+  context: CommandHandlerRegistrationContext;
+  fileMenuHandlers: FileMenuEventHandler[];
+}
+
+function createApp(): App {
+  return App.createConfigured__({
+    files: {
+      [MARKDOWN_FILE_PATH]: '',
+      [NON_MARKDOWN_FILE_PATH]: ''
+    }
+  });
+}
+
 function createHandler(opts?: CreateHandlerOptions): InvokeCommandHandler {
   return new InvokeCommandHandler({
-    checkIsMarkdownFile: opts?.checkIsMarkdownFile ?? ((): boolean => true),
-    getSettings: opts?.getSettings ?? ((): ReadonlyDeep<PluginSettings> => strictProxy<ReadonlyDeep<PluginSettings>>({ shouldSupportNonMarkdownFiles: false })),
-    smartRename: opts?.smartRename ?? ((): Promise<void> => noopAsync())
+    checkIsMarkdownFile: opts?.checkIsMarkdownFile ?? ((): boolean => {
+      return true;
+    }),
+    getSettings: opts?.getSettings ?? ((): ReadonlyDeep<PluginSettings> => {
+      return strictProxy<ReadonlyDeep<PluginSettings>>({ shouldSupportNonMarkdownFiles: false });
+    }),
+    smartRename: opts?.smartRename ?? ((): Promise<void> => {
+      return noopAsync();
+    })
   });
+}
+
+function createMockContext(activeFile?: TFile): MockContext {
+  const fileMenuHandlers: FileMenuEventHandler[] = [];
+  const filesMenuHandlers: FilesMenuEventHandler[] = [];
+
+  return {
+    context: {
+      activeFileProvider: {
+        getActiveFile: (): null | TFile => {
+          return activeFile ?? null;
+        }
+      },
+      menuEventRegistrar: {
+        registerEditorMenuEventHandler: vi.fn(),
+        registerFileMenuEventHandler: (handler: FileMenuEventHandler): void => {
+          fileMenuHandlers.push(handler);
+        },
+        registerFilesMenuEventHandler: (handler: FilesMenuEventHandler): void => {
+          filesMenuHandlers.push(handler);
+        }
+      },
+      pluginName: PLUGIN_NAME
+    },
+    fileMenuHandlers
+  };
+}
+
+function getFile(app: App, path: string): TFile {
+  // `app` is a test-mocks `App`, so `getFileByPath` returns the test-mocks `TFile` type; at
+  // Runtime it is the aliased `obsidian` `TFile`, so cast to the `obsidian` type the handler expects.
+  return castTo<TFile>(ensureNonNullable(app.vault.getFileByPath(path)));
 }
 
 describe('InvokeCommandHandler', () => {
@@ -42,56 +102,113 @@ describe('InvokeCommandHandler', () => {
   });
 
   describe('canExecuteFile', () => {
-    it('should return true when file is a markdown file', () => {
+    it('should return true when file is a markdown file', async () => {
+      const app = createApp();
+      const mdFile = getFile(app, MARKDOWN_FILE_PATH);
       const handler = createHandler({
-        checkIsMarkdownFile: (): boolean => true,
-        getSettings: (): ReadonlyDeep<PluginSettings> => strictProxy<ReadonlyDeep<PluginSettings>>({ shouldSupportNonMarkdownFiles: false })
+        checkIsMarkdownFile: (): boolean => {
+          return true;
+        },
+        getSettings: (): ReadonlyDeep<PluginSettings> => {
+          return strictProxy<ReadonlyDeep<PluginSettings>>({ shouldSupportNonMarkdownFiles: false });
+        }
       });
-      const mockFile = strictProxy<TFile>({ path: 'note.md' });
-      expect(handler['canExecuteFile'](mockFile)).toBe(true);
+      const { context } = createMockContext(mdFile);
+      await handler.onRegistered(context);
+
+      const command = handler.buildCommand();
+      expect(command.checkCallback?.(true)).toBe(true);
     });
 
-    it('should return false when file is not markdown and non-markdown not supported', () => {
+    it('should return false when file is not markdown and non-markdown not supported', async () => {
+      const app = createApp();
+      const nonMdFile = getFile(app, NON_MARKDOWN_FILE_PATH);
       const handler = createHandler({
-        checkIsMarkdownFile: (): boolean => false,
-        getSettings: (): ReadonlyDeep<PluginSettings> => strictProxy<ReadonlyDeep<PluginSettings>>({ shouldSupportNonMarkdownFiles: false })
+        checkIsMarkdownFile: (): boolean => {
+          return false;
+        },
+        getSettings: (): ReadonlyDeep<PluginSettings> => {
+          return strictProxy<ReadonlyDeep<PluginSettings>>({ shouldSupportNonMarkdownFiles: false });
+        }
       });
-      const mockFile = strictProxy<TFile>({ path: 'note.pdf' });
-      expect(handler['canExecuteFile'](mockFile)).toBe(false);
+      const { context } = createMockContext(nonMdFile);
+      await handler.onRegistered(context);
+
+      const command = handler.buildCommand();
+      expect(command.checkCallback?.(true)).toBe(false);
     });
 
-    it('should return true when file is not markdown but non-markdown files are supported', () => {
+    it('should return true when file is not markdown but non-markdown files are supported', async () => {
+      const app = createApp();
+      const nonMdFile = getFile(app, NON_MARKDOWN_FILE_PATH);
       const handler = createHandler({
-        checkIsMarkdownFile: (): boolean => false,
-        getSettings: (): ReadonlyDeep<PluginSettings> => strictProxy<ReadonlyDeep<PluginSettings>>({ shouldSupportNonMarkdownFiles: true })
+        checkIsMarkdownFile: (): boolean => {
+          return false;
+        },
+        getSettings: (): ReadonlyDeep<PluginSettings> => {
+          return strictProxy<ReadonlyDeep<PluginSettings>>({ shouldSupportNonMarkdownFiles: true });
+        }
       });
-      const mockFile = strictProxy<TFile>({ path: 'note.pdf' });
-      expect(handler['canExecuteFile'](mockFile)).toBe(true);
+      const { context } = createMockContext(nonMdFile);
+      await handler.onRegistered(context);
+
+      const command = handler.buildCommand();
+      expect(command.checkCallback?.(true)).toBe(true);
     });
   });
 
   describe('executeFile', () => {
     it('should call smartRename with the file', async () => {
+      const app = createApp();
+      const mdFile = getFile(app, MARKDOWN_FILE_PATH);
       const smartRename = vi.fn<(file: TFile) => Promise<void>>().mockResolvedValue(undefined);
       const handler = createHandler({ smartRename });
-      const mockFile = strictProxy<TFile>({ path: 'note.md' });
-      await handler['executeFile'](mockFile);
-      expect(smartRename).toHaveBeenCalledWith(mockFile);
+      const { context } = createMockContext(mdFile);
+      await handler.onRegistered(context);
+
+      const command = handler.buildCommand();
+      command.checkCallback?.(false);
+
+      await vi.waitFor(() => {
+        expect(smartRename).toHaveBeenCalledWith(mdFile);
+      });
     });
   });
 
   describe('shouldAddToFileMenu', () => {
-    it('should return true for any file', () => {
+    it('should add a menu item for a markdown file', async () => {
+      const app = createApp();
+      const mdFile = getFile(app, MARKDOWN_FILE_PATH);
       const handler = createHandler();
-      const mockFile = strictProxy<TFile>({ path: 'note.md' });
-      expect(handler['shouldAddToFileMenu'](mockFile, 'file-explorer')).toBe(true);
+      const { context, fileMenuHandlers } = createMockContext(mdFile);
+      await handler.onRegistered(context);
+
+      const addItem = vi.fn();
+      const menu = strictProxy<Menu>({ addItem });
+      fileMenuHandlers[0]?.(menu, mdFile, 'file-explorer-context-menu');
+
+      expect(addItem).toHaveBeenCalledOnce();
     });
 
-    it('should return true for non-markdown file', () => {
-      const handler = createHandler();
-      const mockFile = strictProxy<TFile>({ path: 'image.png' });
-      expect(handler['shouldAddToFileMenu'](mockFile, 'file-explorer')).toBe(true);
+    it('should add a menu item for a non-markdown file', async () => {
+      const app = createApp();
+      const nonMdFile = getFile(app, NON_MARKDOWN_FILE_PATH);
+      const handler = createHandler({
+        checkIsMarkdownFile: (): boolean => {
+          return false;
+        },
+        getSettings: (): ReadonlyDeep<PluginSettings> => {
+          return strictProxy<ReadonlyDeep<PluginSettings>>({ shouldSupportNonMarkdownFiles: true });
+        }
+      });
+      const { context, fileMenuHandlers } = createMockContext(nonMdFile);
+      await handler.onRegistered(context);
+
+      const addItem = vi.fn();
+      const menu = strictProxy<Menu>({ addItem });
+      fileMenuHandlers[0]?.(menu, nonMdFile, 'file-explorer-context-menu');
+
+      expect(addItem).toHaveBeenCalledOnce();
     });
   });
 });
-/* eslint-enable @typescript-eslint/no-extraneous-class, @typescript-eslint/no-useless-constructor, @typescript-eslint/no-empty-function -- End of test file. */

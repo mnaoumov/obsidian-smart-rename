@@ -1,20 +1,28 @@
-/* eslint-disable @typescript-eslint/explicit-function-return-type, @typescript-eslint/no-empty-function, @typescript-eslint/no-extraneous-class, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-useless-constructor, no-restricted-syntax, obsidianmd/no-tfile-tfolder-cast -- Test mocking patterns require flexible typing, type assertions, empty constructors, and mock calls. */
 import type {
-  App,
+  App as AppOriginal,
+  Command,
   PluginManifest,
   TFile
 } from 'obsidian';
+import type { CombinedFrontmatter } from 'obsidian-dev-utils/obsidian/frontmatter';
 
 import { noopAsync } from 'obsidian-dev-utils/function';
+import { castTo } from 'obsidian-dev-utils/object-utils';
+import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
+import { App } from 'obsidian-test-mocks/obsidian';
 import {
   afterEach,
+  beforeEach,
   describe,
   expect,
   it,
   vi
 } from 'vitest';
 
-const addedChildren: unknown[] = [];
+import type { PluginSettingsComponent } from './plugin-settings-component.ts';
+import type { PluginSettings } from './plugin-settings.ts';
+
+const noticeMessages: string[] = [];
 
 const hoisted = vi.hoisted(() => ({
   mockAddAlias: vi.fn(),
@@ -26,542 +34,445 @@ const hoisted = vi.hoisted(() => ({
   mockGetCacheSafe: vi.fn(),
   mockGetFile: vi.fn(),
   mockGetOsAndObsidianUnsafePathCharsRegExp: vi.fn(),
+  mockIsFrontmatterLinkCache: vi.fn(),
   mockIsMarkdownFile: vi.fn(),
-  mockNotice: vi.fn(),
+  mockIsReferenceCache: vi.fn(),
   mockProcessFrontmatter: vi.fn(),
   mockProcessVault: vi.fn(),
   mockPrompt: vi.fn()
 }));
 
-vi.mock('obsidian', () => ({
-  Notice: hoisted.mockNotice,
-  TFile: class MockTFile {
-    public basename = '';
-    public extension = 'md';
-    public parent: { getParentPrefix(): string } | null = null;
-    public path = '';
-  }
+vi.mock('obsidian', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('obsidian')>();
+  return {
+    ...actual,
+    // eslint-disable-next-line prefer-arrow-callback -- constructor stub needs `function` to be used with `new`.
+    Notice: vi.fn(function NoticeStub(message: string) {
+      noticeMessages.push(message);
+      return {
+        hide: vi.fn(),
+        setMessage: vi.fn()
+      };
+    })
+  };
+});
+
+vi.mock('obsidian-dev-utils/obsidian/app', async (importOriginal) => ({
+  ...await importOriginal<typeof import('obsidian-dev-utils/obsidian/app')>(),
+  getObsidianDevUtilsState: vi.fn((_app: unknown, _key: string, defaultValue: unknown) => ({ value: defaultValue }))
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/plugin/plugin', () => ({
-  PluginBase: class MockPluginBase {
-    public app: unknown;
-    public manifest: unknown;
-
-    public constructor(app: unknown, manifest: unknown) {
-      this.app = app;
-      this.manifest = manifest;
-    }
-
-    public addChild<T>(child: T): T {
-      addedChildren.push(child);
-      return child;
-    }
-
-    public loadData(): unknown {
-      return undefined;
-    }
-
-    public async onload(): Promise<void> {}
-    public saveData(): unknown {
-      return undefined;
-    }
-  }
+vi.mock('obsidian-dev-utils/obsidian/modals/prompt', async (importOriginal) => ({
+  ...await importOriginal<typeof import('obsidian-dev-utils/obsidian/modals/prompt')>(),
+  prompt: (...args: unknown[]): unknown => hoisted.mockPrompt(...args)
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/data-handler', () => ({
-  PluginDataHandler: class MockPluginDataHandler {
-    public constructor(_plugin: unknown) {}
-  }
+vi.mock('obsidian-dev-utils/obsidian/metadata-cache', async (importOriginal) => ({
+  ...await importOriginal<typeof import('obsidian-dev-utils/obsidian/metadata-cache')>(),
+  getBacklinksForFileSafe: (...args: unknown[]): unknown => hoisted.mockGetBacklinksForFileSafe(...args),
+  getCacheSafe: (...args: unknown[]): unknown => hoisted.mockGetCacheSafe(...args)
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/components/plugin-settings-component', () => ({
-  PluginSettingsComponentBase: class MockPluginSettingsComponentBase {
-    public settings = {
-      invalidCharacterAction: 'Error',
-      replacementCharacter: '_',
-      shouldPreservePreviousDisplayTextInFrontmatterLinks: true,
-      shouldPreservePreviousDisplayTextInNoteLinks: true,
-      shouldStoreInvalidTitle: true,
-      shouldSupportNonMarkdownFiles: true,
-      shouldUpdateFirstHeader: false,
-      shouldUpdateTitleKey: false
-    };
-
-    public registerValidator(_key: string, _fn: unknown): void {}
-  }
+vi.mock('obsidian-dev-utils/obsidian/file-system', async (importOriginal) => ({
+  ...await importOriginal<typeof import('obsidian-dev-utils/obsidian/file-system')>(),
+  getFile: (...args: unknown[]): unknown => hoisted.mockGetFile(...args),
+  isMarkdownFile: (...args: unknown[]): unknown => hoisted.mockIsMarkdownFile(...args)
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/components/plugin-settings-tab-component', () => ({
-  PluginSettingsTabComponent: class MockPluginSettingsTabComponent {
-    public constructor(_params: unknown) {}
-  }
+vi.mock('obsidian-dev-utils/obsidian/file-manager', async (importOriginal) => ({
+  ...await importOriginal<typeof import('obsidian-dev-utils/obsidian/file-manager')>(),
+  addAlias: (...args: unknown[]): unknown => hoisted.mockAddAlias(...args),
+  processFrontmatter: (...args: unknown[]): unknown => hoisted.mockProcessFrontmatter(...args)
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/components/menu-event-registrar-component', () => ({
-  MenuEventRegistrarComponent: class MockMenuEventRegistrarComponent {
-    public constructor(_app: unknown) {}
-  }
+vi.mock('obsidian-dev-utils/obsidian/link', async (importOriginal) => ({
+  ...await importOriginal<typeof import('obsidian-dev-utils/obsidian/link')>(),
+  editLinks: (...args: unknown[]): unknown => hoisted.mockEditLinks(...args),
+  extractLinkFile: (...args: unknown[]): unknown => hoisted.mockExtractLinkFile(...args),
+  generateMarkdownLink: (...args: unknown[]): unknown => hoisted.mockGenerateMarkdownLink(...args)
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/command-handlers/command-handler-component', () => ({
-  CommandHandlerComponent: class MockCommandHandlerComponent {
-    public constructor(_params: unknown) {}
-  }
+vi.mock('obsidian-dev-utils/obsidian/queue', async (importOriginal) => ({
+  ...await importOriginal<typeof import('obsidian-dev-utils/obsidian/queue')>(),
+  addToQueue: (...args: unknown[]): unknown => hoisted.mockAddToQueue(...args)
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/active-file-provider', () => ({
-  AppActiveFileProvider: class MockAppActiveFileProvider {
-    public constructor(_app: unknown) {}
-  }
+vi.mock('obsidian-dev-utils/obsidian/vault', async (importOriginal) => ({
+  ...await importOriginal<typeof import('obsidian-dev-utils/obsidian/vault')>(),
+  process: (...args: unknown[]): unknown => hoisted.mockProcessVault(...args)
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/command-registrar', () => ({
-  PluginCommandRegistrar: class MockPluginCommandRegistrar {
-    public constructor(_plugin: unknown) {}
-  }
+vi.mock('obsidian-dev-utils/obsidian/validation', async (importOriginal) => ({
+  ...await importOriginal<typeof import('obsidian-dev-utils/obsidian/validation')>(),
+  getOsAndObsidianUnsafePathCharsRegExp: (): unknown => hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp()
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/plugin/plugin-settings-tab', () => ({
-  PluginSettingsTabBase: class MockPluginSettingsTabBase {
-    public constructor(_params: unknown) {}
-  }
-}));
-
-vi.mock('./plugin-settings-tab.ts', () => ({
-  PluginSettingsTab: class MockPluginSettingsTab {
-    public constructor(_params: unknown) {}
-  }
-}));
-
-vi.mock('./plugin-settings-component.ts', () => ({
-  PluginSettingsComponent: class MockPluginSettingsComponent {
-    public settings = {
-      invalidCharacterAction: 'Error',
-      replacementCharacter: '_',
-      shouldPreservePreviousDisplayTextInFrontmatterLinks: true,
-      shouldPreservePreviousDisplayTextInNoteLinks: true,
-      shouldStoreInvalidTitle: true,
-      shouldSupportNonMarkdownFiles: true,
-      shouldUpdateFirstHeader: false,
-      shouldUpdateTitleKey: false
-    };
-
-    public constructor(_params: unknown) {}
-  }
-}));
-
-interface InvokeCommandHandlerOptions {
-  checkIsMarkdownFile(file: TFile): boolean;
-  getSettings(): unknown;
-  smartRename(file: TFile): Promise<void>;
-}
-
-const capturedInvokeHandlerOptions: InvokeCommandHandlerOptions[] = [];
-
-vi.mock('./command-handlers/invoke-command-handler.ts', () => ({
-  InvokeCommandHandler: class MockInvokeCommandHandler {
-    public constructor(params: InvokeCommandHandlerOptions) {
-      capturedInvokeHandlerOptions.push(params);
-    }
-  }
-}));
-
-vi.mock('obsidian-dev-utils/obsidian/modals/prompt', () => ({
-  prompt: (...args: unknown[]) => hoisted.mockPrompt(...args)
-}));
-
-vi.mock('obsidian-dev-utils/obsidian/metadata-cache', () => ({
-  getBacklinksForFileSafe: (...args: unknown[]) => hoisted.mockGetBacklinksForFileSafe(...args),
-
-  getCacheSafe: (...args: unknown[]) => hoisted.mockGetCacheSafe(...args)
-}));
-
-vi.mock('obsidian-dev-utils/obsidian/file-system', () => ({
-  getFile: (...args: unknown[]) => hoisted.mockGetFile(...args),
-
-  isMarkdownFile: (...args: unknown[]) => hoisted.mockIsMarkdownFile(...args)
-}));
-
-vi.mock('obsidian-dev-utils/obsidian/file-manager', () => ({
-  addAlias: (...args: unknown[]) => hoisted.mockAddAlias(...args),
-
-  processFrontmatter: (...args: unknown[]) => hoisted.mockProcessFrontmatter(...args)
-}));
-
-vi.mock('obsidian-dev-utils/obsidian/link', () => ({
-  editLinks: (...args: unknown[]) => hoisted.mockEditLinks(...args),
-
-  extractLinkFile: (...args: unknown[]) => hoisted.mockExtractLinkFile(...args),
-
-  generateMarkdownLink: (...args: unknown[]) => hoisted.mockGenerateMarkdownLink(...args)
-}));
-
-vi.mock('obsidian-dev-utils/obsidian/queue', () => ({
-  addToQueue: (...args: unknown[]) => hoisted.mockAddToQueue(...args)
-}));
-
-vi.mock('obsidian-dev-utils/obsidian/vault', () => ({
-  process: (...args: unknown[]) => hoisted.mockProcessVault(...args)
-}));
-
-vi.mock('obsidian-dev-utils/obsidian/validation', () => ({
-  getOsAndObsidianUnsafePathCharsRegExp: () => hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp()
-}));
-
-vi.mock('obsidian-dev-utils/object-utils', () => ({
-  normalizeOptionalProperties: (obj: unknown) => obj,
-  toJson: (obj: unknown) => JSON.stringify(obj)
-}));
-
-vi.mock('obsidian-dev-utils/path', () => ({
-  basename: (path: string, ext: string) => path.replace(ext, '').split('/').pop() ?? path,
-  extname: (path: string) => {
-    const dot = path.lastIndexOf('.');
-    return dot >= 0 ? path.slice(dot) : '';
-  },
-  join: (...parts: string[]) => parts.filter(Boolean).join('/'),
-  makeFileName: (name: string, ext: string) => (ext ? `${name}.${ext}` : name)
-}));
-
-vi.mock('obsidian-dev-utils/string', () => ({
-  insertAt: (_content: string, replacement: string, _start: number, _end: number) => replacement
-}));
-
-vi.mock('@obsidian-typings/obsidian-public-latest/implementations', () => ({
-  isFrontmatterLinkCache: vi.fn().mockReturnValue(false),
-  isReferenceCache: vi.fn().mockReturnValue(true)
+vi.mock('@obsidian-typings/obsidian-public-latest/implementations', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@obsidian-typings/obsidian-public-latest/implementations')>(),
+  isFrontmatterLinkCache: (...args: unknown[]): unknown => hoisted.mockIsFrontmatterLinkCache(...args),
+  isReferenceCache: (...args: unknown[]): unknown => hoisted.mockIsReferenceCache(...args)
 }));
 
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
 import { Plugin } from './plugin.ts';
 
-interface MockPluginSettings {
-  invalidCharacterAction: string;
-  replacementCharacter: string;
-  shouldPreservePreviousDisplayTextInFrontmatterLinks: boolean;
-  shouldPreservePreviousDisplayTextInNoteLinks: boolean;
-  shouldStoreInvalidTitle: boolean;
-  shouldSupportNonMarkdownFiles: boolean;
-  shouldUpdateFirstHeader: boolean;
-  shouldUpdateTitleKey: boolean;
+interface BacklinkLink {
+  displayText?: string;
+  original: string;
 }
 
-interface MockSettingsComponent {
-  settings: MockPluginSettings;
+interface BacklinksStub {
+  get(key: string): null | unknown[];
+  keys(): string[];
 }
 
-function createMockApp(): App {
-  return {
-    vault: {
-      exists: vi.fn().mockResolvedValue(false),
-      rename: vi.fn().mockResolvedValue(undefined)
-    }
-  } as unknown as App;
+interface CommandsHolder {
+  commands: Map<string, Command>;
 }
 
-function createMockManifest(): PluginManifest {
-  return { id: 'smart-rename', name: 'Smart Rename', version: '1.0.0' } as unknown as PluginManifest;
+type EditLinksCallback = (link: BacklinkLink) => string | undefined;
+
+interface EnqueuedOperation {
+  operationFn(): Promise<void>;
 }
 
-function createPlugin(app?: App): Plugin {
-  addedChildren.length = 0;
-  return new Plugin(app ?? createMockApp(), createMockManifest());
+interface HeadingsCache {
+  headings: never[];
 }
 
-function getSettingsComponent(_plugin: Plugin): MockSettingsComponent {
-  // The PluginSettingsComponent is the first child added.
-  const SETTINGS_COMPONENT_INDEX = 0;
-  return addedChildren[SETTINGS_COMPONENT_INDEX] as MockSettingsComponent;
+type ProcessVaultCallback = (context: ProcessVaultContext) => Promise<null | string>;
+
+interface ProcessVaultContext {
+  abortSignal: AbortSignal;
+  content: string;
 }
+
+interface SetupBacklinkCallbackOptions {
+  readonly backlinks: BacklinksStub;
+  readonly newFile: Partial<TFile>;
+  readonly settings?: Partial<PluginSettings>;
+}
+
+interface SetupProcessVaultCallbackOptions {
+  readonly cache: unknown;
+}
+
+interface Testable {
+  pluginSettingsComponent: PluginSettingsComponent;
+}
+
+const DEFAULT_UNSAFE_CHARS_REGEXP = /[/\\]/;
+
+async function applySettings(plugin: Plugin, overrides: Partial<PluginSettings>): Promise<void> {
+  const component = castTo<Testable>(plugin).pluginSettingsComponent;
+  await component.editAndSave((settings) => {
+    Object.assign(settings, overrides);
+  });
+}
+
+function createApp(): AppOriginal {
+  const appMock = App.createConfigured__();
+  appMock.workspace.onLayoutReady = vi.fn((cb: () => void) => {
+    cb();
+  });
+  const app = appMock.asOriginalType__();
+  app.vault.exists = vi.fn().mockResolvedValue(false);
+  app.vault.rename = vi.fn().mockResolvedValue(undefined);
+  return app;
+}
+
+function createInputFile(overrides?: Partial<TFile>): TFile {
+  return strictProxy<TFile>({
+    basename: 'OldTitle',
+    extension: 'md',
+    parent: strictProxy({
+      getParentPrefix: (): string => ''
+    }),
+    path: 'OldTitle.md',
+    ...overrides
+  });
+}
+
+async function createLoadedPlugin(app: AppOriginal): Promise<Plugin> {
+  const plugin = new Plugin(app, createManifest());
+  await plugin.onload();
+  return plugin;
+}
+
+function createManifest(): PluginManifest {
+  return strictProxy<PluginManifest>({
+    id: 'smart-rename',
+    name: 'Smart Rename',
+    version: '1.0.0'
+  });
+}
+
+async function getRegisteredInvokeCommand(): Promise<Command> {
+  const appMock = App.createConfigured__({ files: { 'OldTitle.md': '# OldTitle' } });
+  appMock.workspace.onLayoutReady = vi.fn((cb: () => void) => {
+    cb();
+  });
+  const activeFile = appMock.vault.getFileByPath('OldTitle.md');
+  appMock.workspace.getActiveFile = vi.fn(() => activeFile);
+  const plugin = await createLoadedPlugin(appMock.asOriginalType__());
+  const command = castTo<CommandsHolder>(plugin).commands.get('invoke');
+  if (!command) {
+    throw new Error('invoke command was not registered');
+  }
+
+  return command;
+}
+
+async function runEnqueuedOperation(): Promise<void> {
+  const addToQueueCall = hoisted.mockAddToQueue.mock.calls[0] as [EnqueuedOperation] | undefined;
+  await addToQueueCall?.[0]?.operationFn();
+}
+
+beforeEach(() => {
+  noticeMessages.length = 0;
+  hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(DEFAULT_UNSAFE_CHARS_REGEXP);
+  hoisted.mockIsFrontmatterLinkCache.mockReturnValue(false);
+  hoisted.mockIsReferenceCache.mockReturnValue(true);
+  hoisted.mockGetBacklinksForFileSafe.mockResolvedValue({
+    get: (): null => null,
+    keys: (): string[] => []
+  });
+});
+
+afterEach(() => {
+  vi.clearAllMocks();
+});
 
 describe('Plugin', () => {
-  afterEach(() => {
-    vi.restoreAllMocks();
-    vi.clearAllMocks();
-    addedChildren.length = 0;
-    capturedInvokeHandlerOptions.length = 0;
-  });
-
   describe('constructor', () => {
-    it('should create a plugin instance', () => {
-      const plugin = createPlugin();
+    it('should create a plugin instance', async () => {
+      const plugin = await createLoadedPlugin(createApp());
       expect(plugin).toBeInstanceOf(Plugin);
     });
 
-    it('should add child components', () => {
-      createPlugin();
-      expect(addedChildren.length).toBeGreaterThan(0);
+    it('should register the smart rename command via its child command handler', async () => {
+      const plugin = new Plugin(createApp(), createManifest());
+      const addCommandSpy = vi.spyOn(plugin, 'addCommand');
+      await plugin.onload();
+      expect(addCommandSpy).toHaveBeenCalledWith(
+        expect.objectContaining({ id: 'invoke', name: 'Invoke' })
+      );
     });
 
-    it('should pass checkIsMarkdownFile lambda that delegates to isMarkdownFile', () => {
-      capturedInvokeHandlerOptions.length = 0;
+    it('should add the plugin settings tab via its child component', async () => {
+      const plugin = new Plugin(createApp(), createManifest());
+      const addSettingTabSpy = vi.spyOn(plugin, 'addSettingTab');
+      await plugin.onload();
+      expect(addSettingTabSpy).toHaveBeenCalled();
+    });
+
+    it('should expose a live pluginSettingsComponent whose getSettings backing returns the plugin settings', async () => {
+      const app = createApp();
+      const plugin = await createLoadedPlugin(app);
+      const settings = castTo<Testable>(plugin).pluginSettingsComponent.settings;
+      expect(settings).toBeDefined();
+      expect(settings.invalidCharacterAction).toBeDefined();
+    });
+
+    it('should invoke the checkIsMarkdownFile lambda when the registered command checks the active file', async () => {
       hoisted.mockIsMarkdownFile.mockReturnValue(true);
-      createPlugin();
-      const options = capturedInvokeHandlerOptions[0];
-      expect(options).toBeDefined();
-      const mockFile = { path: 'note.md' } as unknown as TFile;
-      const result = options?.checkIsMarkdownFile(mockFile);
-      expect(result).toBe(true);
+      const command = await getRegisteredInvokeCommand();
+      const canExecute = command.checkCallback?.(true);
+      expect(canExecute).toBe(true);
       expect(hoisted.mockIsMarkdownFile).toHaveBeenCalled();
     });
 
-    it('should pass getSettings lambda that returns plugin settings', () => {
-      capturedInvokeHandlerOptions.length = 0;
-      createPlugin();
-      const options = capturedInvokeHandlerOptions[0];
-      expect(options).toBeDefined();
-      const settings = options?.getSettings();
-      expect(settings).toBeDefined();
+    it('should fall back to the getSettings lambda when checkIsMarkdownFile returns false', async () => {
+      hoisted.mockIsMarkdownFile.mockReturnValue(false);
+      const command = await getRegisteredInvokeCommand();
+      // CheckIsMarkdownFile is false, so canExecuteFile reads getSettings().shouldSupportNonMarkdownFiles (default true).
+      const canExecute = command.checkCallback?.(true);
+      expect(canExecute).toBe(true);
+      expect(hoisted.mockIsMarkdownFile).toHaveBeenCalled();
     });
   });
 
   describe('hasInvalidCharacters', () => {
-    it('should return true when string has invalid characters', () => {
+    it('should return true when string has invalid characters', async () => {
       hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\:*?"<>|]/);
-      const plugin = createPlugin();
+      const plugin = await createLoadedPlugin(createApp());
       expect(plugin.hasInvalidCharacters('foo/bar')).toBe(true);
     });
 
-    it('should return false when string has no invalid characters', () => {
+    it('should return false when string has no invalid characters', async () => {
       hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\:*?"<>|]/);
-      const plugin = createPlugin();
+      const plugin = await createLoadedPlugin(createApp());
       expect(plugin.hasInvalidCharacters('valid-name')).toBe(false);
     });
   });
 
   describe('smartRename', () => {
-    function createMockFile(overrides?: Partial<TFile>): TFile {
-      return {
-        basename: 'OldTitle',
-        extension: 'md',
-        parent: { getParentPrefix: () => '' },
-        path: 'OldTitle.md',
-        ...overrides
-      } as unknown as TFile;
-    }
-
     it('should show notice when new title is empty (prompt returns empty string)', async () => {
-      hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\]/);
       hoisted.mockPrompt.mockResolvedValue('');
-      const app = createMockApp();
-      const plugin = createPlugin(app);
-      await plugin.smartRename(createMockFile());
-      expect(hoisted.mockNotice).toHaveBeenCalledWith('No new title provided');
+      const plugin = await createLoadedPlugin(createApp());
+      await plugin.smartRename(createInputFile());
+      expect(noticeMessages).toContain('No new title provided');
     });
 
     it('should show notice when prompt returns null (cancelled)', async () => {
-      hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\]/);
       hoisted.mockPrompt.mockResolvedValue(null);
-      const app = createMockApp();
-      const plugin = createPlugin(app);
-      await plugin.smartRename(createMockFile());
-      expect(hoisted.mockNotice).toHaveBeenCalledWith('No new title provided');
+      const plugin = await createLoadedPlugin(createApp());
+      await plugin.smartRename(createInputFile());
+      expect(noticeMessages).toContain('No new title provided');
     });
 
     it('should show notice when title did not change', async () => {
-      hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\]/);
       hoisted.mockPrompt.mockResolvedValue('OldTitle');
-      const app = createMockApp();
-      const plugin = createPlugin(app);
-      await plugin.smartRename(createMockFile());
-      expect(hoisted.mockNotice).toHaveBeenCalledWith('The title did not change');
+      const plugin = await createLoadedPlugin(createApp());
+      await plugin.smartRename(createInputFile());
+      expect(noticeMessages).toContain('The title did not change');
     });
 
     it('should allow rename when only casing changes', async () => {
-      hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\]/);
       hoisted.mockPrompt.mockResolvedValue('OLDTITLE');
-      hoisted.mockGetBacklinksForFileSafe.mockResolvedValue({ get: () => null, keys: () => [] });
-      const app = createMockApp();
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.exists = vi.fn().mockResolvedValue(false);
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.rename = vi.fn().mockResolvedValue(undefined);
-      const plugin = createPlugin(app);
-      await plugin.smartRename(createMockFile());
+      const plugin = await createLoadedPlugin(createApp());
+      await plugin.smartRename(createInputFile());
       expect(hoisted.mockAddToQueue).toHaveBeenCalled();
     });
 
     it('should show notice when file with new title already exists', async () => {
-      hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\]/);
       hoisted.mockPrompt.mockResolvedValue('NewTitle');
-      const app = createMockApp();
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.exists = vi.fn().mockResolvedValue(true);
-      const plugin = createPlugin(app);
-      await plugin.smartRename(createMockFile());
-      expect(hoisted.mockNotice).toHaveBeenCalledWith('Note with the new title already exists');
+      const app = createApp();
+      app.vault.exists = vi.fn().mockResolvedValue(true);
+      const plugin = await createLoadedPlugin(app);
+      await plugin.smartRename(createInputFile());
+      expect(noticeMessages).toContain('Note with the new title already exists');
     });
 
     it('should show notice when title starts with a dot', async () => {
-      hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\]/);
       hoisted.mockPrompt.mockResolvedValue('.hidden');
-      const app = createMockApp();
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.exists = vi.fn().mockResolvedValue(false);
-      const plugin = createPlugin(app);
-      await plugin.smartRename(createMockFile());
-      expect(hoisted.mockNotice).toHaveBeenCalledWith('The title cannot start with a dot');
+      const plugin = await createLoadedPlugin(createApp());
+      await plugin.smartRename(createInputFile());
+      expect(noticeMessages).toContain('The title cannot start with a dot');
     });
 
     it('should show notice when rename throws Error action for invalid characters', async () => {
-      hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\]/);
       hoisted.mockPrompt.mockResolvedValue('foo/bar');
-      const app = createMockApp();
-      const plugin = createPlugin(app);
-      const settingsComponent = getSettingsComponent(plugin);
-      settingsComponent.settings.invalidCharacterAction = 'Error';
-      await plugin.smartRename(createMockFile());
-      expect(hoisted.mockNotice).toHaveBeenCalledWith('The new title has invalid characters');
+      const plugin = await createLoadedPlugin(createApp());
+      await applySettings(plugin, { invalidCharacterAction: castTo<PluginSettings['invalidCharacterAction']>('Error') });
+      await plugin.smartRename(createInputFile());
+      expect(noticeMessages).toContain('The new title has invalid characters');
     });
 
     it('should remove invalid characters when action is Remove', async () => {
-      hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\]/);
       hoisted.mockPrompt.mockResolvedValue('foo/bar');
-      hoisted.mockGetBacklinksForFileSafe.mockResolvedValue({ get: () => null, keys: () => [] });
-      const app = createMockApp();
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.exists = vi.fn().mockResolvedValue(false);
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.rename = vi.fn().mockResolvedValue(undefined);
-      const plugin = createPlugin(app);
-      const settingsComponent = getSettingsComponent(plugin);
-      settingsComponent.settings.invalidCharacterAction = 'Remove';
-      await plugin.smartRename(createMockFile());
+      const plugin = await createLoadedPlugin(createApp());
+      await applySettings(plugin, { invalidCharacterAction: castTo<PluginSettings['invalidCharacterAction']>('Remove') });
+      await plugin.smartRename(createInputFile());
       expect(hoisted.mockAddToQueue).toHaveBeenCalled();
     });
 
     it('should replace invalid characters when action is Replace', async () => {
-      hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\]/);
       hoisted.mockPrompt.mockResolvedValue('foo/bar');
-      hoisted.mockGetBacklinksForFileSafe.mockResolvedValue({ get: () => null, keys: () => [] });
-      const app = createMockApp();
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.exists = vi.fn().mockResolvedValue(false);
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.rename = vi.fn().mockResolvedValue(undefined);
-      const plugin = createPlugin(app);
-      const settingsComponent = getSettingsComponent(plugin);
-      settingsComponent.settings.invalidCharacterAction = 'Replace';
-      settingsComponent.settings.replacementCharacter = '_';
-      await plugin.smartRename(createMockFile());
+      const plugin = await createLoadedPlugin(createApp());
+      await applySettings(plugin, {
+        invalidCharacterAction: castTo<PluginSettings['invalidCharacterAction']>('Replace'),
+        replacementCharacter: '_'
+      });
+      await plugin.smartRename(createInputFile());
       expect(hoisted.mockAddToQueue).toHaveBeenCalled();
     });
 
     it('should throw when invalidCharacterAction is unknown', async () => {
-      hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\]/);
       hoisted.mockPrompt.mockResolvedValue('foo/bar');
-      const app = createMockApp();
-      const plugin = createPlugin(app);
-      const settingsComponent = getSettingsComponent(plugin);
-      settingsComponent.settings.invalidCharacterAction = 'Unknown';
-      await expect(plugin.smartRename(createMockFile())).rejects.toThrow('Invalid character action');
+      const plugin = await createLoadedPlugin(createApp());
+      await applySettings(plugin, { invalidCharacterAction: castTo<PluginSettings['invalidCharacterAction']>('Unknown') });
+      await expect(plugin.smartRename(createInputFile())).rejects.toThrow('Invalid character action');
     });
 
     it('should show notice when vault rename fails', async () => {
-      hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\]/);
       hoisted.mockPrompt.mockResolvedValue('NewTitle');
-      hoisted.mockGetBacklinksForFileSafe.mockResolvedValue({ get: () => null, keys: () => [] });
-
-      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
-      const app = createMockApp();
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.exists = vi.fn().mockResolvedValue(false);
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.rename = vi.fn().mockRejectedValue(
-        new Error('rename failed')
-      );
-      const plugin = createPlugin(app);
-      await plugin.smartRename(createMockFile());
-      expect(hoisted.mockNotice).toHaveBeenCalledWith('Failed to rename file');
+      const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+      const app = createApp();
+      app.vault.rename = vi.fn().mockRejectedValue(new Error('rename failed'));
+      const plugin = await createLoadedPlugin(app);
+      await plugin.smartRename(createInputFile());
+      expect(noticeMessages).toContain('Failed to rename file');
       expect(consoleErrorSpy).toHaveBeenCalled();
     });
 
     it('should enqueue processRename after successful rename', async () => {
-      hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\]/);
       hoisted.mockPrompt.mockResolvedValue('NewTitle');
-      hoisted.mockGetBacklinksForFileSafe.mockResolvedValue({ get: () => null, keys: () => [] });
-      const app = createMockApp();
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.exists = vi.fn().mockResolvedValue(false);
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.rename = vi.fn().mockResolvedValue(undefined);
-      const plugin = createPlugin(app);
-      await plugin.smartRename(createMockFile());
+      const plugin = await createLoadedPlugin(createApp());
+      await plugin.smartRename(createInputFile());
       expect(hoisted.mockAddToQueue).toHaveBeenCalledWith(
         expect.objectContaining({ operationName: 'Smart rename' })
       );
     });
 
     it('should store sanitized title when shouldStoreInvalidTitle is false', async () => {
-      hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\]/);
       hoisted.mockPrompt.mockResolvedValue('foo/bar');
-      hoisted.mockGetBacklinksForFileSafe.mockResolvedValue({ get: () => null, keys: () => [] });
-      const app = createMockApp();
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.exists = vi.fn().mockResolvedValue(false);
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.rename = vi.fn().mockResolvedValue(undefined);
-      const plugin = createPlugin(app);
-      const settingsComponent = getSettingsComponent(plugin);
-      settingsComponent.settings.invalidCharacterAction = 'Remove';
-      settingsComponent.settings.shouldStoreInvalidTitle = false;
-      await plugin.smartRename(createMockFile());
+      const plugin = await createLoadedPlugin(createApp());
+      await applySettings(plugin, {
+        invalidCharacterAction: castTo<PluginSettings['invalidCharacterAction']>('Remove'),
+        shouldStoreInvalidTitle: false
+      });
+      await plugin.smartRename(createInputFile());
       expect(hoisted.mockAddToQueue).toHaveBeenCalled();
     });
 
     it('should handle file with no parent (parent is null)', async () => {
-      hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\]/);
       hoisted.mockPrompt.mockResolvedValue('NewTitle');
-      hoisted.mockGetBacklinksForFileSafe.mockResolvedValue({ get: () => null, keys: () => [] });
-      const app = createMockApp();
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.exists = vi.fn().mockResolvedValue(false);
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.rename = vi.fn().mockResolvedValue(undefined);
-      const plugin = createPlugin(app);
-      await plugin.smartRename(createMockFile({ parent: null }));
+      const plugin = await createLoadedPlugin(createApp());
+      await plugin.smartRename(createInputFile({ parent: null }));
       expect(hoisted.mockAddToQueue).toHaveBeenCalled();
     });
   });
 
   describe('processRename (via addToQueue callback)', () => {
-    function createMockFile(overrides?: Partial<TFile>): TFile {
-      return {
-        basename: 'NewTitle',
-        extension: 'md',
-        parent: { getParentPrefix: () => '' },
-        path: 'NewTitle.md',
-        ...overrides
-      } as unknown as TFile;
+    interface RunProcessRenameOptions {
+      readonly backlinks?: BacklinksStub;
+      readonly isMarkdown?: boolean;
+      readonly newFile?: Partial<TFile>;
+      readonly shouldStoreInvalidTitle?: boolean;
+      readonly shouldUpdateFirstHeader?: boolean;
+      readonly shouldUpdateTitleKey?: boolean;
     }
 
-    async function runProcessRename(opts: {
-      backlinks?: { get(k: string): null | unknown[]; keys(): string[] };
-      isMarkdown?: boolean;
-      shouldStoreInvalidTitle?: boolean;
-      shouldUpdateFirstHeader?: boolean;
-      shouldUpdateTitleKey?: boolean;
-    }): Promise<void> {
-      hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\]/);
+    async function runProcessRename(options: RunProcessRenameOptions): Promise<void> {
       hoisted.mockPrompt.mockResolvedValue('NewTitle');
-      hoisted.mockGetBacklinksForFileSafe.mockResolvedValue(opts.backlinks ?? { get: () => null, keys: () => [] });
-      hoisted.mockIsMarkdownFile.mockReturnValue(opts.isMarkdown ?? true);
-      hoisted.mockGetFile.mockReturnValue(createMockFile());
+      hoisted.mockGetBacklinksForFileSafe.mockResolvedValue(
+        options.backlinks ?? {
+          get: (): null => null,
+          keys: (): string[] => []
+        }
+      );
+      hoisted.mockIsMarkdownFile.mockReturnValue(options.isMarkdown ?? true);
+      hoisted.mockGetFile.mockReturnValue(strictProxy<TFile>({
+        basename: 'NewTitle',
+        path: 'NewTitle.md',
+        ...options.newFile
+      }));
       hoisted.mockAddAlias.mockResolvedValue(undefined);
       hoisted.mockProcessFrontmatter.mockResolvedValue(undefined);
 
-      const app = createMockApp();
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.exists = vi.fn().mockResolvedValue(false);
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.rename = vi.fn().mockResolvedValue(undefined);
+      const plugin = await createLoadedPlugin(createApp());
+      await applySettings(plugin, {
+        shouldStoreInvalidTitle: options.shouldStoreInvalidTitle ?? true,
+        shouldUpdateFirstHeader: options.shouldUpdateFirstHeader ?? false,
+        shouldUpdateTitleKey: options.shouldUpdateTitleKey ?? false
+      });
 
-      const plugin = createPlugin(app);
-      const settingsComponent = getSettingsComponent(plugin);
-      settingsComponent.settings.shouldUpdateFirstHeader = opts.shouldUpdateFirstHeader ?? false;
-      settingsComponent.settings.shouldUpdateTitleKey = opts.shouldUpdateTitleKey ?? false;
-      settingsComponent.settings.shouldStoreInvalidTitle = opts.shouldStoreInvalidTitle ?? true;
-
-      await plugin.smartRename(createMockFile({ basename: 'OldTitle', path: 'OldTitle.md' }));
-
-      // Now invoke the processRename callback that was enqueued
-      const addToQueueCall = hoisted.mockAddToQueue.mock.calls[0] as [{ operationFn(): Promise<void> }] | undefined;
-      await addToQueueCall?.[0]?.operationFn();
+      await plugin.smartRename(createInputFile());
+      await runEnqueuedOperation();
     }
 
     it('should call processBacklinks for all backlinks', async () => {
-      const mockLink = { displayText: 'NewTitle', original: '[[OldTitle]]' };
-      const backlinks = {
-        get: () => [mockLink],
-        keys: () => ['note.md']
-      };
+      const mockLink = { displayText: 'NewTitle', original: '[[Old Title]]' };
       hoisted.mockExtractLinkFile.mockReturnValue(null);
       hoisted.mockEditLinks.mockResolvedValue(undefined);
-      hoisted.mockIsMarkdownFile.mockReturnValue(false);
-      await runProcessRename({ backlinks });
+      await runProcessRename({
+        backlinks: {
+          get: (): unknown[] => [mockLink],
+          keys: (): string[] => ['note.md']
+        },
+        isMarkdown: false
+      });
       expect(hoisted.mockEditLinks).toHaveBeenCalled();
     });
 
@@ -576,30 +487,22 @@ describe('Plugin', () => {
     });
 
     it('should set frontmatter title in the processFrontmatter callback', async () => {
-      hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\]/);
       hoisted.mockPrompt.mockResolvedValue('NewTitle');
-      hoisted.mockGetBacklinksForFileSafe.mockResolvedValue({ get: () => null, keys: () => [] });
       hoisted.mockIsMarkdownFile.mockReturnValue(true);
-      hoisted.mockGetFile.mockReturnValue({ basename: 'NewTitle', path: 'NewTitle.md' });
+      hoisted.mockGetFile.mockReturnValue(strictProxy<TFile>({ basename: 'NewTitle', path: 'NewTitle.md' }));
       hoisted.mockAddAlias.mockResolvedValue(undefined);
 
-      const capturedFrontmatter: Record<string, unknown> = {};
-      hoisted.mockProcessFrontmatter.mockImplementation((_app: unknown, _path: string, cb: (fm: Record<string, unknown>) => void) => {
+      const capturedFrontmatter = castTo<CombinedFrontmatter<unknown>>({});
+      hoisted.mockProcessFrontmatter.mockImplementation((_app: unknown, _path: string, cb: (fm: CombinedFrontmatter<unknown>) => void) => {
         cb(capturedFrontmatter);
         return noopAsync();
       });
 
-      const app = createMockApp();
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.exists = vi.fn().mockResolvedValue(false);
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.rename = vi.fn().mockResolvedValue(undefined);
+      const plugin = await createLoadedPlugin(createApp());
+      await applySettings(plugin, { shouldUpdateTitleKey: true });
 
-      const plugin = createPlugin(app);
-      const settingsComponent = getSettingsComponent(plugin);
-      settingsComponent.settings.shouldUpdateTitleKey = true;
-
-      await plugin.smartRename({ basename: 'OldTitle', extension: 'md', parent: { getParentPrefix: () => '' }, path: 'OldTitle.md' } as unknown as TFile);
-      const addToQueueCall = hoisted.mockAddToQueue.mock.calls[0] as [{ operationFn(): Promise<void> }] | undefined;
-      await addToQueueCall?.[0]?.operationFn();
+      await plugin.smartRename(createInputFile());
+      await runEnqueuedOperation();
 
       expect(capturedFrontmatter['title']).toBe('NewTitle');
     });
@@ -626,178 +529,126 @@ describe('Plugin', () => {
     });
 
     it('should call addAlias with titleToStore when shouldStoreInvalidTitle is true and titleToStore differs', async () => {
-      // When shouldStoreInvalidTitle=true and invalid chars removed, titleToStore (original) differs from sanitized newTitle
-      hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\]/);
       hoisted.mockPrompt.mockResolvedValue('foo/bar');
-      hoisted.mockGetBacklinksForFileSafe.mockResolvedValue({ get: () => null, keys: () => [] });
       hoisted.mockIsMarkdownFile.mockReturnValue(true);
-      hoisted.mockGetFile.mockReturnValue({
+      hoisted.mockGetFile.mockReturnValue(strictProxy<TFile>({
         basename: 'foobar',
         path: 'foobar.md'
-      });
+      }));
       hoisted.mockAddAlias.mockResolvedValue(undefined);
 
-      const app = createMockApp();
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.exists = vi.fn().mockResolvedValue(false);
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.rename = vi.fn().mockResolvedValue(undefined);
+      const plugin = await createLoadedPlugin(createApp());
+      await applySettings(plugin, {
+        invalidCharacterAction: castTo<PluginSettings['invalidCharacterAction']>('Remove'),
+        shouldStoreInvalidTitle: true
+      });
 
-      const plugin = createPlugin(app);
-      const settingsComponent = getSettingsComponent(plugin);
-      settingsComponent.settings.invalidCharacterAction = 'Remove';
-      settingsComponent.settings.shouldStoreInvalidTitle = true;
-
-      await plugin.smartRename({ basename: 'OldTitle', extension: 'md', parent: { getParentPrefix: () => '' }, path: 'OldTitle.md' } as unknown as TFile);
-
-      const addToQueueCall = hoisted.mockAddToQueue.mock.calls[0] as [{ operationFn(): Promise<void> }] | undefined;
-      await addToQueueCall?.[0]?.operationFn();
+      await plugin.smartRename(createInputFile());
+      await runEnqueuedOperation();
 
       expect(hoisted.mockAddAlias).toHaveBeenCalled();
     });
   });
 
   describe('processBacklinks (editLinks callback)', () => {
-    it('should return undefined for link not matching newFile or linkJsons', async () => {
-      hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\]/);
+    async function setupBacklinkCallback(options: SetupBacklinkCallbackOptions): Promise<EditLinksCallback> {
       hoisted.mockPrompt.mockResolvedValue('NewTitle');
       hoisted.mockIsMarkdownFile.mockReturnValue(false);
+      hoisted.mockGetBacklinksForFileSafe.mockResolvedValue(options.backlinks);
+      hoisted.mockGetFile.mockReturnValue(strictProxy<TFile>(options.newFile));
 
-      const mockLink = { displayText: 'OtherNote', original: '[[OtherNote]]' };
-      const backlinks = {
-        get: () => [mockLink],
-        keys: () => ['note.md']
-      };
-      hoisted.mockGetBacklinksForFileSafe.mockResolvedValue(backlinks);
-
-      const newFile = { basename: 'NewTitle', path: 'NewTitle.md' };
-      hoisted.mockGetFile.mockReturnValue(newFile);
-
-      let editLinksCallback: ((link: { displayText?: string; original: string }) => string | undefined) | undefined;
+      let editLinksCallback: EditLinksCallback | undefined;
       hoisted.mockEditLinks.mockImplementation((_app: unknown, _path: string, cb: typeof editLinksCallback) => {
         editLinksCallback = cb;
       });
 
-      const app = createMockApp();
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.exists = vi.fn().mockResolvedValue(false);
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.rename = vi.fn().mockResolvedValue(undefined);
+      const plugin = await createLoadedPlugin(createApp());
+      if (options.settings) {
+        await applySettings(plugin, options.settings);
+      }
 
-      const plugin = createPlugin(app);
-      await plugin.smartRename({ basename: 'OldTitle', extension: 'md', parent: { getParentPrefix: () => '' }, path: 'OldTitle.md' } as unknown as TFile);
-      const addToQueueCall = hoisted.mockAddToQueue.mock.calls[0] as [{ operationFn(): Promise<void> }] | undefined;
-      await addToQueueCall?.[0]?.operationFn();
+      await plugin.smartRename(createInputFile());
+      await runEnqueuedOperation();
 
-      // Simulate a link that doesn't match newFile and isn't in linkJsons
+      if (!editLinksCallback) {
+        throw new Error('editLinks callback was not captured');
+      }
+
+      return editLinksCallback;
+    }
+
+    it('should return undefined for link not matching newFile or linkJsons', async () => {
+      const mockLink = { displayText: 'OtherNote', original: '[[Other Note]]' };
+      const callback = await setupBacklinkCallback({
+        backlinks: {
+          get: (): unknown[] => [mockLink],
+          keys: (): string[] => ['note.md']
+        },
+        newFile: { basename: 'NewTitle', path: 'NewTitle.md' }
+      });
+
       hoisted.mockExtractLinkFile.mockReturnValue(null);
-      const result = editLinksCallback?.({ displayText: 'SomeOther', original: '[[SomeOther]]' });
+      const result = callback({ displayText: 'SomeOther', original: '[[Some Other]]' });
       expect(result).toBeUndefined();
     });
 
     it('should generate markdown link for matching link', async () => {
-      hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\]/);
-      hoisted.mockPrompt.mockResolvedValue('NewTitle');
-      hoisted.mockIsMarkdownFile.mockReturnValue(false);
-
-      const mockLink = { displayText: 'OldTitle', original: '[[OldTitle]]' };
-      const backlinks = {
-        get: () => [mockLink],
-        keys: () => ['note.md']
-      };
-      hoisted.mockGetBacklinksForFileSafe.mockResolvedValue(backlinks);
-
+      const mockLink = { displayText: 'OldTitle', original: '[[Old Title]]' };
       const newFile = { basename: 'NewTitle', path: 'NewTitle.md' };
-      hoisted.mockGetFile.mockReturnValue(newFile);
       hoisted.mockGenerateMarkdownLink.mockReturnValue('[[NewTitle|OldTitle]]');
 
-      let editLinksCallback: ((link: { displayText?: string; original: string }) => string | undefined) | undefined;
-      hoisted.mockEditLinks.mockImplementation((_app: unknown, _path: string, cb: typeof editLinksCallback) => {
-        editLinksCallback = cb;
+      const callback = await setupBacklinkCallback({
+        backlinks: {
+          get: (): unknown[] => [mockLink],
+          keys: (): string[] => ['note.md']
+        },
+        newFile
       });
 
-      const app = createMockApp();
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.exists = vi.fn().mockResolvedValue(false);
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.rename = vi.fn().mockResolvedValue(undefined);
-
-      const plugin = createPlugin(app);
-      await plugin.smartRename({ basename: 'OldTitle', extension: 'md', parent: { getParentPrefix: () => '' }, path: 'OldTitle.md' } as unknown as TFile);
-      const addToQueueCall = hoisted.mockAddToQueue.mock.calls[0] as [{ operationFn(): Promise<void> }] | undefined;
-      await addToQueueCall?.[0]?.operationFn();
-
-      // Use the matching link (same JSON as mockLink in backlinks)
-      hoisted.mockExtractLinkFile.mockReturnValue(newFile);
-      const result = editLinksCallback?.(mockLink);
+      hoisted.mockExtractLinkFile.mockReturnValue(hoisted.mockGetFile());
+      const result = callback(mockLink);
       expect(result).toBe('[[NewTitle|OldTitle]]');
     });
 
     it('should use oldTitle as alias when displayText matches newTitle and shouldPreservePreviousDisplayTextInNoteLinks is true', async () => {
-      hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\]/);
-      hoisted.mockPrompt.mockResolvedValue('NewTitle');
-      hoisted.mockIsMarkdownFile.mockReturnValue(false);
-
-      const mockLink = { displayText: 'NewTitle', original: '[[OldTitle]]' };
-      const backlinks = {
-        get: () => [mockLink],
-        keys: () => ['note.md']
-      };
-      hoisted.mockGetBacklinksForFileSafe.mockResolvedValue(backlinks);
-
+      hoisted.mockIsReferenceCache.mockReturnValue(true);
+      const mockLink = { displayText: 'NewTitle', original: '[[Old Title]]' };
       const newFile = { basename: 'NewTitle', path: 'NewTitle.md' };
-      hoisted.mockGetFile.mockReturnValue(newFile);
       hoisted.mockGenerateMarkdownLink.mockReturnValue('[[NewTitle|OldTitle]]');
 
-      const { isReferenceCache } = await import('@obsidian-typings/obsidian-public-latest/implementations');
-      vi.mocked(isReferenceCache).mockReturnValue(true);
-
-      let editLinksCallback: ((link: { displayText?: string; original: string }) => string | undefined) | undefined;
-      hoisted.mockEditLinks.mockImplementation((_app: unknown, _path: string, cb: typeof editLinksCallback) => {
-        editLinksCallback = cb;
+      const callback = await setupBacklinkCallback({
+        backlinks: {
+          get: (): unknown[] => [mockLink],
+          keys: (): string[] => ['note.md']
+        },
+        newFile,
+        settings: { shouldPreservePreviousDisplayTextInNoteLinks: true }
       });
 
-      const app = createMockApp();
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.exists = vi.fn().mockResolvedValue(false);
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.rename = vi.fn().mockResolvedValue(undefined);
-
-      const plugin = createPlugin(app);
-      const settingsComponent = getSettingsComponent(plugin);
-      settingsComponent.settings.shouldPreservePreviousDisplayTextInNoteLinks = true;
-
-      await plugin.smartRename({ basename: 'OldTitle', extension: 'md', parent: { getParentPrefix: () => '' }, path: 'OldTitle.md' } as unknown as TFile);
-      const addToQueueCall = hoisted.mockAddToQueue.mock.calls[0] as [{ operationFn(): Promise<void> }] | undefined;
-      await addToQueueCall?.[0]?.operationFn();
-
-      hoisted.mockExtractLinkFile.mockReturnValue(newFile);
-      editLinksCallback?.(mockLink);
+      hoisted.mockExtractLinkFile.mockReturnValue(hoisted.mockGetFile());
+      callback(mockLink);
       expect(hoisted.mockGenerateMarkdownLink).toHaveBeenCalledWith(
         expect.objectContaining({ alias: 'OldTitle' })
       );
     });
 
     it('should handle backlink path equal to oldPath (remapping to newPath)', async () => {
-      hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\]/);
-      hoisted.mockPrompt.mockResolvedValue('NewTitle');
-      hoisted.mockIsMarkdownFile.mockReturnValue(false);
-
-      const mockLink = { displayText: 'OldTitle', original: '[[OldTitle]]' };
-      const backlinks = {
-        get: () => [mockLink],
-        // Backlink path equals oldPath
-        keys: () => ['OldTitle.md']
-      };
-      hoisted.mockGetBacklinksForFileSafe.mockResolvedValue(backlinks);
-
-      const newFile = { basename: 'NewTitle', path: 'NewTitle.md' };
-      hoisted.mockGetFile.mockReturnValue(newFile);
+      const mockLink = { displayText: 'OldTitle', original: '[[Old Title]]' };
       hoisted.mockGenerateMarkdownLink.mockReturnValue('[[NewTitle]]');
       hoisted.mockEditLinks.mockResolvedValue(undefined);
 
-      const app = createMockApp();
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.exists = vi.fn().mockResolvedValue(false);
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.rename = vi.fn().mockResolvedValue(undefined);
+      hoisted.mockPrompt.mockResolvedValue('NewTitle');
+      hoisted.mockIsMarkdownFile.mockReturnValue(false);
+      hoisted.mockGetBacklinksForFileSafe.mockResolvedValue({
+        get: (): unknown[] => [mockLink],
+        keys: (): string[] => ['OldTitle.md']
+      });
+      hoisted.mockGetFile.mockReturnValue(strictProxy<TFile>({ basename: 'NewTitle', path: 'NewTitle.md' }));
 
-      const plugin = createPlugin(app);
-      await plugin.smartRename({ basename: 'OldTitle', extension: 'md', parent: { getParentPrefix: () => '' }, path: 'OldTitle.md' } as unknown as TFile);
-      const addToQueueCall = hoisted.mockAddToQueue.mock.calls[0] as [{ operationFn(): Promise<void> }] | undefined;
-      await addToQueueCall?.[0]?.operationFn();
+      const plugin = await createLoadedPlugin(createApp());
+      await plugin.smartRename(createInputFile());
+      await runEnqueuedOperation();
 
-      // EditLinks should be called with newPath (not oldPath) for backlinkNotePath === oldPath
       expect(hoisted.mockEditLinks).toHaveBeenCalledWith(
         expect.anything(),
         'NewTitle.md',
@@ -806,104 +657,57 @@ describe('Plugin', () => {
     });
 
     it('should skip backlink keys with null links array', async () => {
-      hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\]/);
       hoisted.mockPrompt.mockResolvedValue('NewTitle');
       hoisted.mockIsMarkdownFile.mockReturnValue(false);
+      hoisted.mockGetBacklinksForFileSafe.mockResolvedValue({
+        get: (): null => null,
+        keys: (): string[] => ['note.md']
+      });
+      hoisted.mockGetFile.mockReturnValue(strictProxy<TFile>({ basename: 'NewTitle', path: 'NewTitle.md' }));
 
-      const backlinks = {
-        get: () => null,
-        keys: () => ['note.md']
-      };
-      hoisted.mockGetBacklinksForFileSafe.mockResolvedValue(backlinks);
-      hoisted.mockGetFile.mockReturnValue({ basename: 'NewTitle', path: 'NewTitle.md' });
-
-      const app = createMockApp();
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.exists = vi.fn().mockResolvedValue(false);
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.rename = vi.fn().mockResolvedValue(undefined);
-
-      const plugin = createPlugin(app);
-      await plugin.smartRename({ basename: 'OldTitle', extension: 'md', parent: { getParentPrefix: () => '' }, path: 'OldTitle.md' } as unknown as TFile);
-      const addToQueueCall = hoisted.mockAddToQueue.mock.calls[0] as [{ operationFn(): Promise<void> }] | undefined;
-      await addToQueueCall?.[0]?.operationFn();
+      const plugin = await createLoadedPlugin(createApp());
+      await plugin.smartRename(createInputFile());
+      await runEnqueuedOperation();
 
       expect(hoisted.mockEditLinks).not.toHaveBeenCalled();
     });
 
     it('should handle link with undefined displayText (covers ?? empty string branch)', async () => {
-      hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\]/);
-      hoisted.mockPrompt.mockResolvedValue('NewTitle');
-      hoisted.mockIsMarkdownFile.mockReturnValue(false);
-
-      const mockLink: { displayText?: string; original: string } = { original: '[[OldTitle]]' };
-      const backlinks = {
-        get: () => [mockLink],
-        keys: () => ['note.md']
-      };
-      hoisted.mockGetBacklinksForFileSafe.mockResolvedValue(backlinks);
-
+      const mockLink: BacklinkLink = { original: '[[Old Title]]' };
       const newFile = { basename: 'NewTitle', path: 'NewTitle.md' };
-      hoisted.mockGetFile.mockReturnValue(newFile);
       hoisted.mockGenerateMarkdownLink.mockReturnValue('[[NewTitle]]');
 
-      let editLinksCallback: ((link: { displayText?: string; original: string }) => string | undefined) | undefined;
-      hoisted.mockEditLinks.mockImplementation((_app: unknown, _path: string, cb: typeof editLinksCallback) => {
-        editLinksCallback = cb;
+      const callback = await setupBacklinkCallback({
+        backlinks: {
+          get: (): unknown[] => [mockLink],
+          keys: (): string[] => ['note.md']
+        },
+        newFile
       });
 
-      const app = createMockApp();
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.exists = vi.fn().mockResolvedValue(false);
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.rename = vi.fn().mockResolvedValue(undefined);
-
-      const plugin = createPlugin(app);
-      await plugin.smartRename({ basename: 'OldTitle', extension: 'md', parent: { getParentPrefix: () => '' }, path: 'OldTitle.md' } as unknown as TFile);
-      const addToQueueCall = hoisted.mockAddToQueue.mock.calls[0] as [{ operationFn(): Promise<void> }] | undefined;
-      await addToQueueCall?.[0]?.operationFn();
-
-      hoisted.mockExtractLinkFile.mockReturnValue(newFile);
-      const result = editLinksCallback?.(mockLink);
+      hoisted.mockExtractLinkFile.mockReturnValue(hoisted.mockGetFile());
+      const result = callback(mockLink);
       expect(result).toBe('[[NewTitle]]');
     });
 
     it('should use oldTitle as alias when frontmatter link displayText matches newTitle and shouldPreservePreviousDisplayTextInFrontmatterLinks is true', async () => {
-      hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\]/);
-      hoisted.mockPrompt.mockResolvedValue('NewTitle');
-      hoisted.mockIsMarkdownFile.mockReturnValue(false);
-
-      const { isFrontmatterLinkCache } = await import('@obsidian-typings/obsidian-public-latest/implementations');
-      vi.mocked(isFrontmatterLinkCache).mockReturnValue(true);
-      const { isReferenceCache } = await import('@obsidian-typings/obsidian-public-latest/implementations');
-      vi.mocked(isReferenceCache).mockReturnValue(false);
-
-      const mockLink = { displayText: 'NewTitle', original: '[[OldTitle]]' };
-      const backlinks = {
-        get: () => [mockLink],
-        keys: () => ['note.md']
-      };
-      hoisted.mockGetBacklinksForFileSafe.mockResolvedValue(backlinks);
-
+      hoisted.mockIsFrontmatterLinkCache.mockReturnValue(true);
+      hoisted.mockIsReferenceCache.mockReturnValue(false);
+      const mockLink = { displayText: 'NewTitle', original: '[[Old Title]]' };
       const newFile = { basename: 'NewTitle', path: 'NewTitle.md' };
-      hoisted.mockGetFile.mockReturnValue(newFile);
       hoisted.mockGenerateMarkdownLink.mockReturnValue('[[NewTitle|OldTitle]]');
 
-      let editLinksCallback: ((link: { displayText?: string; original: string }) => string | undefined) | undefined;
-      hoisted.mockEditLinks.mockImplementation((_app: unknown, _path: string, cb: typeof editLinksCallback) => {
-        editLinksCallback = cb;
+      const callback = await setupBacklinkCallback({
+        backlinks: {
+          get: (): unknown[] => [mockLink],
+          keys: (): string[] => ['note.md']
+        },
+        newFile,
+        settings: { shouldPreservePreviousDisplayTextInFrontmatterLinks: true }
       });
 
-      const app = createMockApp();
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.exists = vi.fn().mockResolvedValue(false);
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.rename = vi.fn().mockResolvedValue(undefined);
-
-      const plugin = createPlugin(app);
-      const settingsComponent = getSettingsComponent(plugin);
-      settingsComponent.settings.shouldPreservePreviousDisplayTextInFrontmatterLinks = true;
-
-      await plugin.smartRename({ basename: 'OldTitle', extension: 'md', parent: { getParentPrefix: () => '' }, path: 'OldTitle.md' } as unknown as TFile);
-      const addToQueueCall = hoisted.mockAddToQueue.mock.calls[0] as [{ operationFn(): Promise<void> }] | undefined;
-      await addToQueueCall?.[0]?.operationFn();
-
-      hoisted.mockExtractLinkFile.mockReturnValue(newFile);
-      editLinksCallback?.(mockLink);
+      hoisted.mockExtractLinkFile.mockReturnValue(hoisted.mockGetFile());
+      callback(mockLink);
       expect(hoisted.mockGenerateMarkdownLink).toHaveBeenCalledWith(
         expect.objectContaining({ alias: 'OldTitle' })
       );
@@ -911,84 +715,47 @@ describe('Plugin', () => {
   });
 
   describe('updateFirstHeader (via addToQueue callback)', () => {
-    it('should return early when cache is null', async () => {
-      hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\]/);
+    async function setupProcessVaultCallback(options: SetupProcessVaultCallbackOptions): Promise<ProcessVaultCallback> {
       hoisted.mockPrompt.mockResolvedValue('NewTitle');
-      hoisted.mockGetBacklinksForFileSafe.mockResolvedValue({ get: () => null, keys: () => [] });
       hoisted.mockIsMarkdownFile.mockReturnValue(true);
-      hoisted.mockGetFile.mockReturnValue({ basename: 'NewTitle', path: 'NewTitle.md' });
+      hoisted.mockGetFile.mockReturnValue(strictProxy<TFile>({ basename: 'NewTitle', path: 'NewTitle.md' }));
       hoisted.mockAddAlias.mockResolvedValue(undefined);
 
-      let processVaultCallback: ((ctx: { abortSignal: AbortSignal; content: string }) => Promise<null | string>) | undefined;
+      let processVaultCallback: ProcessVaultCallback | undefined;
       hoisted.mockProcessVault.mockImplementation((_app: unknown, _path: string, cb: typeof processVaultCallback) => {
         processVaultCallback = cb;
       });
+      hoisted.mockGetCacheSafe.mockResolvedValue(options.cache);
 
-      hoisted.mockGetCacheSafe.mockResolvedValue(null);
+      const plugin = await createLoadedPlugin(createApp());
+      await applySettings(plugin, { shouldUpdateFirstHeader: true });
 
-      const app = createMockApp();
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.exists = vi.fn().mockResolvedValue(false);
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.rename = vi.fn().mockResolvedValue(undefined);
+      await plugin.smartRename(createInputFile());
+      await runEnqueuedOperation();
 
-      const plugin = createPlugin(app);
-      const settingsComponent = getSettingsComponent(plugin);
-      settingsComponent.settings.shouldUpdateFirstHeader = true;
+      if (!processVaultCallback) {
+        throw new Error('process callback was not captured');
+      }
 
-      await plugin.smartRename({ basename: 'OldTitle', extension: 'md', parent: { getParentPrefix: () => '' }, path: 'OldTitle.md' } as unknown as TFile);
-      const addToQueueCall = hoisted.mockAddToQueue.mock.calls[0] as [{ operationFn(): Promise<void> }] | undefined;
-      await addToQueueCall?.[0]?.operationFn();
+      return processVaultCallback;
+    }
 
+    it('should return early when cache is null', async () => {
+      const callback = await setupProcessVaultCallback({ cache: null });
       const controller = new AbortController();
-      const result = await processVaultCallback?.({ abortSignal: controller.signal, content: '# OldTitle\n\ncontent' });
+      const result = await callback({ abortSignal: controller.signal, content: '# OldTitle\n\ncontent' });
       expect(result).toBeNull();
     });
 
     it('should return content unchanged when no first heading is found', async () => {
-      hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\]/);
-      hoisted.mockPrompt.mockResolvedValue('NewTitle');
-      hoisted.mockGetBacklinksForFileSafe.mockResolvedValue({ get: () => null, keys: () => [] });
-      hoisted.mockIsMarkdownFile.mockReturnValue(true);
-      hoisted.mockGetFile.mockReturnValue({ basename: 'NewTitle', path: 'NewTitle.md' });
-      hoisted.mockAddAlias.mockResolvedValue(undefined);
-
-      let processVaultCallback: ((ctx: { abortSignal: AbortSignal; content: string }) => Promise<null | string>) | undefined;
-      hoisted.mockProcessVault.mockImplementation((_app: unknown, _path: string, cb: typeof processVaultCallback) => {
-        processVaultCallback = cb;
-      });
-
-      hoisted.mockGetCacheSafe.mockResolvedValue({ headings: [] });
-
-      const app = createMockApp();
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.exists = vi.fn().mockResolvedValue(false);
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.rename = vi.fn().mockResolvedValue(undefined);
-
-      const plugin = createPlugin(app);
-      const settingsComponent = getSettingsComponent(plugin);
-      settingsComponent.settings.shouldUpdateFirstHeader = true;
-
-      await plugin.smartRename({ basename: 'OldTitle', extension: 'md', parent: { getParentPrefix: () => '' }, path: 'OldTitle.md' } as unknown as TFile);
-      const addToQueueCall = hoisted.mockAddToQueue.mock.calls[0] as [{ operationFn(): Promise<void> }] | undefined;
-      await addToQueueCall?.[0]?.operationFn();
-
+      const callback = await setupProcessVaultCallback({ cache: { headings: [] } });
       const content = 'no headings here';
       const controller = new AbortController();
-      const result = await processVaultCallback?.({ abortSignal: controller.signal, content });
+      const result = await callback({ abortSignal: controller.signal, content });
       expect(result).toBe(content);
     });
 
     it('should update first heading when found', async () => {
-      hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\]/);
-      hoisted.mockPrompt.mockResolvedValue('NewTitle');
-      hoisted.mockGetBacklinksForFileSafe.mockResolvedValue({ get: () => null, keys: () => [] });
-      hoisted.mockIsMarkdownFile.mockReturnValue(true);
-      hoisted.mockGetFile.mockReturnValue({ basename: 'NewTitle', path: 'NewTitle.md' });
-      hoisted.mockAddAlias.mockResolvedValue(undefined);
-
-      let processVaultCallback: ((ctx: { abortSignal: AbortSignal; content: string }) => Promise<null | string>) | undefined;
-      hoisted.mockProcessVault.mockImplementation((_app: unknown, _path: string, cb: typeof processVaultCallback) => {
-        processVaultCallback = cb;
-      });
-
       const heading = {
         level: 1,
         position: {
@@ -996,103 +763,46 @@ describe('Plugin', () => {
           start: { offset: 0 }
         }
       };
-      hoisted.mockGetCacheSafe.mockResolvedValue({ headings: [heading] });
-
-      const app = createMockApp();
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.exists = vi.fn().mockResolvedValue(false);
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.rename = vi.fn().mockResolvedValue(undefined);
-
-      const plugin = createPlugin(app);
-      const settingsComponent = getSettingsComponent(plugin);
-      settingsComponent.settings.shouldUpdateFirstHeader = true;
-
-      await plugin.smartRename({ basename: 'OldTitle', extension: 'md', parent: { getParentPrefix: () => '' }, path: 'OldTitle.md' } as unknown as TFile);
-      const addToQueueCall = hoisted.mockAddToQueue.mock.calls[0] as [{ operationFn(): Promise<void> }] | undefined;
-      await addToQueueCall?.[0]?.operationFn();
-
+      const callback = await setupProcessVaultCallback({ cache: { headings: [heading] } });
       const controller = new AbortController();
-      const result = await processVaultCallback?.({ abortSignal: controller.signal, content: '# OldTitle\n\nContent' });
-      // InsertAt is mocked to return the replacement string
-      expect(result).toBe('# NewTitle');
+      const result = await callback({ abortSignal: controller.signal, content: '# OldTitle\n\nContent' });
+      expect(result).toBe('# NewTitle\n\nContent');
     });
 
     it('should throw when abortSignal is aborted before getCacheSafe', async () => {
-      hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\]/);
-      hoisted.mockPrompt.mockResolvedValue('NewTitle');
-      hoisted.mockGetBacklinksForFileSafe.mockResolvedValue({ get: () => null, keys: () => [] });
-      hoisted.mockIsMarkdownFile.mockReturnValue(true);
-      hoisted.mockGetFile.mockReturnValue({ basename: 'NewTitle', path: 'NewTitle.md' });
-      hoisted.mockAddAlias.mockResolvedValue(undefined);
-
-      let processVaultCallback: ((ctx: { abortSignal: AbortSignal; content: string }) => Promise<null | string>) | undefined;
-      hoisted.mockProcessVault.mockImplementation((_app: unknown, _path: string, cb: typeof processVaultCallback) => {
-        processVaultCallback = cb;
-      });
-
-      const app = createMockApp();
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.exists = vi.fn().mockResolvedValue(false);
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.rename = vi.fn().mockResolvedValue(undefined);
-
-      const plugin = createPlugin(app);
-      const settingsComponent = getSettingsComponent(plugin);
-      settingsComponent.settings.shouldUpdateFirstHeader = true;
-
-      await plugin.smartRename({ basename: 'OldTitle', extension: 'md', parent: { getParentPrefix: () => '' }, path: 'OldTitle.md' } as unknown as TFile);
-      const addToQueueCall = hoisted.mockAddToQueue.mock.calls[0] as [{ operationFn(): Promise<void> }] | undefined;
-      await addToQueueCall?.[0]?.operationFn();
-
+      const callback = await setupProcessVaultCallback({ cache: { headings: [] } });
       const controller = new AbortController();
       controller.abort(new Error('aborted'));
-      await expect(processVaultCallback?.({ abortSignal: controller.signal, content: '# OldTitle' })).rejects.toThrow('aborted');
+      await expect(callback({ abortSignal: controller.signal, content: '# OldTitle' })).rejects.toThrow('aborted');
     });
 
     it('should throw when abortSignal is aborted after getCacheSafe', async () => {
-      hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\]/);
-      hoisted.mockPrompt.mockResolvedValue('NewTitle');
-      hoisted.mockGetBacklinksForFileSafe.mockResolvedValue({ get: () => null, keys: () => [] });
-      hoisted.mockIsMarkdownFile.mockReturnValue(true);
-      hoisted.mockGetFile.mockReturnValue({ basename: 'NewTitle', path: 'NewTitle.md' });
-      hoisted.mockAddAlias.mockResolvedValue(undefined);
-
-      let processVaultCallback: ((ctx: { abortSignal: AbortSignal; content: string }) => Promise<null | string>) | undefined;
-      hoisted.mockProcessVault.mockImplementation((_app: unknown, _path: string, cb: typeof processVaultCallback) => {
-        processVaultCallback = cb;
-      });
-
       const controller = new AbortController();
-      hoisted.mockGetCacheSafe.mockImplementation((): { headings: never[] } => {
+      hoisted.mockGetCacheSafe.mockImplementation((): HeadingsCache => {
         controller.abort(new Error('aborted after cache'));
         return { headings: [] };
       });
 
-      const app = createMockApp();
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.exists = vi.fn().mockResolvedValue(false);
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.rename = vi.fn().mockResolvedValue(undefined);
+      hoisted.mockPrompt.mockResolvedValue('NewTitle');
+      hoisted.mockIsMarkdownFile.mockReturnValue(true);
+      hoisted.mockGetFile.mockReturnValue(strictProxy<TFile>({ basename: 'NewTitle', path: 'NewTitle.md' }));
+      hoisted.mockAddAlias.mockResolvedValue(undefined);
 
-      const plugin = createPlugin(app);
-      const settingsComponent = getSettingsComponent(plugin);
-      settingsComponent.settings.shouldUpdateFirstHeader = true;
+      let processVaultCallback: ProcessVaultCallback | undefined;
+      hoisted.mockProcessVault.mockImplementation((_app: unknown, _path: string, cb: typeof processVaultCallback) => {
+        processVaultCallback = cb;
+      });
 
-      await plugin.smartRename({ basename: 'OldTitle', extension: 'md', parent: { getParentPrefix: () => '' }, path: 'OldTitle.md' } as unknown as TFile);
-      const addToQueueCall = hoisted.mockAddToQueue.mock.calls[0] as [{ operationFn(): Promise<void> }] | undefined;
-      await addToQueueCall?.[0]?.operationFn();
+      const plugin = await createLoadedPlugin(createApp());
+      await applySettings(plugin, { shouldUpdateFirstHeader: true });
+
+      await plugin.smartRename(createInputFile());
+      await runEnqueuedOperation();
 
       await expect(processVaultCallback?.({ abortSignal: controller.signal, content: '# OldTitle' })).rejects.toThrow('aborted after cache');
     });
 
     it('should pick the earliest first heading when multiple level-1 headings exist', async () => {
-      hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\]/);
-      hoisted.mockPrompt.mockResolvedValue('NewTitle');
-      hoisted.mockGetBacklinksForFileSafe.mockResolvedValue({ get: () => null, keys: () => [] });
-      hoisted.mockIsMarkdownFile.mockReturnValue(true);
-      hoisted.mockGetFile.mockReturnValue({ basename: 'NewTitle', path: 'NewTitle.md' });
-      hoisted.mockAddAlias.mockResolvedValue(undefined);
-
-      let processVaultCallback: ((ctx: { abortSignal: AbortSignal; content: string }) => Promise<null | string>) | undefined;
-      hoisted.mockProcessVault.mockImplementation((_app: unknown, _path: string, cb: typeof processVaultCallback) => {
-        processVaultCallback = cb;
-      });
-
       const laterHeading = {
         level: 1,
         position: {
@@ -1107,26 +817,10 @@ describe('Plugin', () => {
           start: { offset: 0 }
         }
       };
-      // Provide the later heading first so sort comparator is exercised
-      hoisted.mockGetCacheSafe.mockResolvedValue({ headings: [laterHeading, earlierHeading] });
-
-      const app = createMockApp();
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.exists = vi.fn().mockResolvedValue(false);
-      (app as unknown as { vault: { exists: ReturnType<typeof vi.fn>; rename: ReturnType<typeof vi.fn> } }).vault.rename = vi.fn().mockResolvedValue(undefined);
-
-      const plugin = createPlugin(app);
-      const settingsComponent = getSettingsComponent(plugin);
-      settingsComponent.settings.shouldUpdateFirstHeader = true;
-
-      await plugin.smartRename({ basename: 'OldTitle', extension: 'md', parent: { getParentPrefix: () => '' }, path: 'OldTitle.md' } as unknown as TFile);
-      const addToQueueCall = hoisted.mockAddToQueue.mock.calls[0] as [{ operationFn(): Promise<void> }] | undefined;
-      await addToQueueCall?.[0]?.operationFn();
-
+      const callback = await setupProcessVaultCallback({ cache: { headings: [laterHeading, earlierHeading] } });
       const controller = new AbortController();
-      const result = await processVaultCallback?.({ abortSignal: controller.signal, content: '# OldTitle\n\nContent\n\n# Another' });
-      // InsertAt is mocked to return the replacement string; verify it was called
-      expect(result).toBe('# NewTitle');
+      const result = await callback({ abortSignal: controller.signal, content: '# OldTitle\n\nContent\n\n# Another' });
+      expect(result).toBe('# NewTitle\n\nContent\n\n# Another');
     });
   });
 });
-/* eslint-enable @typescript-eslint/explicit-function-return-type, @typescript-eslint/no-empty-function, @typescript-eslint/no-extraneous-class, @typescript-eslint/no-unsafe-return, @typescript-eslint/no-useless-constructor, no-restricted-syntax, obsidianmd/no-tfile-tfolder-cast -- End of test file. */

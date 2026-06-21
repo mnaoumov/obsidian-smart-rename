@@ -1,222 +1,179 @@
-/* eslint-disable @typescript-eslint/no-empty-function, @typescript-eslint/no-useless-constructor, no-restricted-syntax -- Test mocks require empty constructors and flexible patterns. */
-import type { PluginSettingsTabBaseConstructorParams } from 'obsidian-dev-utils/obsidian/plugin/plugin-settings-tab';
+import type {
+  App as AppOriginal,
+  Plugin
+} from 'obsidian';
+import type { PluginSettingsComponentBase } from 'obsidian-dev-utils/obsidian/components/plugin-settings-component';
 
+import { noopAsync } from 'obsidian-dev-utils/function';
 import { castTo } from 'obsidian-dev-utils/object-utils';
+import { PluginSettingsTabBase } from 'obsidian-dev-utils/obsidian/plugin/plugin-settings-tab';
+import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
+import { App } from 'obsidian-test-mocks/obsidian';
 import {
+  afterEach,
+  beforeEach,
   describe,
   expect,
   it,
   vi
 } from 'vitest';
 
-import type { PluginSettings } from './plugin-settings.ts';
-
-const hoisted = vi.hoisted(() => {
-  const boundKeys: string[] = [];
-  const onChangedCallbacks: (() => void)[] = [];
-
-  class PluginSettingsTabBaseMock {
-    public containerEl = activeDocument.createElement('div');
-
-    public pluginSettingsComponent = {
-      settings: {
-        // Use the string value directly since InvalidCharacterAction is not importable in hoisted context.
-        invalidCharacterAction: 'Error'
-      }
-    };
-
-    public constructor(_params: unknown) {}
-
-    public bind(component: unknown, key: string, options?: { onChanged?(): void }): unknown {
-      boundKeys.push(key);
-      if (options?.onChanged) {
-        onChangedCallbacks.push(options.onChanged);
-      }
-      return component;
-    }
-
-    public display(): void {}
-  }
-
-  return { boundKeys, onChangedCallbacks, PluginSettingsTabBaseMock };
-});
-
-vi.mock('obsidian-dev-utils/obsidian/plugin/plugin-settings-tab', () => ({
-  PluginSettingsTabBase: hoisted.PluginSettingsTabBaseMock
-}));
-
-vi.mock('obsidian-dev-utils/html-element', () => ({
-  appendCodeBlock: vi.fn()
-}));
-
-const MockSettingExHoisted = vi.hoisted(() => {
-  class MockDropdown {
-    public addOptions(_opts: Record<string, string>): this {
-      return this;
-    }
-  }
-
-  class MockText {
-    public inputEl = { maxLength: 0 };
-  }
-
-  class MockSettingEx {
-    public addDropdown(cb: (dropdown: MockDropdown) => void): this {
-      cb(new MockDropdown());
-      return this;
-    }
-
-    public addText(cb: (text: MockText) => void): this {
-      cb(new MockText());
-      return this;
-    }
-
-    public addToggle(cb: (toggle: object) => void): this {
-      cb({});
-      return this;
-    }
-
-    public setDesc(_desc: unknown): this {
-      return this;
-    }
-
-    public setDisabled(_disabled: boolean): this {
-      return this;
-    }
-
-    public setName(_name: string): this {
-      return this;
-    }
-  }
-
-  return { MockSettingEx };
-});
-
-vi.mock('obsidian-dev-utils/obsidian/setting-group-ex', () => ({
-  SettingGroupEx: class MockSettingGroupEx {
-    public constructor(_containerEl: HTMLElement) {}
-
-    public addSettingEx(cb: (setting: InstanceType<typeof MockSettingExHoisted.MockSettingEx>) => void): this {
-      cb(new MockSettingExHoisted.MockSettingEx());
-      return this;
-    }
-
-    public setHeading(_heading: string): this {
-      return this;
-    }
-  }
-}));
-
-vi.mock('obsidian-dev-utils/obsidian/setting-ex', () => ({
-  SettingEx: MockSettingExHoisted.MockSettingEx
-}));
-
-// eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
+import { InvalidCharacterAction } from './invalid-character-action.ts';
 import { PluginSettingsTab } from './plugin-settings-tab.ts';
+import { PluginSettings } from './plugin-settings.ts';
+
+let app: AppOriginal;
+
+beforeEach(() => {
+  app = App.createConfigured__().asOriginalType__();
+  vi.spyOn(PluginSettingsTabBase.prototype, 'bind').mockImplementation((valueComponent) => valueComponent);
+});
+
+afterEach(() => {
+  vi.restoreAllMocks();
+});
 
 describe('PluginSettingsTab', () => {
-  function createSettingsTab(): PluginSettingsTab {
-    return new PluginSettingsTab(castTo<PluginSettingsTabBaseConstructorParams<PluginSettings>>({}));
-  }
+  it('should render settings when displayLegacy() is called', () => {
+    const tab = createSettingsTab(InvalidCharacterAction.Error);
 
-  it('should create an instance', () => {
-    const tab = createSettingsTab();
-    expect(tab).toBeInstanceOf(PluginSettingsTab);
-  });
-
-  it('should render settings when display() is called', () => {
-    const tab = createSettingsTab();
-    hoisted.boundKeys.length = 0;
-
-    // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
     tab.displayLegacy();
-    expect(hoisted.boundKeys.length).toBeGreaterThan(0);
+
+    expect(getBoundKeys().length).toBeGreaterThan(0);
   });
 
   it('should bind invalidCharacterAction setting', () => {
-    const tab = createSettingsTab();
-    hoisted.boundKeys.length = 0;
+    const tab = createSettingsTab(InvalidCharacterAction.Error);
 
-    // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
     tab.displayLegacy();
-    expect(hoisted.boundKeys).toContain('invalidCharacterAction');
+
+    expect(getBoundKeys()).toContain('invalidCharacterAction');
   });
 
   it('should bind replacementCharacter setting', () => {
-    const tab = createSettingsTab();
-    hoisted.boundKeys.length = 0;
+    const tab = createSettingsTab(InvalidCharacterAction.Error);
 
-    // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
     tab.displayLegacy();
-    expect(hoisted.boundKeys).toContain('replacementCharacter');
+
+    expect(getBoundKeys()).toContain('replacementCharacter');
   });
 
   it('should bind shouldUpdateTitleKey setting', () => {
-    const tab = createSettingsTab();
-    hoisted.boundKeys.length = 0;
+    const tab = createSettingsTab(InvalidCharacterAction.Error);
 
-    // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
     tab.displayLegacy();
-    expect(hoisted.boundKeys).toContain('shouldUpdateTitleKey');
+
+    expect(getBoundKeys()).toContain('shouldUpdateTitleKey');
   });
 
   it('should bind shouldStoreInvalidTitle setting', () => {
-    const tab = createSettingsTab();
-    hoisted.boundKeys.length = 0;
+    const tab = createSettingsTab(InvalidCharacterAction.Error);
 
-    // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
     tab.displayLegacy();
-    expect(hoisted.boundKeys).toContain('shouldStoreInvalidTitle');
+
+    expect(getBoundKeys()).toContain('shouldStoreInvalidTitle');
   });
 
   it('should bind shouldPreservePreviousDisplayTextInNoteLinks setting', () => {
-    const tab = createSettingsTab();
-    hoisted.boundKeys.length = 0;
+    const tab = createSettingsTab(InvalidCharacterAction.Error);
 
-    // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
     tab.displayLegacy();
-    expect(hoisted.boundKeys).toContain('shouldPreservePreviousDisplayTextInNoteLinks');
+
+    expect(getBoundKeys()).toContain('shouldPreservePreviousDisplayTextInNoteLinks');
   });
 
   it('should bind shouldPreservePreviousDisplayTextInFrontmatterLinks setting', () => {
-    const tab = createSettingsTab();
-    hoisted.boundKeys.length = 0;
+    const tab = createSettingsTab(InvalidCharacterAction.Error);
 
-    // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
     tab.displayLegacy();
-    expect(hoisted.boundKeys).toContain('shouldPreservePreviousDisplayTextInFrontmatterLinks');
+
+    expect(getBoundKeys()).toContain('shouldPreservePreviousDisplayTextInFrontmatterLinks');
   });
 
   it('should bind shouldUpdateFirstHeader setting', () => {
-    const tab = createSettingsTab();
-    hoisted.boundKeys.length = 0;
+    const tab = createSettingsTab(InvalidCharacterAction.Error);
 
-    // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
     tab.displayLegacy();
-    expect(hoisted.boundKeys).toContain('shouldUpdateFirstHeader');
+
+    expect(getBoundKeys()).toContain('shouldUpdateFirstHeader');
   });
 
   it('should bind shouldSupportNonMarkdownFiles setting', () => {
-    const tab = createSettingsTab();
-    hoisted.boundKeys.length = 0;
+    const tab = createSettingsTab(InvalidCharacterAction.Error);
 
-    // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
     tab.displayLegacy();
-    expect(hoisted.boundKeys).toContain('shouldSupportNonMarkdownFiles');
+
+    expect(getBoundKeys()).toContain('shouldSupportNonMarkdownFiles');
   });
 
-  it('should call display again when onChanged fires for invalidCharacterAction', () => {
-    const tab = createSettingsTab();
-    hoisted.boundKeys.length = 0;
-    hoisted.onChangedCallbacks.length = 0;
+  it('should call displayLegacy again when onChanged fires for invalidCharacterAction', async () => {
+    const tab = createSettingsTab(InvalidCharacterAction.Error);
     const displaySpy = vi.spyOn(tab, 'displayLegacy');
 
-    // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
     tab.displayLegacy();
-    const callback = hoisted.onChangedCallbacks[0];
-    expect(callback).toBeDefined();
-    callback?.();
+
+    const onChanged = vi.mocked(PluginSettingsTabBase.prototype.bind).mock.calls.find(
+      (call) => call[1] === 'invalidCharacterAction'
+    )?.[2]?.onChanged;
+    expect(onChanged).toBeDefined();
+    await onChanged?.(InvalidCharacterAction.Error, InvalidCharacterAction.Error);
+
     expect(displaySpy).toHaveBeenCalledTimes(2);
   });
+
+  it('should render without throwing when invalidCharacterAction is Replace', () => {
+    const tab = createSettingsTab(InvalidCharacterAction.Replace);
+
+    tab.displayLegacy();
+
+    expect(getBoundKeys()).toContain('replacementCharacter');
+  });
+
+  it('should render without throwing when invalidCharacterAction is not Replace', () => {
+    const tab = createSettingsTab(InvalidCharacterAction.Remove);
+
+    tab.displayLegacy();
+
+    expect(getBoundKeys()).toContain('replacementCharacter');
+  });
 });
-/* eslint-enable @typescript-eslint/no-empty-function, @typescript-eslint/no-useless-constructor, no-restricted-syntax -- End of test file. */
+
+function createMockPlugin(appInstance: AppOriginal): Plugin {
+  return strictProxy<Plugin>({
+    app: appInstance,
+    manifest: { id: 'smart-rename' }
+  });
+}
+
+function createMockSettingsComponent(invalidCharacterAction: InvalidCharacterAction): PluginSettingsComponentBase<PluginSettings> {
+  const settings = new PluginSettings();
+  settings.invalidCharacterAction = invalidCharacterAction;
+  const defaultSettings = new PluginSettings();
+  return strictProxy<PluginSettingsComponentBase<PluginSettings>>({
+    defaultSettings,
+    on: castTo<PluginSettingsComponentBase<PluginSettings>['on']>(vi.fn(() => ({
+      asyncEventSource: {
+        offref: vi.fn()
+      }
+    }))),
+    revalidate: vi.fn(() => Promise.resolve(castTo<Record<keyof PluginSettings, string>>({}))),
+    saveToFile: vi.fn(() => noopAsync()),
+    setProperty: vi.fn(() => Promise.resolve('')),
+    settings,
+    settingsState: {
+      effectiveValues: settings,
+      inputValues: settings,
+      validationMessages: castTo<Record<keyof PluginSettings, string>>({})
+    }
+  });
+}
+
+function createSettingsTab(invalidCharacterAction: InvalidCharacterAction): PluginSettingsTab {
+  const plugin = createMockPlugin(app);
+  const pluginSettingsComponent = createMockSettingsComponent(invalidCharacterAction);
+  return new PluginSettingsTab({ plugin, pluginSettingsComponent });
+}
+
+function getBoundKeys(): string[] {
+  return vi.mocked(PluginSettingsTabBase.prototype.bind).mock.calls.map((call) => call[1]);
+}
