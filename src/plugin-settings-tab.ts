@@ -7,9 +7,8 @@ import type { PluginSettings } from './plugin-settings.ts';
 import { InvalidCharacterAction } from './invalid-character-action.ts';
 
 export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
-  public override display(): void {
-    // eslint-disable-next-line @typescript-eslint/no-deprecated -- super.display() calls the PluginSettingsTabBase override; the inherited @deprecated tag on Obsidian's SettingTab.display propagates via TS getJsDocTags.
-    super.display();
+  public override displayLegacy(): void {
+    super.displayLegacy();
 
     new SettingGroupEx(this.containerEl)
       .setHeading('Invalid characters')
@@ -26,7 +25,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
             this.bind(dropdown, 'invalidCharacterAction', {
               onChanged: () => {
                 // eslint-disable-next-line @typescript-eslint/no-deprecated -- this.display() re-renders the tab to refresh dependent settings; the inherited @deprecated tag on Obsidian's SettingTab.display propagates via TS getJsDocTags.
-                this.display();
+                this.displayLegacy();
               }
             });
           });

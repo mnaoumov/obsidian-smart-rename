@@ -61,10 +61,9 @@ import { PluginSettingsTab } from './plugin-settings-tab.ts';
 import { PluginSettings } from './plugin-settings.ts';
 
 export class Plugin extends PluginBase {
-  private readonly pluginSettingsComponent: PluginSettingsComponent;
+  private pluginSettingsComponent!: PluginSettingsComponent;
 
-  public constructor(app: App, manifest: PluginManifest) {
-    super(app, manifest);
+  protected override onloadImpl(): void {
     const dataHandler = new PluginDataHandler(this);
     this.pluginSettingsComponent = this.addChild(
       new PluginSettingsComponent({
@@ -83,20 +82,20 @@ export class Plugin extends PluginBase {
         })
       })
     );
-    const menuEventRegistrar = this.addChild(new MenuEventRegistrarComponent(app));
+    const menuEventRegistrar = this.addChild(new MenuEventRegistrarComponent(this.app));
     this.addChild(
       new CommandHandlerComponent({
-        activeFileProvider: new AppActiveFileProvider(app),
+        activeFileProvider: new AppActiveFileProvider(this.app),
         commandHandlers: [
           new InvokeCommandHandler({
-            checkIsMarkdownFile: (file): boolean => isMarkdownFile(app, file),
+            checkIsMarkdownFile: (file): boolean => isMarkdownFile(this.app, file),
             getSettings: (): PluginSettings => this.pluginSettingsComponent.settings,
             smartRename: this.smartRename.bind(this)
           })
         ],
         commandRegistrar: new PluginCommandRegistrar(this),
         menuEventRegistrar,
-        pluginName: manifest.name
+        pluginName: this.manifest.name
       })
     );
   }

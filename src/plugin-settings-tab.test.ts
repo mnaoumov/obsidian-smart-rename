@@ -129,7 +129,7 @@ describe('PluginSettingsTab', () => {
     hoisted.boundKeys.length = 0;
 
     // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
-    tab.display();
+    tab.displayLegacy();
     expect(hoisted.boundKeys.length).toBeGreaterThan(0);
   });
 
@@ -138,7 +138,7 @@ describe('PluginSettingsTab', () => {
     hoisted.boundKeys.length = 0;
 
     // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
-    tab.display();
+    tab.displayLegacy();
     expect(hoisted.boundKeys).toContain('invalidCharacterAction');
   });
 
@@ -147,7 +147,7 @@ describe('PluginSettingsTab', () => {
     hoisted.boundKeys.length = 0;
 
     // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
-    tab.display();
+    tab.displayLegacy();
     expect(hoisted.boundKeys).toContain('replacementCharacter');
   });
 
@@ -156,7 +156,7 @@ describe('PluginSettingsTab', () => {
     hoisted.boundKeys.length = 0;
 
     // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
-    tab.display();
+    tab.displayLegacy();
     expect(hoisted.boundKeys).toContain('shouldUpdateTitleKey');
   });
 
@@ -165,7 +165,7 @@ describe('PluginSettingsTab', () => {
     hoisted.boundKeys.length = 0;
 
     // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
-    tab.display();
+    tab.displayLegacy();
     expect(hoisted.boundKeys).toContain('shouldStoreInvalidTitle');
   });
 
@@ -174,7 +174,7 @@ describe('PluginSettingsTab', () => {
     hoisted.boundKeys.length = 0;
 
     // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
-    tab.display();
+    tab.displayLegacy();
     expect(hoisted.boundKeys).toContain('shouldPreservePreviousDisplayTextInNoteLinks');
   });
 
@@ -183,7 +183,7 @@ describe('PluginSettingsTab', () => {
     hoisted.boundKeys.length = 0;
 
     // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
-    tab.display();
+    tab.displayLegacy();
     expect(hoisted.boundKeys).toContain('shouldPreservePreviousDisplayTextInFrontmatterLinks');
   });
 
@@ -192,7 +192,7 @@ describe('PluginSettingsTab', () => {
     hoisted.boundKeys.length = 0;
 
     // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
-    tab.display();
+    tab.displayLegacy();
     expect(hoisted.boundKeys).toContain('shouldUpdateFirstHeader');
   });
 
@@ -201,7 +201,7 @@ describe('PluginSettingsTab', () => {
     hoisted.boundKeys.length = 0;
 
     // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
-    tab.display();
+    tab.displayLegacy();
     expect(hoisted.boundKeys).toContain('shouldSupportNonMarkdownFiles');
   });
 
@@ -209,10 +209,10 @@ describe('PluginSettingsTab', () => {
     const tab = createSettingsTab();
     hoisted.boundKeys.length = 0;
     hoisted.onChangedCallbacks.length = 0;
-    const displaySpy = vi.spyOn(tab, 'display');
+    const displaySpy = vi.spyOn(tab, 'displayLegacy');
 
     // eslint-disable-next-line @typescript-eslint/no-deprecated -- display() is the entry point for PluginSettingsTabBase; calling it in tests is intentional.
-    tab.display();
+    tab.displayLegacy();
     const callback = hoisted.onChangedCallbacks[0];
     expect(callback).toBeDefined();
     callback?.();
