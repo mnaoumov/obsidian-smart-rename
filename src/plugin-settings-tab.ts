@@ -24,7 +24,6 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
             });
             this.bind(dropdown, 'invalidCharacterAction', {
               onChanged: () => {
-                // eslint-disable-next-line @typescript-eslint/no-deprecated -- this.display() re-renders the tab to refresh dependent settings; the inherited @deprecated tag on Obsidian's SettingTab.display propagates via TS getJsDocTags.
                 this.displayLegacy();
               }
             });

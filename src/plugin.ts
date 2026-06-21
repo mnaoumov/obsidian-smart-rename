@@ -1,9 +1,5 @@
 import type { CustomArrayDict } from '@obsidian-typings/obsidian-public-latest';
-import type {
-  App,
-  PluginManifest,
-  Reference
-} from 'obsidian';
+import type { Reference } from 'obsidian';
 import type { GenerateMarkdownLinkParams } from 'obsidian-dev-utils/obsidian/link';
 
 import {
@@ -53,6 +49,7 @@ import {
   makeFileName
 } from 'obsidian-dev-utils/path';
 import { insertAt } from 'obsidian-dev-utils/string';
+import { ensureNonNullable } from 'obsidian-dev-utils/type-guards';
 
 import { InvokeCommandHandler } from './command-handlers/invoke-command-handler.ts';
 import { InvalidCharacterAction } from './invalid-character-action.ts';
@@ -61,43 +58,10 @@ import { PluginSettingsTab } from './plugin-settings-tab.ts';
 import { PluginSettings } from './plugin-settings.ts';
 
 export class Plugin extends PluginBase {
-  private pluginSettingsComponent!: PluginSettingsComponent;
+  private _pluginSettingsComponent?: PluginSettingsComponent;
 
-  protected override onloadImpl(): void {
-    const dataHandler = new PluginDataHandler(this);
-    this.pluginSettingsComponent = this.addChild(
-      new PluginSettingsComponent({
-        dataHandler,
-        hasInvalidCharacters: this.hasInvalidCharacters.bind(this),
-        pluginEventSource: this,
-        pluginSettingsClass: PluginSettings
-      })
-    );
-    this.addChild(
-      new PluginSettingsTabComponent({
-        plugin: this,
-        pluginSettingsTab: new PluginSettingsTab({
-          plugin: this,
-          pluginSettingsComponent: this.pluginSettingsComponent
-        })
-      })
-    );
-    const menuEventRegistrar = this.addChild(new MenuEventRegistrarComponent(this.app));
-    this.addChild(
-      new CommandHandlerComponent({
-        activeFileProvider: new AppActiveFileProvider(this.app),
-        commandHandlers: [
-          new InvokeCommandHandler({
-            checkIsMarkdownFile: (file): boolean => isMarkdownFile(this.app, file),
-            getSettings: (): PluginSettings => this.pluginSettingsComponent.settings,
-            smartRename: this.smartRename.bind(this)
-          })
-        ],
-        commandRegistrar: new PluginCommandRegistrar(this),
-        menuEventRegistrar,
-        pluginName: this.manifest.name
-      })
-    );
+  private get pluginSettingsComponent(): PluginSettingsComponent {
+    return ensureNonNullable(this._pluginSettingsComponent);
   }
 
   public hasInvalidCharacters(str: string): boolean {
@@ -160,6 +124,43 @@ export class Plugin extends PluginBase {
       },
       operationName: 'Smart rename'
     });
+  }
+
+  protected override onloadImpl(): void {
+    const dataHandler = new PluginDataHandler(this);
+    this._pluginSettingsComponent = this.addChild(
+      new PluginSettingsComponent({
+        dataHandler,
+        hasInvalidCharacters: this.hasInvalidCharacters.bind(this),
+        pluginEventSource: this,
+        pluginSettingsClass: PluginSettings
+      })
+    );
+    this.addChild(
+      new PluginSettingsTabComponent({
+        plugin: this,
+        pluginSettingsTab: new PluginSettingsTab({
+          plugin: this,
+          pluginSettingsComponent: this.pluginSettingsComponent
+        })
+      })
+    );
+    const menuEventRegistrar = this.addChild(new MenuEventRegistrarComponent(this.app));
+    this.addChild(
+      new CommandHandlerComponent({
+        activeFileProvider: new AppActiveFileProvider(this.app),
+        commandHandlers: [
+          new InvokeCommandHandler({
+            checkIsMarkdownFile: (file): boolean => isMarkdownFile(this.app, file),
+            getSettings: (): PluginSettings => this.pluginSettingsComponent.settings,
+            smartRename: this.smartRename.bind(this)
+          })
+        ],
+        commandRegistrar: new PluginCommandRegistrar(this),
+        menuEventRegistrar,
+        pluginName: this.manifest.name
+      })
+    );
   }
 
   private async addAliases(newPath: string, oldTitle: string, titleToStore: string): Promise<void> {
