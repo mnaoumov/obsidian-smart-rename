@@ -5,7 +5,7 @@ import { FileCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers
 
 import type { PluginSettings } from '../plugin-settings.ts';
 
-interface InvokeCommandHandlerConstructorOptions {
+interface InvokeCommandHandlerConstructorParams {
   checkIsMarkdownFile(this: void, file: TFile): boolean;
   getSettings(this: void): ReadonlyDeep<PluginSettings>;
   smartRename(this: void, file: TFile): Promise<void>;
@@ -16,14 +16,14 @@ export class InvokeCommandHandler extends FileCommandHandler {
   private readonly getSettings: () => ReadonlyDeep<PluginSettings>;
   private readonly smartRename: (file: TFile) => Promise<void>;
 
-  public constructor(options: InvokeCommandHandlerConstructorOptions) {
+  public constructor(params: InvokeCommandHandlerConstructorParams) {
     super({
       fileMenuItemName: 'Smart rename',
       icon: 'edit-3',
       id: 'invoke',
       name: 'Invoke'
     });
-    const { checkIsMarkdownFile, getSettings, smartRename } = options;
+    const { checkIsMarkdownFile, getSettings, smartRename } = params;
     this.checkIsMarkdownFile = checkIsMarkdownFile;
     this.getSettings = getSettings;
     this.smartRename = smartRename;
