@@ -150,7 +150,7 @@ export class Plugin extends PluginBase {
         activeFileProvider: new AppActiveFileProvider(this.app),
         commandHandlers: [
           new InvokeCommandHandler({
-            checkIsMarkdownFile: (file): boolean => isMarkdownFile(this.app, file),
+            checkIsMarkdownFile: (file): boolean => isMarkdownFile(file),
             getSettings: (): PluginSettings => this.pluginSettingsComponent.settings,
             smartRename: this.smartRename.bind(this)
           })
@@ -238,7 +238,7 @@ export class Plugin extends PluginBase {
     const oldTitle = basename(oldPath, extname(oldPath));
     await this.processBacklinks(oldPath, newPath, backlinks);
 
-    if (!isMarkdownFile(this.app, newPath)) {
+    if (!isMarkdownFile(newPath)) {
       return;
     }
 
