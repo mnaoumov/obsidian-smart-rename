@@ -158,7 +158,9 @@ interface SetupProcessVaultCallbackOptions {
 }
 
 interface Testable {
+  hasInvalidCharacters(str: string): boolean;
   pluginSettingsComponent: PluginSettingsComponent;
+  smartRename(file: TFile): Promise<void>;
 }
 
 const DEFAULT_UNSAFE_CHARS_REGEXP = /[/\\]/;
@@ -296,13 +298,13 @@ describe('Plugin', () => {
     it('should return true when string has invalid characters', async () => {
       hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\:*?"<>|]/);
       const plugin = await createLoadedPlugin(createApp());
-      expect(plugin.hasInvalidCharacters('foo/bar')).toBe(true);
+      expect(castTo<Testable>(plugin).hasInvalidCharacters('foo/bar')).toBe(true);
     });
 
     it('should return false when string has no invalid characters', async () => {
       hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(/[/\\:*?"<>|]/);
       const plugin = await createLoadedPlugin(createApp());
-      expect(plugin.hasInvalidCharacters('valid-name')).toBe(false);
+      expect(castTo<Testable>(plugin).hasInvalidCharacters('valid-name')).toBe(false);
     });
   });
 
@@ -310,28 +312,28 @@ describe('Plugin', () => {
     it('should show notice when new title is empty (prompt returns empty string)', async () => {
       hoisted.mockPrompt.mockResolvedValue('');
       const plugin = await createLoadedPlugin(createApp());
-      await plugin.smartRename(createInputFile());
+      await castTo<Testable>(plugin).smartRename(createInputFile());
       expect(noticeMessages).toContain('No new title provided');
     });
 
     it('should show notice when prompt returns null (cancelled)', async () => {
       hoisted.mockPrompt.mockResolvedValue(null);
       const plugin = await createLoadedPlugin(createApp());
-      await plugin.smartRename(createInputFile());
+      await castTo<Testable>(plugin).smartRename(createInputFile());
       expect(noticeMessages).toContain('No new title provided');
     });
 
     it('should show notice when title did not change', async () => {
       hoisted.mockPrompt.mockResolvedValue('OldTitle');
       const plugin = await createLoadedPlugin(createApp());
-      await plugin.smartRename(createInputFile());
+      await castTo<Testable>(plugin).smartRename(createInputFile());
       expect(noticeMessages).toContain('The title did not change');
     });
 
     it('should allow rename when only casing changes', async () => {
       hoisted.mockPrompt.mockResolvedValue('OLDTITLE');
       const plugin = await createLoadedPlugin(createApp());
-      await plugin.smartRename(createInputFile());
+      await castTo<Testable>(plugin).smartRename(createInputFile());
       expect(hoisted.mockAddToQueue).toHaveBeenCalled();
     });
 
@@ -340,14 +342,14 @@ describe('Plugin', () => {
       const app = createApp();
       app.vault.exists = vi.fn().mockResolvedValue(true);
       const plugin = await createLoadedPlugin(app);
-      await plugin.smartRename(createInputFile());
+      await castTo<Testable>(plugin).smartRename(createInputFile());
       expect(noticeMessages).toContain('Note with the new title already exists');
     });
 
     it('should show notice when title starts with a dot', async () => {
       hoisted.mockPrompt.mockResolvedValue('.hidden');
       const plugin = await createLoadedPlugin(createApp());
-      await plugin.smartRename(createInputFile());
+      await castTo<Testable>(plugin).smartRename(createInputFile());
       expect(noticeMessages).toContain('The title cannot start with a dot');
     });
 
@@ -355,7 +357,7 @@ describe('Plugin', () => {
       hoisted.mockPrompt.mockResolvedValue('foo/bar');
       const plugin = await createLoadedPlugin(createApp());
       await applySettings(plugin, { invalidCharacterAction: castTo<PluginSettings['invalidCharacterAction']>('Error') });
-      await plugin.smartRename(createInputFile());
+      await castTo<Testable>(plugin).smartRename(createInputFile());
       expect(noticeMessages).toContain('The new title has invalid characters');
     });
 
@@ -363,7 +365,7 @@ describe('Plugin', () => {
       hoisted.mockPrompt.mockResolvedValue('foo/bar');
       const plugin = await createLoadedPlugin(createApp());
       await applySettings(plugin, { invalidCharacterAction: castTo<PluginSettings['invalidCharacterAction']>('Remove') });
-      await plugin.smartRename(createInputFile());
+      await castTo<Testable>(plugin).smartRename(createInputFile());
       expect(hoisted.mockAddToQueue).toHaveBeenCalled();
     });
 
@@ -374,7 +376,7 @@ describe('Plugin', () => {
         invalidCharacterAction: castTo<PluginSettings['invalidCharacterAction']>('Replace'),
         replacementCharacter: '_'
       });
-      await plugin.smartRename(createInputFile());
+      await castTo<Testable>(plugin).smartRename(createInputFile());
       expect(hoisted.mockAddToQueue).toHaveBeenCalled();
     });
 
@@ -382,7 +384,7 @@ describe('Plugin', () => {
       hoisted.mockPrompt.mockResolvedValue('foo/bar');
       const plugin = await createLoadedPlugin(createApp());
       await applySettings(plugin, { invalidCharacterAction: castTo<PluginSettings['invalidCharacterAction']>('Unknown') });
-      await expect(plugin.smartRename(createInputFile())).rejects.toThrow('Invalid character action');
+      await expect(castTo<Testable>(plugin).smartRename(createInputFile())).rejects.toThrow('Invalid character action');
     });
 
     it('should show notice when vault rename fails', async () => {
@@ -391,7 +393,7 @@ describe('Plugin', () => {
       const app = createApp();
       app.vault.rename = vi.fn().mockRejectedValue(new Error('rename failed'));
       const plugin = await createLoadedPlugin(app);
-      await plugin.smartRename(createInputFile());
+      await castTo<Testable>(plugin).smartRename(createInputFile());
       expect(noticeMessages).toContain('Failed to rename file');
       expect(consoleErrorSpy).toHaveBeenCalled();
     });
@@ -399,7 +401,7 @@ describe('Plugin', () => {
     it('should enqueue processRename after successful rename', async () => {
       hoisted.mockPrompt.mockResolvedValue('NewTitle');
       const plugin = await createLoadedPlugin(createApp());
-      await plugin.smartRename(createInputFile());
+      await castTo<Testable>(plugin).smartRename(createInputFile());
       expect(hoisted.mockAddToQueue).toHaveBeenCalledWith(
         expect.objectContaining({ operationName: 'Smart rename' })
       );
@@ -412,14 +414,14 @@ describe('Plugin', () => {
         invalidCharacterAction: castTo<PluginSettings['invalidCharacterAction']>('Remove'),
         shouldStoreInvalidTitle: false
       });
-      await plugin.smartRename(createInputFile());
+      await castTo<Testable>(plugin).smartRename(createInputFile());
       expect(hoisted.mockAddToQueue).toHaveBeenCalled();
     });
 
     it('should handle file with no parent (parent is null)', async () => {
       hoisted.mockPrompt.mockResolvedValue('NewTitle');
       const plugin = await createLoadedPlugin(createApp());
-      await plugin.smartRename(createInputFile({ parent: null }));
+      await castTo<Testable>(plugin).smartRename(createInputFile({ parent: null }));
       expect(hoisted.mockAddToQueue).toHaveBeenCalled();
     });
   });
@@ -458,7 +460,7 @@ describe('Plugin', () => {
         shouldUpdateTitleKey: options.shouldUpdateTitleKey ?? false
       });
 
-      await plugin.smartRename(createInputFile());
+      await castTo<Testable>(plugin).smartRename(createInputFile());
       await runEnqueuedOperation();
     }
 
@@ -501,7 +503,7 @@ describe('Plugin', () => {
       const plugin = await createLoadedPlugin(createApp());
       await applySettings(plugin, { shouldUpdateTitleKey: true });
 
-      await plugin.smartRename(createInputFile());
+      await castTo<Testable>(plugin).smartRename(createInputFile());
       await runEnqueuedOperation();
 
       expect(capturedFrontmatter['title']).toBe('NewTitle');
@@ -543,7 +545,7 @@ describe('Plugin', () => {
         shouldStoreInvalidTitle: true
       });
 
-      await plugin.smartRename(createInputFile());
+      await castTo<Testable>(plugin).smartRename(createInputFile());
       await runEnqueuedOperation();
 
       expect(hoisted.mockAddAlias).toHaveBeenCalled();
@@ -567,7 +569,7 @@ describe('Plugin', () => {
         await applySettings(plugin, options.settings);
       }
 
-      await plugin.smartRename(createInputFile());
+      await castTo<Testable>(plugin).smartRename(createInputFile());
       await runEnqueuedOperation();
 
       if (!editLinksCallback) {
@@ -646,7 +648,7 @@ describe('Plugin', () => {
       hoisted.mockGetFile.mockReturnValue(strictProxy<TFile>({ basename: 'NewTitle', path: 'NewTitle.md' }));
 
       const plugin = await createLoadedPlugin(createApp());
-      await plugin.smartRename(createInputFile());
+      await castTo<Testable>(plugin).smartRename(createInputFile());
       await runEnqueuedOperation();
 
       expect(hoisted.mockEditLinks).toHaveBeenCalledWith(
@@ -666,7 +668,7 @@ describe('Plugin', () => {
       hoisted.mockGetFile.mockReturnValue(strictProxy<TFile>({ basename: 'NewTitle', path: 'NewTitle.md' }));
 
       const plugin = await createLoadedPlugin(createApp());
-      await plugin.smartRename(createInputFile());
+      await castTo<Testable>(plugin).smartRename(createInputFile());
       await runEnqueuedOperation();
 
       expect(hoisted.mockEditLinks).not.toHaveBeenCalled();
@@ -730,7 +732,7 @@ describe('Plugin', () => {
       const plugin = await createLoadedPlugin(createApp());
       await applySettings(plugin, { shouldUpdateFirstHeader: true });
 
-      await plugin.smartRename(createInputFile());
+      await castTo<Testable>(plugin).smartRename(createInputFile());
       await runEnqueuedOperation();
 
       if (!processVaultCallback) {
@@ -796,7 +798,7 @@ describe('Plugin', () => {
       const plugin = await createLoadedPlugin(createApp());
       await applySettings(plugin, { shouldUpdateFirstHeader: true });
 
-      await plugin.smartRename(createInputFile());
+      await castTo<Testable>(plugin).smartRename(createInputFile());
       await runEnqueuedOperation();
 
       await expect(processVaultCallback?.({ abortSignal: controller.signal, content: '# OldTitle' })).rejects.toThrow('aborted after cache');
