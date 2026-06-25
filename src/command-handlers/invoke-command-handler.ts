@@ -1,20 +1,19 @@
 import type { TFile } from 'obsidian';
-import type { ReadonlyDeep } from 'type-fest';
 
 import { FileCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/file-command-handler';
+import { isMarkdownFile } from 'obsidian-dev-utils/obsidian/file-system';
 
-import type { PluginSettings } from '../plugin-settings.ts';
+import type { PluginSettingsComponent } from '../plugin-settings-component.ts';
+import type { SmartRenameComponent } from '../smart-rename-component.ts';
 
 interface InvokeCommandHandlerConstructorParams {
-  checkIsMarkdownFile(this: void, file: TFile): boolean;
-  getSettings(this: void): ReadonlyDeep<PluginSettings>;
-  smartRename(this: void, file: TFile): Promise<void>;
+  readonly pluginSettingsComponent: PluginSettingsComponent;
+  readonly smartRenameComponent: SmartRenameComponent;
 }
 
 export class InvokeCommandHandler extends FileCommandHandler {
-  private readonly checkIsMarkdownFile: (file: TFile) => boolean;
-  private readonly getSettings: () => ReadonlyDeep<PluginSettings>;
-  private readonly smartRename: (file: TFile) => Promise<void>;
+  private readonly pluginSettingsComponent: PluginSettingsComponent;
+  private readonly smartRenameComponent: SmartRenameComponent;
 
   public constructor(params: InvokeCommandHandlerConstructorParams) {
     super({
@@ -23,21 +22,20 @@ export class InvokeCommandHandler extends FileCommandHandler {
       id: 'invoke',
       name: 'Invoke'
     });
-    const { checkIsMarkdownFile, getSettings, smartRename } = params;
-    this.checkIsMarkdownFile = checkIsMarkdownFile;
-    this.getSettings = getSettings;
-    this.smartRename = smartRename;
+
+    this.pluginSettingsComponent = params.pluginSettingsComponent;
+    this.smartRenameComponent = params.smartRenameComponent;
   }
 
   protected override canExecuteFile(file: TFile): boolean {
-    return this.checkIsMarkdownFile(file) || this.getSettings().shouldSupportNonMarkdownFiles;
+    return isMarkdownFile(file) || this.pluginSettingsComponent.settings.shouldSupportNonMarkdownFiles;
   }
 
   protected override async executeFile(file: TFile): Promise<void> {
-    await this.smartRename(file);
+    await this.smartRenameComponent.smartRename(file);
   }
 
-  protected override shouldAddToFileMenu(_file: TFile, _source: string, _leaf?: unknown): boolean {
+  protected override shouldAddToFileMenu(): boolean {
     return true;
   }
 }
