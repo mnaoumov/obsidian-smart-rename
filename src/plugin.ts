@@ -64,11 +64,11 @@ export class Plugin extends PluginBase {
     return ensureNonNullable(this._pluginSettingsComponent);
   }
 
-  public hasInvalidCharacters(str: string): boolean {
+  private hasInvalidCharacters(str: string): boolean {
     return getOsAndObsidianUnsafePathCharsRegExp().test(str);
   }
 
-  public async smartRename(file: TFile): Promise<void> {
+  private async smartRename(file: TFile): Promise<void> {
     const oldTitle = file.basename;
     let newTitle = await prompt({
       app: this.app,
