@@ -38,29 +38,28 @@ class MockDataHandler implements DataHandler {
 
 describe('PluginSettingsComponent', () => {
   it('should create an instance', () => {
-    const component = createComponent(() => false);
+    const component = createComponent();
     expect(component).toBeInstanceOf(PluginSettingsComponent);
   });
 
   it('should return error message when replacement character is invalid', async () => {
-    const component = createComponent((str) => str === '/');
+    const component = createComponent();
     const settings = strictProxy<PluginSettings>({ replacementCharacter: '/' });
     const result = await component.validate(settings);
     expect(result.replacementCharacter).toBe('Invalid replacement character');
   });
 
   it('should return undefined when replacement character is valid', async () => {
-    const component = createComponent(() => false);
+    const component = createComponent();
     const settings = strictProxy<PluginSettings>({ replacementCharacter: '_' });
     const result = await component.validate(settings);
     expect(result.replacementCharacter).toBeUndefined();
   });
 });
 
-function createComponent(hasInvalidCharacters: (str: string) => boolean): PluginSettingsComponent {
+function createComponent(): PluginSettingsComponent {
   return new PluginSettingsComponent({
     dataHandler: new MockDataHandler({}),
-    hasInvalidCharacters,
     pluginEventSource: createMockPluginEventSource(),
     pluginSettingsClass: PluginSettings
   });

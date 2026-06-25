@@ -21,17 +21,18 @@ import {
   vi
 } from 'vitest';
 
+import type { PluginSettingsComponent } from '../plugin-settings-component.ts';
 import type { PluginSettings } from '../plugin-settings.ts';
+import type { SmartRenameComponent } from '../smart-rename-component.ts';
 
 import { InvokeCommandHandler } from './invoke-command-handler.ts';
 
-const PLUGIN_NAME = 'Smart Rename';
 const MARKDOWN_FILE_PATH = 'note.md';
 const NON_MARKDOWN_FILE_PATH = 'image.png';
+const PLUGIN_NAME = 'Smart Rename';
 
 interface CreateHandlerOptions {
-  checkIsMarkdownFile?(file: TFile): boolean;
-  getSettings?(): ReadonlyDeep<PluginSettings>;
+  readonly shouldSupportNonMarkdownFiles?: boolean;
   smartRename?(file: TFile): Promise<void>;
 }
 
@@ -49,17 +50,21 @@ function createApp(): App {
   });
 }
 
-function createHandler(opts?: CreateHandlerOptions): InvokeCommandHandler {
-  return new InvokeCommandHandler({
-    checkIsMarkdownFile: opts?.checkIsMarkdownFile ?? ((): boolean => {
-      return true;
-    }),
-    getSettings: opts?.getSettings ?? ((): ReadonlyDeep<PluginSettings> => {
-      return strictProxy<ReadonlyDeep<PluginSettings>>({ shouldSupportNonMarkdownFiles: false });
-    }),
-    smartRename: opts?.smartRename ?? ((): Promise<void> => {
+function createHandler(options?: CreateHandlerOptions): InvokeCommandHandler {
+  const pluginSettingsComponent = strictProxy<PluginSettingsComponent>({
+    settings: strictProxy<ReadonlyDeep<PluginSettings>>({
+      shouldSupportNonMarkdownFiles: options?.shouldSupportNonMarkdownFiles ?? false
+    })
+  });
+  const smartRenameComponent = strictProxy<SmartRenameComponent>({
+    smartRename: options?.smartRename ?? ((): Promise<void> => {
       return noopAsync();
     })
+  });
+
+  return new InvokeCommandHandler({
+    pluginSettingsComponent,
+    smartRenameComponent
   });
 }
 
@@ -105,14 +110,7 @@ describe('InvokeCommandHandler', () => {
     it('should return true when file is a markdown file', async () => {
       const app = createApp();
       const mdFile = getFile(app, MARKDOWN_FILE_PATH);
-      const handler = createHandler({
-        checkIsMarkdownFile: (): boolean => {
-          return true;
-        },
-        getSettings: (): ReadonlyDeep<PluginSettings> => {
-          return strictProxy<ReadonlyDeep<PluginSettings>>({ shouldSupportNonMarkdownFiles: false });
-        }
-      });
+      const handler = createHandler({ shouldSupportNonMarkdownFiles: false });
       const { context } = createMockContext(mdFile);
       await handler.onRegistered(context);
 
@@ -123,14 +121,7 @@ describe('InvokeCommandHandler', () => {
     it('should return false when file is not markdown and non-markdown not supported', async () => {
       const app = createApp();
       const nonMdFile = getFile(app, NON_MARKDOWN_FILE_PATH);
-      const handler = createHandler({
-        checkIsMarkdownFile: (): boolean => {
-          return false;
-        },
-        getSettings: (): ReadonlyDeep<PluginSettings> => {
-          return strictProxy<ReadonlyDeep<PluginSettings>>({ shouldSupportNonMarkdownFiles: false });
-        }
-      });
+      const handler = createHandler({ shouldSupportNonMarkdownFiles: false });
       const { context } = createMockContext(nonMdFile);
       await handler.onRegistered(context);
 
@@ -141,14 +132,7 @@ describe('InvokeCommandHandler', () => {
     it('should return true when file is not markdown but non-markdown files are supported', async () => {
       const app = createApp();
       const nonMdFile = getFile(app, NON_MARKDOWN_FILE_PATH);
-      const handler = createHandler({
-        checkIsMarkdownFile: (): boolean => {
-          return false;
-        },
-        getSettings: (): ReadonlyDeep<PluginSettings> => {
-          return strictProxy<ReadonlyDeep<PluginSettings>>({ shouldSupportNonMarkdownFiles: true });
-        }
-      });
+      const handler = createHandler({ shouldSupportNonMarkdownFiles: true });
       const { context } = createMockContext(nonMdFile);
       await handler.onRegistered(context);
 
@@ -193,14 +177,7 @@ describe('InvokeCommandHandler', () => {
     it('should add a menu item for a non-markdown file', async () => {
       const app = createApp();
       const nonMdFile = getFile(app, NON_MARKDOWN_FILE_PATH);
-      const handler = createHandler({
-        checkIsMarkdownFile: (): boolean => {
-          return false;
-        },
-        getSettings: (): ReadonlyDeep<PluginSettings> => {
-          return strictProxy<ReadonlyDeep<PluginSettings>>({ shouldSupportNonMarkdownFiles: true });
-        }
-      });
+      const handler = createHandler({ shouldSupportNonMarkdownFiles: true });
       const { context, fileMenuHandlers } = createMockContext(nonMdFile);
       await handler.onRegistered(context);
 
