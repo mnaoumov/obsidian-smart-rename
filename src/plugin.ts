@@ -35,6 +35,7 @@ export class Plugin extends PluginBase {
     const smartRenameComponent = this.addChild(
       new SmartRenameComponent({
         app: this.app,
+        pluginNoticeComponent: this.pluginNoticeComponent,
         pluginSettingsComponent
       })
     );

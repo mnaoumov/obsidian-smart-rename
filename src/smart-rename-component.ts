@@ -4,13 +4,13 @@ import type {
   Reference,
   TFile
 } from 'obsidian';
+import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
 import type { GenerateMarkdownLinkParams } from 'obsidian-dev-utils/obsidian/link';
 
 import {
   isFrontmatterLinkCache,
   isReferenceCache
 } from '@obsidian-typings/obsidian-public-latest/implementations';
-import { Notice } from 'obsidian';
 import {
   normalizeOptionalProperties,
   toJson
@@ -52,16 +52,19 @@ import { hasInvalidCharacters } from './invalid-character.ts';
 
 interface SmartRenameComponentConstructorParams {
   readonly app: App;
+  readonly pluginNoticeComponent: PluginNoticeComponent;
   readonly pluginSettingsComponent: PluginSettingsComponent;
 }
 
 export class SmartRenameComponent extends ComponentEx {
   private readonly app: App;
+  private readonly pluginNoticeComponent: PluginNoticeComponent;
   private readonly pluginSettingsComponent: PluginSettingsComponent;
 
   public constructor(params: SmartRenameComponentConstructorParams) {
     super();
     this.app = params.app;
+    this.pluginNoticeComponent = params.pluginNoticeComponent;
     this.pluginSettingsComponent = params.pluginSettingsComponent;
   }
 
@@ -78,7 +81,7 @@ export class SmartRenameComponent extends ComponentEx {
     if (hasInvalidCharacters(newTitle)) {
       switch (this.pluginSettingsComponent.settings.invalidCharacterAction) {
         case InvalidCharacterAction.Error:
-          new Notice('The new title has invalid characters');
+          this.pluginNoticeComponent.showNotice('The new title has invalid characters');
           return;
         case InvalidCharacterAction.Remove:
           newTitle = this.replaceInvalidCharacters(newTitle, '');
@@ -99,7 +102,7 @@ export class SmartRenameComponent extends ComponentEx {
 
     const validationError = await this.getValidationError(oldTitle, newTitle, newPath);
     if (validationError) {
-      new Notice(validationError);
+      this.pluginNoticeComponent.showNotice(validationError);
       return;
     }
 
@@ -109,7 +112,7 @@ export class SmartRenameComponent extends ComponentEx {
     try {
       await this.app.vault.rename(file, newPath);
     } catch (error) {
-      new Notice('Failed to rename file');
+      this.pluginNoticeComponent.showNotice('Failed to rename file');
       console.error(new Error('Failed to rename file', { cause: error }));
       return;
     }

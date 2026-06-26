@@ -112,6 +112,9 @@ vi.mock('@obsidian-typings/obsidian-public-latest/implementations', async (impor
 }));
 
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
+import { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
+
+// eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
 import { PluginSettingsComponent } from './plugin-settings-component.ts';
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
 import { SmartRenameComponent } from './smart-rename-component.ts';
@@ -197,6 +200,7 @@ async function createComponent(options?: CreateComponentOptions): Promise<SmartR
 
   return new SmartRenameComponent({
     app: options?.app ?? createApp(),
+    pluginNoticeComponent: new PluginNoticeComponent('Smart Rename'),
     pluginSettingsComponent
   });
 }
@@ -233,6 +237,10 @@ async function createSettingsComponent(): Promise<PluginSettingsComponent> {
   return component;
 }
 
+function expectNoticeShown(message: string): void {
+  expect(noticeMessages.some((noticeMessage) => noticeMessage.includes(message))).toBe(true);
+}
+
 async function runEnqueuedOperation(): Promise<void> {
   const addToQueueCall = hoisted.mockAddToQueue.mock.calls[0] as [EnqueuedOperation] | undefined;
   await addToQueueCall?.[0]?.operationFn();
@@ -259,21 +267,21 @@ describe('SmartRenameComponent', () => {
       hoisted.mockPrompt.mockResolvedValue('');
       const component = await createComponent();
       await component.smartRename(createInputFile());
-      expect(noticeMessages).toContain('No new title provided');
+      expectNoticeShown('No new title provided');
     });
 
     it('should show notice when prompt returns null (cancelled)', async () => {
       hoisted.mockPrompt.mockResolvedValue(null);
       const component = await createComponent();
       await component.smartRename(createInputFile());
-      expect(noticeMessages).toContain('No new title provided');
+      expectNoticeShown('No new title provided');
     });
 
     it('should show notice when title did not change', async () => {
       hoisted.mockPrompt.mockResolvedValue('OldTitle');
       const component = await createComponent();
       await component.smartRename(createInputFile());
-      expect(noticeMessages).toContain('The title did not change');
+      expectNoticeShown('The title did not change');
     });
 
     it('should allow rename when only casing changes', async () => {
@@ -289,14 +297,14 @@ describe('SmartRenameComponent', () => {
       app.vault.exists = vi.fn().mockResolvedValue(true);
       const component = await createComponent({ app });
       await component.smartRename(createInputFile());
-      expect(noticeMessages).toContain('Note with the new title already exists');
+      expectNoticeShown('Note with the new title already exists');
     });
 
     it('should show notice when title starts with a dot', async () => {
       hoisted.mockPrompt.mockResolvedValue('.hidden');
       const component = await createComponent();
       await component.smartRename(createInputFile());
-      expect(noticeMessages).toContain('The title cannot start with a dot');
+      expectNoticeShown('The title cannot start with a dot');
     });
 
     it('should show notice when rename throws Error action for invalid characters', async () => {
@@ -305,7 +313,7 @@ describe('SmartRenameComponent', () => {
         settings: { invalidCharacterAction: castTo<PluginSettings['invalidCharacterAction']>('Error') }
       });
       await component.smartRename(createInputFile());
-      expect(noticeMessages).toContain('The new title has invalid characters');
+      expectNoticeShown('The new title has invalid characters');
     });
 
     it('should remove invalid characters when action is Remove', async () => {
@@ -344,7 +352,7 @@ describe('SmartRenameComponent', () => {
       app.vault.rename = vi.fn().mockRejectedValue(new Error('rename failed'));
       const component = await createComponent({ app });
       await component.smartRename(createInputFile());
-      expect(noticeMessages).toContain('Failed to rename file');
+      expectNoticeShown('Failed to rename file');
       expect(consoleErrorSpy).toHaveBeenCalled();
     });
 
