@@ -26,7 +26,7 @@ let app: AppOriginal;
 
 beforeEach(() => {
   app = App.createConfigured__().asOriginalType__();
-  vi.spyOn(PluginSettingsTabBase.prototype, 'bind').mockImplementation((valueComponent) => valueComponent);
+  vi.spyOn(PluginSettingsTabBase.prototype, 'bind').mockImplementation((params) => params.valueComponent);
 });
 
 afterEach(() => {
@@ -113,8 +113,8 @@ describe('PluginSettingsTab', () => {
     tab.displayLegacy();
 
     const onChanged = vi.mocked(PluginSettingsTabBase.prototype.bind).mock.calls.find(
-      (call) => call[1] === 'invalidCharacterAction'
-    )?.[2]?.onChanged;
+      (call) => call[0].propertyName === 'invalidCharacterAction'
+    )?.[0].onChanged;
     expect(onChanged).toBeDefined();
     await onChanged?.(InvalidCharacterAction.Error, InvalidCharacterAction.Error);
 
@@ -175,5 +175,5 @@ function createSettingsTab(invalidCharacterAction: InvalidCharacterAction): Plug
 }
 
 function getBoundKeys(): string[] {
-  return vi.mocked(PluginSettingsTabBase.prototype.bind).mock.calls.map((call) => call[1]);
+  return vi.mocked(PluginSettingsTabBase.prototype.bind).mock.calls.map((call) => call[0].propertyName);
 }

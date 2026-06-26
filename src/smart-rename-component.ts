@@ -98,7 +98,7 @@ export class SmartRenameComponent extends ComponentEx {
       titleToStore = newTitle;
     }
 
-    const newPath = join(file.parent?.getParentPrefix() ?? '', makeFileName(newTitle, file.extension));
+    const newPath = join(file.parent?.getParentPrefix() ?? '', makeFileName({ fileBaseName: newTitle, fileExtension: file.extension }));
 
     const validationError = await this.getValidationError(oldTitle, newTitle, newPath);
     if (validationError) {
@@ -106,7 +106,7 @@ export class SmartRenameComponent extends ComponentEx {
       return;
     }
 
-    const backlinks = await getBacklinksForFileSafe(this.app, file);
+    const backlinks = await getBacklinksForFileSafe({ app: this.app, pathOrFile: file });
     const oldPath = file.path;
 
     try {
@@ -127,10 +127,10 @@ export class SmartRenameComponent extends ComponentEx {
 
   private async addAliases(newPath: string, oldTitle: string, titleToStore: string): Promise<void> {
     const newTitle = basename(newPath, extname(newPath));
-    await addAlias(this.app, newPath, oldTitle);
+    await addAlias({ alias: oldTitle, app: this.app, pathOrFile: newPath });
 
     if (this.pluginSettingsComponent.settings.shouldStoreInvalidTitle && titleToStore !== newTitle) {
-      await addAlias(this.app, newPath, titleToStore);
+      await addAlias({ alias: titleToStore, app: this.app, pathOrFile: newPath });
     }
   }
 
@@ -159,7 +159,7 @@ export class SmartRenameComponent extends ComponentEx {
   }
 
   private async processBacklinks(oldPath: string, newPath: string, backlinks: CustomArrayDict<Reference>): Promise<void> {
-    const newFile = getFile(this.app, newPath);
+    const newFile = getFile({ app: this.app, pathOrFile: newPath });
     const oldTitle = basename(oldPath, extname(oldPath));
     const newTitle = newFile.basename;
 
@@ -175,24 +175,28 @@ export class SmartRenameComponent extends ComponentEx {
 
       const linkJsons = new Set(links.map((link) => toJson(link)));
 
-      await editLinks(this.app, backlinkNotePath, (link) => {
-        if (extractLinkFile(this.app, link, backlinkNotePath) !== newFile && !linkJsons.has(toJson(link))) {
-          return;
-        }
+      await editLinks({
+        app: this.app,
+        linkConverter: (link) => {
+          if (extractLinkFile({ app: this.app, link, sourcePathOrFile: backlinkNotePath }) !== newFile && !linkJsons.has(toJson(link))) {
+            return;
+          }
 
-        const isNewTitle = (link.displayText ?? '').toLowerCase() === newTitle.toLowerCase();
-        const shouldPreservePreviousDisplayText = (isReferenceCache(link) && this.pluginSettingsComponent.settings.shouldPreservePreviousDisplayTextInNoteLinks)
-          || (isFrontmatterLinkCache(link) && this.pluginSettingsComponent.settings.shouldPreservePreviousDisplayTextInFrontmatterLinks);
+          const isNewTitle = (link.displayText ?? '').toLowerCase() === newTitle.toLowerCase();
+          const shouldPreservePreviousDisplayText = (isReferenceCache(link) && this.pluginSettingsComponent.settings.shouldPreservePreviousDisplayTextInNoteLinks)
+            || (isFrontmatterLinkCache(link) && this.pluginSettingsComponent.settings.shouldPreservePreviousDisplayTextInFrontmatterLinks);
 
-        const alias = isNewTitle && shouldPreservePreviousDisplayText ? oldTitle : link.displayText;
+          const alias = isNewTitle && shouldPreservePreviousDisplayText ? oldTitle : link.displayText;
 
-        return generateMarkdownLink(normalizeOptionalProperties<GenerateMarkdownLinkParams>({
-          alias,
-          app: this.app,
-          originalLink: link.original,
-          sourcePathOrFile: backlinkNotePath,
-          targetPathOrFile: newPath
-        }));
+          return generateMarkdownLink(normalizeOptionalProperties<GenerateMarkdownLinkParams>({
+            alias,
+            app: this.app,
+            originalLink: link.original,
+            sourcePathOrFile: backlinkNotePath,
+            targetPathOrFile: newPath
+          }));
+        },
+        pathOrFile: backlinkNotePath
       });
     }
   }
@@ -219,20 +223,29 @@ export class SmartRenameComponent extends ComponentEx {
       return;
     }
 
-    await process(this.app, newPath, async ({ abortSignal, content }) => {
-      abortSignal.throwIfAborted();
-      const cache = await getCacheSafe(this.app, newPath);
-      abortSignal.throwIfAborted();
-      if (cache === null) {
-        return null;
-      }
+    await process({
+      app: this.app,
+      newContentProvider: async ({ abortSignal, content }) => {
+        abortSignal.throwIfAborted();
+        const cache = await getCacheSafe(this.app, newPath);
+        abortSignal.throwIfAborted();
+        if (cache === null) {
+          return null;
+        }
 
-      const firstHeading = cache.headings?.filter((h) => h.level === 1).sort((a, b) => a.position.start.offset - b.position.start.offset)[0];
-      if (!firstHeading) {
-        return content;
-      }
+        const firstHeading = cache.headings?.filter((h) => h.level === 1).sort((a, b) => a.position.start.offset - b.position.start.offset)[0];
+        if (!firstHeading) {
+          return content;
+        }
 
-      return insertAt(content, `# ${titleToStore}`, firstHeading.position.start.offset, firstHeading.position.end.offset);
+        return insertAt({
+          endIndex: firstHeading.position.end.offset,
+          startIndex: firstHeading.position.start.offset,
+          str: content,
+          substring: `# ${titleToStore}`
+        });
+      },
+      pathOrFile: newPath
     });
   }
 
@@ -240,8 +253,12 @@ export class SmartRenameComponent extends ComponentEx {
     if (!this.pluginSettingsComponent.settings.shouldUpdateTitleKey) {
       return;
     }
-    await processFrontmatter(this.app, newPath, (frontMatter) => {
-      frontMatter['title'] = titleToStore;
+    await processFrontmatter({
+      app: this.app,
+      frontmatterFn: (frontMatter) => {
+        frontMatter['title'] = titleToStore;
+      },
+      pathOrFile: newPath
     });
   }
 }

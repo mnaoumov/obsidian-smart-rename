@@ -129,6 +129,18 @@ interface BacklinksStub {
   keys(): string[];
 }
 
+interface CapturedEditLinksParams {
+  readonly linkConverter: EditLinksCallback;
+}
+
+interface CapturedProcessFrontmatterParams {
+  frontmatterFn(frontmatter: CombinedFrontmatter<unknown>): void;
+}
+
+interface CapturedProcessVaultParams {
+  readonly newContentProvider: ProcessVaultCallback;
+}
+
 interface CreateComponentOptions {
   readonly app?: AppOriginal;
   readonly settings?: Partial<PluginSettings>;
@@ -455,8 +467,8 @@ describe('SmartRenameComponent', () => {
       hoisted.mockAddAlias.mockResolvedValue(undefined);
 
       const capturedFrontmatter = castTo<CombinedFrontmatter<unknown>>({});
-      hoisted.mockProcessFrontmatter.mockImplementation((_app: unknown, _path: string, cb: (fm: CombinedFrontmatter<unknown>) => void) => {
-        cb(capturedFrontmatter);
+      hoisted.mockProcessFrontmatter.mockImplementation((params: CapturedProcessFrontmatterParams) => {
+        params.frontmatterFn(capturedFrontmatter);
         return noopAsync();
       });
 
@@ -520,8 +532,8 @@ describe('SmartRenameComponent', () => {
       hoisted.mockGetFile.mockReturnValue(strictProxy<TFile>(options.newFile));
 
       let editLinksCallback: EditLinksCallback | undefined;
-      hoisted.mockEditLinks.mockImplementation((_app: unknown, _path: string, cb: typeof editLinksCallback) => {
-        editLinksCallback = cb;
+      hoisted.mockEditLinks.mockImplementation((params: CapturedEditLinksParams) => {
+        editLinksCallback = params.linkConverter;
       });
 
       const component = await createComponent(options.settings ? { settings: options.settings } : undefined);
@@ -609,9 +621,7 @@ describe('SmartRenameComponent', () => {
       await runEnqueuedOperation();
 
       expect(hoisted.mockEditLinks).toHaveBeenCalledWith(
-        expect.anything(),
-        'NewTitle.md',
-        expect.any(Function)
+        expect.objectContaining({ pathOrFile: 'NewTitle.md' })
       );
     });
 
@@ -681,8 +691,8 @@ describe('SmartRenameComponent', () => {
       hoisted.mockAddAlias.mockResolvedValue(undefined);
 
       let processVaultCallback: ProcessVaultCallback | undefined;
-      hoisted.mockProcessVault.mockImplementation((_app: unknown, _path: string, cb: typeof processVaultCallback) => {
-        processVaultCallback = cb;
+      hoisted.mockProcessVault.mockImplementation((params: CapturedProcessVaultParams) => {
+        processVaultCallback = params.newContentProvider;
       });
       hoisted.mockGetCacheSafe.mockResolvedValue(options.cache);
 
@@ -747,8 +757,8 @@ describe('SmartRenameComponent', () => {
       hoisted.mockAddAlias.mockResolvedValue(undefined);
 
       let processVaultCallback: ProcessVaultCallback | undefined;
-      hoisted.mockProcessVault.mockImplementation((_app: unknown, _path: string, cb: typeof processVaultCallback) => {
-        processVaultCallback = cb;
+      hoisted.mockProcessVault.mockImplementation((params: CapturedProcessVaultParams) => {
+        processVaultCallback = params.newContentProvider;
       });
 
       const component = await createComponent({ settings: { shouldUpdateFirstHeader: true } });

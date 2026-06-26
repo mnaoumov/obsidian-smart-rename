@@ -22,10 +22,12 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
               Remove: 'Remove invalid characters',
               Replace: 'Replace invalid characters'
             });
-            this.bind(dropdown, 'invalidCharacterAction', {
+            this.bind({
               onChanged: () => {
                 this.displayLegacy();
-              }
+              },
+              propertyName: 'invalidCharacterAction',
+              valueComponent: dropdown
             });
           });
       })
@@ -44,7 +46,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
           .setDisabled(this.pluginSettingsComponent.settings.invalidCharacterAction !== InvalidCharacterAction.Replace)
           .addText((text) => {
             text.inputEl.maxLength = 1;
-            this.bind(text, 'replacementCharacter');
+            this.bind({ propertyName: 'replacementCharacter', valueComponent: text });
           });
       });
 
@@ -55,7 +57,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
           .setName('Should update title key')
           .setDesc('Whether to update the title key in frontmatter.')
           .addToggle((toggle) => {
-            this.bind(toggle, 'shouldUpdateTitleKey');
+            this.bind({ propertyName: 'shouldUpdateTitleKey', valueComponent: toggle });
           });
       })
       .addSettingEx((setting) => {
@@ -67,7 +69,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
             f.appendText('If disabled, stores the sanitized version.');
           }))
           .addToggle((toggle) => {
-            this.bind(toggle, 'shouldStoreInvalidTitle');
+            this.bind({ propertyName: 'shouldStoreInvalidTitle', valueComponent: toggle });
           });
       });
 
@@ -78,7 +80,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
           .setName('Should preserve previous display text in note links')
           .setDesc('Whether to preserve the previous display text in note links.')
           .addToggle((toggle) => {
-            this.bind(toggle, 'shouldPreservePreviousDisplayTextInNoteLinks');
+            this.bind({ propertyName: 'shouldPreservePreviousDisplayTextInNoteLinks', valueComponent: toggle });
           });
       })
       .addSettingEx((setting) => {
@@ -86,7 +88,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
           .setName('Should preserve previous display text in frontmatter links')
           .setDesc('Whether to preserve the previous display text in frontmatter links.')
           .addToggle((toggle) => {
-            this.bind(toggle, 'shouldPreservePreviousDisplayTextInFrontmatterLinks');
+            this.bind({ propertyName: 'shouldPreservePreviousDisplayTextInFrontmatterLinks', valueComponent: toggle });
           });
       });
 
@@ -106,7 +108,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
             f.appendText(' plugin.');
           }))
           .addToggle((toggle) => {
-            this.bind(toggle, 'shouldUpdateFirstHeader');
+            this.bind({ propertyName: 'shouldUpdateFirstHeader', valueComponent: toggle });
           });
       })
       .addSettingEx((setting) => {
@@ -120,7 +122,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
             f.appendText(' command will not be available for non-markdown files.');
           }))
           .addToggle((toggle) => {
-            this.bind(toggle, 'shouldSupportNonMarkdownFiles');
+            this.bind({ propertyName: 'shouldSupportNonMarkdownFiles', valueComponent: toggle });
           });
       });
   }
