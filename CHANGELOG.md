@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2.2.4
+
+- refactor: new template
+
 ## 2.2.3
 
 - chore: update libs
