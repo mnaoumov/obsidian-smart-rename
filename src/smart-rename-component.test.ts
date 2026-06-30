@@ -4,6 +4,7 @@ import type {
 } from 'obsidian';
 import type { AsyncEventRef } from 'obsidian-dev-utils/async-events';
 import type { DataHandler } from 'obsidian-dev-utils/obsidian/data-handler';
+import type { EditorLockComponent } from 'obsidian-dev-utils/obsidian/editor-lock';
 import type { CombinedFrontmatter } from 'obsidian-dev-utils/obsidian/frontmatter';
 import type { PluginEventSource } from 'obsidian-dev-utils/obsidian/plugin/plugin-event-source';
 
@@ -212,6 +213,7 @@ async function createComponent(options?: CreateComponentOptions): Promise<SmartR
 
   return new SmartRenameComponent({
     app: options?.app ?? createApp(),
+    editorLockComponent: strictProxy<EditorLockComponent>({}),
     pluginNoticeComponent: new PluginNoticeComponent('Smart Rename'),
     pluginSettingsComponent
   });

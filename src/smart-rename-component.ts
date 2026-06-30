@@ -5,6 +5,7 @@ import type {
   TFile
 } from 'obsidian';
 import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
+import type { EditorLockComponent } from 'obsidian-dev-utils/obsidian/editor-lock';
 import type { GenerateMarkdownLinkParams } from 'obsidian-dev-utils/obsidian/link';
 
 import {
@@ -52,18 +53,21 @@ import { hasInvalidCharacters } from './invalid-character.ts';
 
 interface SmartRenameComponentConstructorParams {
   readonly app: App;
+  readonly editorLockComponent: EditorLockComponent | null;
   readonly pluginNoticeComponent: PluginNoticeComponent;
   readonly pluginSettingsComponent: PluginSettingsComponent;
 }
 
 export class SmartRenameComponent extends ComponentEx {
   private readonly app: App;
+  private readonly editorLockComponent: EditorLockComponent | null;
   private readonly pluginNoticeComponent: PluginNoticeComponent;
   private readonly pluginSettingsComponent: PluginSettingsComponent;
 
   public constructor(params: SmartRenameComponentConstructorParams) {
     super();
     this.app = params.app;
+    this.editorLockComponent = params.editorLockComponent;
     this.pluginNoticeComponent = params.pluginNoticeComponent;
     this.pluginSettingsComponent = params.pluginSettingsComponent;
   }
@@ -127,10 +131,10 @@ export class SmartRenameComponent extends ComponentEx {
 
   private async addAliases(newPath: string, oldTitle: string, titleToStore: string): Promise<void> {
     const newTitle = basename(newPath, extname(newPath));
-    await addAlias({ alias: oldTitle, app: this.app, pathOrFile: newPath });
+    await addAlias({ alias: oldTitle, app: this.app, editorLockComponent: this.editorLockComponent, pathOrFile: newPath });
 
     if (this.pluginSettingsComponent.settings.shouldStoreInvalidTitle && titleToStore !== newTitle) {
-      await addAlias({ alias: titleToStore, app: this.app, pathOrFile: newPath });
+      await addAlias({ alias: titleToStore, app: this.app, editorLockComponent: this.editorLockComponent, pathOrFile: newPath });
     }
   }
 
@@ -177,6 +181,7 @@ export class SmartRenameComponent extends ComponentEx {
 
       await editLinks({
         app: this.app,
+        editorLockComponent: this.editorLockComponent,
         linkConverter: (link) => {
           if (extractLinkFile({ app: this.app, link, sourcePathOrFile: backlinkNotePath }) !== newFile && !linkJsons.has(toJson(link))) {
             return;
@@ -225,6 +230,7 @@ export class SmartRenameComponent extends ComponentEx {
 
     await process({
       app: this.app,
+      editorLockComponent: this.editorLockComponent,
       newContentProvider: async ({ abortSignal, content }) => {
         abortSignal.throwIfAborted();
         const cache = await getCacheSafe(this.app, newPath);
@@ -255,6 +261,7 @@ export class SmartRenameComponent extends ComponentEx {
     }
     await processFrontmatter({
       app: this.app,
+      editorLockComponent: this.editorLockComponent,
       frontmatterFn: (frontMatter) => {
         frontMatter['title'] = titleToStore;
       },
