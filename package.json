@@ -68,7 +68,7 @@
     "obsidian-integration-testing": "^5.1.1",
     "obsidian-test-mocks": "^3.4.0",
     "type-fest": "^5.7.0",
-    "typescript": "^6.0.3",
+    "typescript": "6.0.3",
     "vitest": "^4.1.9"
   }
 }
