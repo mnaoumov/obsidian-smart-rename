@@ -33,7 +33,7 @@ vi.mock('obsidian', async (importOriginal) => {
 import { Plugin } from './plugin.ts';
 
 interface CommandsHolder {
-  commands: Map<string, Command>;
+  commands__: Map<string, Command>;
 }
 
 function createApp(): AppOriginal {
@@ -93,7 +93,7 @@ describe('Plugin', () => {
     appMock.workspace.getActiveFile = vi.fn(() => activeFile);
     const plugin = await createLoadedPlugin(appMock.asOriginalType__());
 
-    const command = castTo<CommandsHolder>(plugin).commands.get('invoke');
+    const command = castTo<CommandsHolder>(plugin).commands__.get('invoke');
     if (!command) {
       throw new Error('invoke command was not registered');
     }
