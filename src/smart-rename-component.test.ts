@@ -4,9 +4,9 @@ import type {
 } from 'obsidian';
 import type { AsyncEventRef } from 'obsidian-dev-utils/async-events';
 import type { DataHandler } from 'obsidian-dev-utils/obsidian/data-handler';
-import type { EditorLockComponent } from 'obsidian-dev-utils/obsidian/editor-lock';
 import type { CombinedFrontmatter } from 'obsidian-dev-utils/obsidian/frontmatter';
 import type { PluginEventSource } from 'obsidian-dev-utils/obsidian/plugin/plugin-event-source';
+import type { ResourceLockComponent } from 'obsidian-dev-utils/obsidian/resource-lock';
 
 import {
   noop,
@@ -51,8 +51,8 @@ vi.mock('obsidian', async (importOriginal) => {
   return {
     ...actual,
     // eslint-disable-next-line prefer-arrow-callback -- constructor stub needs `function` to be used with `new`.
-    Notice: vi.fn(function NoticeStub(message: string) {
-      noticeMessages.push(message);
+    Notice: vi.fn(function NoticeStub(message: DocumentFragment | string) {
+      noticeMessages.push(typeof message === 'string' ? message : message.textContent);
       return {
         hide: vi.fn(),
         setMessage: vi.fn()
@@ -213,9 +213,9 @@ async function createComponent(options?: CreateComponentOptions): Promise<SmartR
 
   return new SmartRenameComponent({
     app: options?.app ?? createApp(),
-    editorLockComponent: strictProxy<EditorLockComponent>({}),
     pluginNoticeComponent: new PluginNoticeComponent('Smart Rename'),
-    pluginSettingsComponent
+    pluginSettingsComponent,
+    resourceLockComponent: strictProxy<ResourceLockComponent>({})
   });
 }
 

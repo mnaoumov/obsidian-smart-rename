@@ -5,8 +5,8 @@ import type {
   TFile
 } from 'obsidian';
 import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
-import type { EditorLockComponent } from 'obsidian-dev-utils/obsidian/editor-lock';
 import type { GenerateMarkdownLinkParams } from 'obsidian-dev-utils/obsidian/link';
+import type { ResourceLockComponent } from 'obsidian-dev-utils/obsidian/resource-lock';
 
 import {
   isFrontmatterLinkCache,
@@ -59,9 +59,9 @@ interface SmartRenameComponentAddAliasesParams {
 
 interface SmartRenameComponentConstructorParams {
   readonly app: App;
-  readonly editorLockComponent: EditorLockComponent | null;
   readonly pluginNoticeComponent: PluginNoticeComponent;
   readonly pluginSettingsComponent: PluginSettingsComponent;
+  readonly resourceLockComponent: null | ResourceLockComponent;
 }
 
 interface SmartRenameComponentGetValidationErrorParams {
@@ -100,14 +100,14 @@ interface SmartRenameComponentUpdateTitleParams {
 
 export class SmartRenameComponent extends ComponentEx {
   private readonly app: App;
-  private readonly editorLockComponent: EditorLockComponent | null;
   private readonly pluginNoticeComponent: PluginNoticeComponent;
   private readonly pluginSettingsComponent: PluginSettingsComponent;
+  private readonly resourceLockComponent: null | ResourceLockComponent;
 
   public constructor(params: SmartRenameComponentConstructorParams) {
     super();
     this.app = params.app;
-    this.editorLockComponent = params.editorLockComponent;
+    this.resourceLockComponent = params.resourceLockComponent;
     this.pluginNoticeComponent = params.pluginNoticeComponent;
     this.pluginSettingsComponent = params.pluginSettingsComponent;
   }
@@ -172,10 +172,10 @@ export class SmartRenameComponent extends ComponentEx {
   private async addAliases(params: SmartRenameComponentAddAliasesParams): Promise<void> {
     const { newPath, oldTitle, titleToStore } = params;
     const newTitle = basename(newPath, extname(newPath));
-    await addAlias({ alias: oldTitle, app: this.app, editorLockComponent: this.editorLockComponent, pathOrFile: newPath });
+    await addAlias({ alias: oldTitle, app: this.app, pathOrFile: newPath, resourceLockComponent: this.resourceLockComponent });
 
     if (this.pluginSettingsComponent.settings.shouldStoreInvalidTitle && titleToStore !== newTitle) {
-      await addAlias({ alias: titleToStore, app: this.app, editorLockComponent: this.editorLockComponent, pathOrFile: newPath });
+      await addAlias({ alias: titleToStore, app: this.app, pathOrFile: newPath, resourceLockComponent: this.resourceLockComponent });
     }
   }
 
@@ -224,7 +224,6 @@ export class SmartRenameComponent extends ComponentEx {
 
       await editLinks({
         app: this.app,
-        editorLockComponent: this.editorLockComponent,
         linkConverter: (link) => {
           if (extractLinkFile({ app: this.app, link, sourcePathOrFile: backlinkNotePath }) !== newFile && !linkJsons.has(toJson(link))) {
             return;
@@ -244,7 +243,8 @@ export class SmartRenameComponent extends ComponentEx {
             targetPathOrFile: newPath
           }));
         },
-        pathOrFile: backlinkNotePath
+        pathOrFile: backlinkNotePath,
+        resourceLockComponent: this.resourceLockComponent
       });
     }
   }
@@ -276,7 +276,6 @@ export class SmartRenameComponent extends ComponentEx {
 
     await process({
       app: this.app,
-      editorLockComponent: this.editorLockComponent,
       newContentProvider: async ({ abortSignal, content }) => {
         abortSignal.throwIfAborted();
         const cache = await getCacheSafe(this.app, newPath);
@@ -297,7 +296,8 @@ export class SmartRenameComponent extends ComponentEx {
           substring: `# ${titleToStore}`
         });
       },
-      pathOrFile: newPath
+      pathOrFile: newPath,
+      resourceLockComponent: this.resourceLockComponent
     });
   }
 
@@ -308,11 +308,11 @@ export class SmartRenameComponent extends ComponentEx {
     }
     await processFrontmatter({
       app: this.app,
-      editorLockComponent: this.editorLockComponent,
       frontmatterFn: (frontMatter) => {
         frontMatter['title'] = titleToStore;
       },
-      pathOrFile: newPath
+      pathOrFile: newPath,
+      resourceLockComponent: this.resourceLockComponent
     });
   }
 }
