@@ -211,9 +211,13 @@ async function createComponent(options?: CreateComponentOptions): Promise<SmartR
     });
   }
 
+  const app = options?.app ?? createApp();
   return new SmartRenameComponent({
-    app: options?.app ?? createApp(),
-    pluginNoticeComponent: new PluginNoticeComponent('Smart Rename'),
+    app,
+    pluginNoticeComponent: new PluginNoticeComponent({
+      app,
+      pluginName: 'Smart Rename'
+    }),
     pluginSettingsComponent,
     resourceLockComponent: strictProxy<ResourceLockComponent>({})
   });
