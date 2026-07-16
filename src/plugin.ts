@@ -1,7 +1,3 @@
-import { AppActiveFileProvider } from 'obsidian-dev-utils/obsidian/active-file-provider';
-import { CommandHandlerComponent } from 'obsidian-dev-utils/obsidian/command-handlers/command-handler-component';
-import { PluginCommandRegistrar } from 'obsidian-dev-utils/obsidian/command-registrar';
-import { MenuEventRegistrarComponent } from 'obsidian-dev-utils/obsidian/components/menu-event-registrar-component';
 import { PluginSettingsTabComponent } from 'obsidian-dev-utils/obsidian/components/plugin-settings-tab-component';
 import { PluginDataHandler } from 'obsidian-dev-utils/obsidian/data-handler';
 import { PluginBase } from 'obsidian-dev-utils/obsidian/plugin/plugin';
@@ -31,7 +27,6 @@ export class Plugin extends PluginBase {
         })
       })
     );
-    const menuEventRegistrar = this.addChild(new MenuEventRegistrarComponent(this.app));
     const smartRenameComponent = this.addChild(
       new SmartRenameComponent({
         app: this.app,
@@ -40,19 +35,11 @@ export class Plugin extends PluginBase {
         resourceLockComponent: this.resourceLockComponent
       })
     );
-    this.addChild(
-      new CommandHandlerComponent({
-        activeFileProvider: new AppActiveFileProvider(this.app),
-        commandHandlers: [
-          new InvokeCommandHandler({
-            pluginSettingsComponent,
-            smartRenameComponent
-          })
-        ],
-        commandRegistrar: new PluginCommandRegistrar(this),
-        menuEventRegistrar,
-        pluginName: this.manifest.name
+    this.commandHandlerComponent.registerCommandHandlers([
+      new InvokeCommandHandler({
+        pluginSettingsComponent,
+        smartRenameComponent
       })
-    );
+    ]);
   }
 }
