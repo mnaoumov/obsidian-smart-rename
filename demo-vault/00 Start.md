@@ -4,7 +4,7 @@ Welcome to the [Smart Rename](https://github.com/mnaoumov/obsidian-smart-rename/
 
 > [!TIP] Interactive buttons
 >
-> The two setup notes have **Run** buttons, powered by [`CodeScript Toolkit`](https://github.com/mnaoumov/obsidian-codescript-toolkit/), which this vault installs for you automatically on first open (see [[05 CodeScript Toolkit prerequisite]]). Renaming itself is a manual command, so the feature notes have no buttons.
+> The two setup notes have **Run** buttons, powered by [`CodeScript Toolkit`](https://github.com/mnaoumov/obsidian-codescript-toolkit/), which this vault installs for you automatically on first open (see [[CodeScript Toolkit prerequisite]]). Renaming itself is a manual command, so the feature notes have no buttons.
 
 ## Feature
 
@@ -14,5 +14,5 @@ Welcome to the [Smart Rename](https://github.com/mnaoumov/obsidian-smart-rename/
 
 ## Setup
 
-- [[04 Code buttons check]]
-- [[05 CodeScript Toolkit prerequisite]]
+- [[Code buttons check]]
+- [[CodeScript Toolkit prerequisite]]
