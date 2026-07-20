@@ -2,6 +2,7 @@ import type {
   Menu,
   TFile
 } from 'obsidian';
+import type { DisposableEx } from 'obsidian-dev-utils/disposable';
 import type { CommandHandlerRegistrationContext } from 'obsidian-dev-utils/obsidian/command-handlers/command-handler';
 import type {
   FileMenuEventHandler,
@@ -81,11 +82,13 @@ function createMockContext(activeFile?: TFile): MockContext {
       },
       menuEventRegistrar: {
         registerEditorMenuEventHandler: vi.fn(),
-        registerFileMenuEventHandler: (handler: FileMenuEventHandler): void => {
+        registerFileMenuEventHandler: (handler: FileMenuEventHandler): DisposableEx => {
           fileMenuHandlers.push(handler);
+          return strictProxy<DisposableEx>({});
         },
-        registerFilesMenuEventHandler: (handler: FilesMenuEventHandler): void => {
+        registerFilesMenuEventHandler: (handler: FilesMenuEventHandler): DisposableEx => {
           filesMenuHandlers.push(handler);
+          return strictProxy<DisposableEx>({});
         }
       },
       pluginName: PLUGIN_NAME

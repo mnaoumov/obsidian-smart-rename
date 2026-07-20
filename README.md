@@ -10,6 +10,14 @@ This is a plugin for [Obsidian](https://obsidian.md/) that adds the command `Sma
 1. Adds the previous title as an alias to the renamed note
 2. Preserves the backlinks to the renamed note that were using previous title as a display text.
 
+## Demo vault
+
+A demo vault with usage examples ships with every release. You can access it via any of the following:
+
+1. Running the **Smart Rename: Open demo vault** command.
+2. Downloading `smart-rename.demo-vault.zip` from the [Releases](https://github.com/mnaoumov/obsidian-smart-rename/releases).
+3. Browsing its source in [`demo-vault/`](./demo-vault/README.md) in this repository.
+
 ## Detailed explanation
 
 ### Step 1
