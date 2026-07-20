@@ -1,9 +1,8 @@
-# Smart Rename demo vault
+This is an [Obsidian](https://obsidian.md/) vault demonstrating features of the [Smart Rename](https://github.com/mnaoumov/obsidian-smart-rename) plugin.
 
-A small Obsidian vault that demonstrates the [Smart Rename](https://github.com/mnaoumov/obsidian-smart-rename) plugin - it renames the active note and rewrites its backlinks so their display text keeps showing the old title, with control over invalid characters, the first header, and a frontmatter title key.
+## Opening this vault
 
-Open [00 Start](<./00 Start.md>) and work through the notes. Open [Rename me](<./Rename me.md>), run **Smart Rename: Invoke**, and watch the backlinks in `References/`.
+- **If you already have the plugin installed**, run the **Smart Rename: Open demo vault** command — it downloads and opens the latest demo vault automatically.
+- **Otherwise**, download `smart-rename.demo-vault.zip` from the [plugin releases](https://github.com/mnaoumov/obsidian-smart-rename/releases), unzip it, and in Obsidian choose `Manage vaults...` → `Open folder as vault` → select the unzipped folder.
 
-## First open
-
-The first time you open this vault, Obsidian treats it as **untrusted**, so the bundled plugins are listed but not loaded until you **Trust author and enable plugins** and reload. After that, the Demo Vault Helper opens the start note for you.
+On first open, Obsidian treats the vault as untrusted — choose **Trust author and enable plugins** (or enable Community plugins manually), then open [00 Start](<./00 Start.md>).
