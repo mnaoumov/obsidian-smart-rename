@@ -16,4 +16,4 @@ Some characters (like `:` `/` `\` `*` `?`) cannot appear in a file name. Smart R
 - **Remove** - strip the invalid characters from the file name.
 - **Replace** - swap each invalid character for the configured replacement character (default `_`).
 
-When the invalid title is stored as the note's display text (so the reader still sees `Chapter 1: Beginnings` even though the file name is sanitized) is controlled by the store-invalid-title setting. See [[Settings]] for all of these keys.
+When the invalid title is stored as the note's display text (so the reader still sees `Chapter 1: Beginnings` even though the file name is sanitized) is controlled by the store-invalid-title setting. See [[03 Settings]] for all of these keys.

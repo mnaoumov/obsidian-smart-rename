@@ -12,7 +12,7 @@ registerDemoVaultCoverageSuite({
   configInterfaces: [{ interfaceName: 'PluginSettings', sourcePath: 'src/plugin-settings.ts' }],
   interfaces: [],
   nonTrivialGuard: {
-    expectDemoNote: 'Settings.md',
+    expectDemoNote: '03 Settings.md',
     expectMember: 'invalidCharacterAction',
     interfaceName: 'PluginSettings',
     sourcePath: 'src/plugin-settings.ts'

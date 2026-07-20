@@ -13,8 +13,8 @@ Smart Rename renames the **active note** and rewrites its backlinks so their **d
 
 ## What it preserves
 
-- **Note links** - a bare `[[Rename me]]` becomes `[[Renamed note|Rename me]]`, keeping the old text visible (controlled by the note-links setting in [[Settings]]).
+- **Note links** - a bare `[[Rename me]]` becomes `[[Renamed note|Rename me]]`, keeping the old text visible (controlled by the note-links setting in [[03 Settings]]).
 - **Frontmatter links** - links inside YAML frontmatter get the same treatment (controlled by the frontmatter-links setting).
-- **The first header and a title key** - optionally kept in sync with the new name (see [[Settings]]).
+- **The first header and a title key** - optionally kept in sync with the new name (see [[03 Settings]]).
 
-Renaming to a title that contains characters Obsidian cannot use in a filename is handled separately - see [[Invalid characters]].
+Renaming to a title that contains characters Obsidian cannot use in a filename is handled separately - see [[02 Invalid characters]].
