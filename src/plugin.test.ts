@@ -77,6 +77,15 @@ describe('Plugin', () => {
     );
   });
 
+  it('should register the open demo vault command via its command handler', async () => {
+    const plugin = new Plugin(createApp(), createManifest());
+    const addCommandSpy = vi.spyOn(plugin, 'addCommand');
+    await plugin.onload();
+    expect(addCommandSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'open-demo-vault' })
+    );
+  });
+
   it('should add the plugin settings tab via its child component', async () => {
     const plugin = new Plugin(createApp(), createManifest());
     const addSettingTabSpy = vi.spyOn(plugin, 'addSettingTab');
