@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 2.2.6
+
+- docs: standardize demo-vault README
+- docs: drop per-plugin demo-vault setup notes (bootstrap covered by ODU harness)
+- docs: unnumber demo-vault setup notes
+- Merge branch 'T102-renumber': number Smart Rename demo vault example notes (S2)
+- Merge branch 'T102': create the Smart Rename demo vault (S2)
+- chore: update lib
+- docs: update
+- docs: migrate to AGENTS.md
+
 ## 2.2.5
 
 - chore: update libs
