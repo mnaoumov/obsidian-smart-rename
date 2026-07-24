@@ -244,6 +244,7 @@ export class SmartRenameComponent extends ComponentEx {
           }));
         },
         pathOrFile: backlinkNotePath,
+        pluginNoticeComponent: null,
         resourceLockComponent: this.resourceLockComponent
       });
     }
@@ -297,6 +298,7 @@ export class SmartRenameComponent extends ComponentEx {
         });
       },
       pathOrFile: newPath,
+      pluginNoticeComponent: null,
       resourceLockComponent: this.resourceLockComponent
     });
   }
@@ -312,6 +314,7 @@ export class SmartRenameComponent extends ComponentEx {
         frontMatter['title'] = titleToStore;
       },
       pathOrFile: newPath,
+      pluginNoticeComponent: null,
       resourceLockComponent: this.resourceLockComponent
     });
   }
