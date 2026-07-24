@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2.2.10
+
+- fix: pass plugin notice component to rename operations
+
 ## 2.2.9
 
 - chore: update libs
