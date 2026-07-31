@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2.3.0
+
+- refactor(settings): move the settings tab onto the declarative settings API
+- chore: update libs and clear the npm audit
+- docs: fix the demo vault download instructions
+
 ## 2.2.10
 
 - fix: pass plugin notice component to rename operations
