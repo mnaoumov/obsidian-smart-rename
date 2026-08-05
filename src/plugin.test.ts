@@ -22,6 +22,9 @@ vi.mock('obsidian', async (importOriginal) => {
     // eslint-disable-next-line prefer-arrow-callback -- constructor stub needs `function` to be used with `new`.
     Notice: vi.fn(function NoticeStub() {
       return {
+        // obsidian-dev-utils installs click tracking on the notice's containerEl, so the stub must
+        // Expose an element with addEventListener for showNotice to attach its listener to.
+        containerEl: { addEventListener: vi.fn() },
         hide: vi.fn(),
         setMessage: vi.fn()
       };
@@ -38,8 +41,8 @@ interface CommandsHolder {
 
 function createApp(): AppOriginal {
   const appMock = App.createConfigured__();
-  appMock.workspace.onLayoutReady = vi.fn((cb: () => void) => {
-    cb();
+  appMock.workspace.onLayoutReady = vi.fn((callback: () => void) => {
+    callback();
   });
   return appMock.asOriginalType__();
 }
@@ -95,8 +98,8 @@ describe('Plugin', () => {
 
   it('should wire the registered command to check the active file via the smart rename component', async () => {
     const appMock = App.createConfigured__({ files: { 'OldTitle.md': '# OldTitle' } });
-    appMock.workspace.onLayoutReady = vi.fn((cb: () => void) => {
-      cb();
+    appMock.workspace.onLayoutReady = vi.fn((callback: () => void) => {
+      callback();
     });
     const activeFile = appMock.vault.getFileByPath('OldTitle.md');
     appMock.workspace.getActiveFile = vi.fn(() => activeFile);

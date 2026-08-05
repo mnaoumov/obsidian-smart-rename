@@ -84,8 +84,8 @@ interface SmartRenameComponentProcessRenameParams {
 }
 
 interface SmartRenameComponentReplaceInvalidCharactersParams {
+  readonly $string: string;
   readonly replacement: string;
-  readonly str: string;
 }
 
 interface SmartRenameComponentUpdateFirstHeaderParams {
@@ -124,17 +124,21 @@ export class SmartRenameComponent extends ComponentEx {
 
     if (hasInvalidCharacters(newTitle)) {
       switch (this.pluginSettingsComponent.settings.invalidCharacterAction) {
-        case InvalidCharacterAction.Error:
+        case InvalidCharacterAction.Error: {
           this.pluginNoticeComponent.showNotice('The new title has invalid characters');
           return;
-        case InvalidCharacterAction.Remove:
-          newTitle = this.replaceInvalidCharacters({ replacement: '', str: newTitle });
+        }
+        case InvalidCharacterAction.Remove: {
+          newTitle = this.replaceInvalidCharacters({ $string: newTitle, replacement: '' });
           break;
-        case InvalidCharacterAction.Replace:
-          newTitle = this.replaceInvalidCharacters({ replacement: this.pluginSettingsComponent.settings.replacementCharacter, str: newTitle });
+        }
+        case InvalidCharacterAction.Replace: {
+          newTitle = this.replaceInvalidCharacters({ $string: newTitle, replacement: this.pluginSettingsComponent.settings.replacementCharacter });
           break;
-        default:
+        }
+        default: {
           throw new Error('Invalid character action');
+        }
       }
     }
 
@@ -162,7 +166,7 @@ export class SmartRenameComponent extends ComponentEx {
     }
 
     addToQueue({
-      operationFn: async () => {
+      operationFunction: async () => {
         await this.processRename({ backlinks, newPath, oldPath, titleToStore });
       },
       operationName: 'Smart rename'
@@ -265,8 +269,8 @@ export class SmartRenameComponent extends ComponentEx {
   }
 
   private replaceInvalidCharacters(params: SmartRenameComponentReplaceInvalidCharactersParams): string {
-    const { replacement, str } = params;
-    return str.replace(getOsAndObsidianUnsafePathCharsRegExp(), replacement);
+    const { $string, replacement } = params;
+    return $string.replace(getOsAndObsidianUnsafePathCharsRegExp(), () => replacement);
   }
 
   private async updateFirstHeader(params: SmartRenameComponentUpdateFirstHeaderParams): Promise<void> {
@@ -291,9 +295,9 @@ export class SmartRenameComponent extends ComponentEx {
         }
 
         return insertAt({
+          $string: content,
           endIndex: firstHeading.position.end.offset,
           startIndex: firstHeading.position.start.offset,
-          str: content,
           substring: `# ${titleToStore}`
         });
       },
@@ -310,7 +314,7 @@ export class SmartRenameComponent extends ComponentEx {
     }
     await processFrontmatter({
       app: this.app,
-      frontmatterFn: (frontMatter) => {
+      frontmatterFunction: (frontMatter) => {
         frontMatter['title'] = titleToStore;
       },
       pathOrFile: newPath,
