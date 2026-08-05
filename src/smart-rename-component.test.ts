@@ -66,42 +66,42 @@ vi.mock('obsidian', async (importOriginal) => {
 
 vi.mock('obsidian-dev-utils/obsidian/modals/prompt', async (importOriginal) => ({
   ...await importOriginal<typeof import('obsidian-dev-utils/obsidian/modals/prompt')>(),
-  prompt: (...args: unknown[]): unknown => hoisted.mockPrompt(...args)
+  prompt: (...$arguments: unknown[]): unknown => hoisted.mockPrompt(...$arguments)
 }));
 
 vi.mock('obsidian-dev-utils/obsidian/metadata-cache', async (importOriginal) => ({
   ...await importOriginal<typeof import('obsidian-dev-utils/obsidian/metadata-cache')>(),
-  getBacklinksForFileSafe: (...args: unknown[]): unknown => hoisted.mockGetBacklinksForFileSafe(...args),
-  getCacheSafe: (...args: unknown[]): unknown => hoisted.mockGetCacheSafe(...args)
+  getBacklinksForFileSafe: (...$arguments: unknown[]): unknown => hoisted.mockGetBacklinksForFileSafe(...$arguments),
+  getCacheSafe: (...$arguments: unknown[]): unknown => hoisted.mockGetCacheSafe(...$arguments)
 }));
 
 vi.mock('obsidian-dev-utils/obsidian/file-system', async (importOriginal) => ({
   ...await importOriginal<typeof import('obsidian-dev-utils/obsidian/file-system')>(),
-  getFile: (...args: unknown[]): unknown => hoisted.mockGetFile(...args),
-  isMarkdownFile: (...args: unknown[]): unknown => hoisted.mockIsMarkdownFile(...args)
+  getFile: (...$arguments: unknown[]): unknown => hoisted.mockGetFile(...$arguments),
+  isMarkdownFile: (...$arguments: unknown[]): unknown => hoisted.mockIsMarkdownFile(...$arguments)
 }));
 
 vi.mock('obsidian-dev-utils/obsidian/file-manager', async (importOriginal) => ({
   ...await importOriginal<typeof import('obsidian-dev-utils/obsidian/file-manager')>(),
-  addAlias: (...args: unknown[]): unknown => hoisted.mockAddAlias(...args),
-  processFrontmatter: (...args: unknown[]): unknown => hoisted.mockProcessFrontmatter(...args)
+  addAlias: (...$arguments: unknown[]): unknown => hoisted.mockAddAlias(...$arguments),
+  processFrontmatter: (...$arguments: unknown[]): unknown => hoisted.mockProcessFrontmatter(...$arguments)
 }));
 
 vi.mock('obsidian-dev-utils/obsidian/link', async (importOriginal) => ({
   ...await importOriginal<typeof import('obsidian-dev-utils/obsidian/link')>(),
-  editLinks: (...args: unknown[]): unknown => hoisted.mockEditLinks(...args),
-  extractLinkFile: (...args: unknown[]): unknown => hoisted.mockExtractLinkFile(...args),
-  generateMarkdownLink: (...args: unknown[]): unknown => hoisted.mockGenerateMarkdownLink(...args)
+  editLinks: (...$arguments: unknown[]): unknown => hoisted.mockEditLinks(...$arguments),
+  extractLinkFile: (...$arguments: unknown[]): unknown => hoisted.mockExtractLinkFile(...$arguments),
+  generateMarkdownLink: (...$arguments: unknown[]): unknown => hoisted.mockGenerateMarkdownLink(...$arguments)
 }));
 
 vi.mock('obsidian-dev-utils/obsidian/queue', async (importOriginal) => ({
   ...await importOriginal<typeof import('obsidian-dev-utils/obsidian/queue')>(),
-  addToQueue: (...args: unknown[]): unknown => hoisted.mockAddToQueue(...args)
+  addToQueue: (...$arguments: unknown[]): unknown => hoisted.mockAddToQueue(...$arguments)
 }));
 
 vi.mock('obsidian-dev-utils/obsidian/vault', async (importOriginal) => ({
   ...await importOriginal<typeof import('obsidian-dev-utils/obsidian/vault')>(),
-  process: (...args: unknown[]): unknown => hoisted.mockProcessVault(...args)
+  process: (...$arguments: unknown[]): unknown => hoisted.mockProcessVault(...$arguments)
 }));
 
 vi.mock('obsidian-dev-utils/obsidian/validation', async (importOriginal) => ({
@@ -111,8 +111,8 @@ vi.mock('obsidian-dev-utils/obsidian/validation', async (importOriginal) => ({
 
 vi.mock('@obsidian-typings/obsidian-public-latest/implementations', async (importOriginal) => ({
   ...await importOriginal<typeof import('@obsidian-typings/obsidian-public-latest/implementations')>(),
-  isFrontmatterLinkCache: (...args: unknown[]): unknown => hoisted.mockIsFrontmatterLinkCache(...args),
-  isReferenceCache: (...args: unknown[]): unknown => hoisted.mockIsReferenceCache(...args)
+  isFrontmatterLinkCache: (...$arguments: unknown[]): unknown => hoisted.mockIsFrontmatterLinkCache(...$arguments),
+  isReferenceCache: (...$arguments: unknown[]): unknown => hoisted.mockIsReferenceCache(...$arguments)
 }));
 
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
@@ -138,7 +138,7 @@ interface CapturedEditLinksParams {
 }
 
 interface CapturedProcessFrontmatterParams {
-  frontmatterFn(frontmatter: CombinedFrontmatter<unknown>): void;
+  frontmatterFunction(frontmatter: CombinedFrontmatter<unknown>): void;
 }
 
 interface CapturedProcessVaultParams {
@@ -153,7 +153,7 @@ interface CreateComponentOptions {
 type EditLinksCallback = (link: BacklinkLink) => string | undefined;
 
 interface EnqueuedOperation {
-  operationFn(): Promise<void>;
+  operationFunction(): Promise<void>;
 }
 
 interface HeadingsCache {
@@ -241,8 +241,8 @@ function createInputFile(overrides?: Partial<TFile>): TFile {
 function createMockPluginEventSource(): PluginEventSource {
   const source: PluginEventSource = strictProxy<PluginEventSource>({
     offref: noop,
-    on(name: string, callback: () => void, thisArg?: unknown): AsyncEventRef {
-      return { asyncEventSource: source, callback, name, thisArg };
+    on(name: string, callback: () => void, thisArgument?: unknown): AsyncEventRef {
+      return { asyncEventSource: source, callback, name, thisArgument };
     }
   });
   return source;
@@ -264,7 +264,7 @@ function expectNoticeShown(message: string): void {
 
 async function runEnqueuedOperation(): Promise<void> {
   const addToQueueCall = hoisted.mockAddToQueue.mock.calls[0] as [EnqueuedOperation] | undefined;
-  await addToQueueCall?.[0]?.operationFn();
+  await addToQueueCall?.[0]?.operationFunction();
 }
 
 beforeEach(() => {
@@ -477,7 +477,7 @@ describe('SmartRenameComponent', () => {
 
       const capturedFrontmatter = castTo<CombinedFrontmatter<unknown>>({});
       hoisted.mockProcessFrontmatter.mockImplementation((params: CapturedProcessFrontmatterParams) => {
-        params.frontmatterFn(capturedFrontmatter);
+        params.frontmatterFunction(capturedFrontmatter);
         return noopAsync();
       });
 

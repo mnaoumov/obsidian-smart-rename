@@ -36,7 +36,7 @@ export class Plugin extends PluginBase {
         resourceLockComponent: this.resourceLockComponent
       })
     );
-    this.commandHandlerComponent.registerCommandHandlers([
+    this.commandHandlerComponent.registerCommandHandlers(() => [
       new InvokeCommandHandler({
         pluginSettingsComponent,
         smartRenameComponent

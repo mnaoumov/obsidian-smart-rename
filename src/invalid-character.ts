@@ -1,5 +1,5 @@
 import { getOsAndObsidianUnsafePathCharsRegExp } from 'obsidian-dev-utils/obsidian/validation';
 
-export function hasInvalidCharacters(str: string): boolean {
-  return getOsAndObsidianUnsafePathCharsRegExp().test(str);
+export function hasInvalidCharacters($string: string): boolean {
+  return getOsAndObsidianUnsafePathCharsRegExp().test($string);
 }
