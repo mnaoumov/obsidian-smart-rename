@@ -1,5 +1,11 @@
 # CHANGELOG
 
+## 2.3.1
+
+- chore: update libs
+- chore: update libs
+- chore(vitest): consume the shared vitest configuration
+
 ## 2.3.0
 
 - refactor(settings): move the settings tab onto the declarative settings API
