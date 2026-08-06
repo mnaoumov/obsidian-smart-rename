@@ -22,8 +22,8 @@ vi.mock('obsidian', async (importOriginal) => {
     // eslint-disable-next-line prefer-arrow-callback -- constructor stub needs `function` to be used with `new`.
     Notice: vi.fn(function NoticeStub() {
       return {
-        // obsidian-dev-utils installs click tracking on the notice's containerEl, so the stub must
-        // Expose an element with addEventListener for showNotice to attach its listener to.
+        // Click tracking is installed on the notice's containerEl by obsidian-dev-utils.
+        // So the stub exposes an element with addEventListener for showNotice to attach to.
         containerEl: { addEventListener: vi.fn() },
         hide: vi.fn(),
         setMessage: vi.fn()

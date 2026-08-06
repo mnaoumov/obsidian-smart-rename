@@ -10,7 +10,7 @@ import { PluginSettings } from './plugin-settings.ts';
 import { SmartRenameComponent } from './smart-rename-component.ts';
 
 export class Plugin extends PluginBase {
-  protected override onloadImpl(): void {
+  protected override async onloadImpl(): Promise<void> {
     const dataHandler = new PluginDataHandler(this);
     const pluginSettingsComponent = this.addChild(
       new PluginSettingsComponent({
@@ -36,7 +36,7 @@ export class Plugin extends PluginBase {
         resourceLockComponent: this.resourceLockComponent
       })
     );
-    this.commandHandlerComponent.registerCommandHandlers(() => [
+    await this.commandHandlerComponent.registerCommandHandlers(() => [
       new InvokeCommandHandler({
         pluginSettingsComponent,
         smartRenameComponent
