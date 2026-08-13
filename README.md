@@ -5,75 +5,41 @@
 [![GitHub downloads](https://img.shields.io/github/downloads/mnaoumov/obsidian-smart-rename/total)](https://github.com/mnaoumov/obsidian-smart-rename/releases)
 [![Coverage: 100%](https://img.shields.io/badge/coverage-100%25-brightgreen)](https://github.com/mnaoumov/obsidian-smart-rename)
 
-This is a plugin for [Obsidian](https://obsidian.md/) that adds the command `Smart Rename` which performs the following steps after renaming the note:
+Rename a note in [Obsidian](https://obsidian.md/) and every link to it is rewritten — including the
+words your reader sees. A sentence that read "as covered in `[[Project brief]]`" silently becomes "as
+covered in `[[2026 Q3 plan]]`", and prose you wrote carefully now says something you did not write.
 
-1. Adds the previous title as an alias to the renamed note
-2. Preserves the backlinks to the renamed note that were using previous title as a display text.
+This plugin renames the note and keeps the old title as the link's **display text**, so `[[Old title]]`
+becomes `[[New title|Old title]]` and your sentences still read the way you wrote them. The old title is
+also kept as an alias, so anything still looking for it finds it.
 
 ## Demo vault
 
-A demo vault with usage examples ships with every release. You can access it via any of the following:
+**The documentation is a demo vault.** Every feature has a note that explains what it does and why you
+would want it, with a note ready to rename and backlinks ready to watch.
+
+**[Start reading here](<./demo-vault/00 Start.md>)** — it is plain markdown, so it works on GitHub with
+nothing installed.
+
+A copy of the vault ships with every release. You can access it via any of the following:
 
 1. Running the **Smart Rename: Open demo vault** command.
 2. Downloading `smart-rename-demo-vault-<version>.zip` (`<version>` is the release version) from the [Releases](https://github.com/mnaoumov/obsidian-smart-rename/releases).
 3. Browsing its source in [`demo-vault/`](./demo-vault/README.md) in this repository.
 
-## Detailed explanation
+## What it does
 
-### Step 1
-
-You have
-
-`OldName.md`:
-
-```markdown
-This is a note `OldName.md` that is going to be renamed to `NewName.md`.
-```
-
-`OtherNote.md`:
-
-```markdown
-This note references
-
-1. Wikilink [[OldName]]
-2. Wikilink with the same display text [[OldName|OldName]]
-3. Wikilink with a custom display text [[OldName|Custom display text]]
-4. Markdown link [OldName](OldName.md)
-5. Markdown link with a custom display text [Custom display text](OldName.md)
-```
-
-### Step 2
-
-You invoke current plugin providing `NewName` as a new title
-
-### Step 3
-
-Now you have
-
-`NewName.md`:
-
-```markdown
----
-aliases:
-  - OldName
----
-
-This is a note `OldName.md` that is going to be renamed to `NewName.md`.
-```
-
-`OtherNote.md`:
-
-```markdown
-This note references
-
-1. Wikilink [[NewName|OldName]]
-2. Wikilink with the same display text [[NewName|OldName]]
-3. Wikilink with a custom display text [[NewName|Custom display text]]
-4. Markdown link [OldName](NewName.md)
-5. Markdown link with a custom display text [Custom display text](NewName.md)
-```
-
-Current plugin's aim is to preserve `OldName` display text in links 1, 2, 4
+- **Backlinks keep their old display text.** `[[Old title]]` becomes `[[New title|Old title]]`, and a
+  link that already had display text you chose is left alone — a plain rename was always right for
+  those. Every link form, before and after, is worked through in the vault.
+  [01 Smart rename](<./demo-vault/01 Smart rename.md>)
+- **The old title becomes an alias**, so searches and links using it still resolve.
+  [01 Smart rename](<./demo-vault/01 Smart rename.md>)
+- **Invalid characters are handled**, rather than the rename being refused, when the title you want
+  cannot be a file name.
+  [02 Invalid characters](<./demo-vault/02 Invalid characters.md>)
+- **The first header and a frontmatter title key** can be kept in sync with the new name.
+  [03 Settings](<./demo-vault/03 Settings.md>)
 
 ## Installation
 
@@ -98,6 +64,14 @@ window.DEBUG.enable('smart-rename');
 ```
 
 For more details, refer to the [documentation](https://mnaoumov.dev/obsidian-dev-utils/guides/debugging/).
+
+## Changelog
+
+All notable changes to this project will be documented in the [CHANGELOG](./CHANGELOG.md).
+
+## Contributing
+
+Contributions are welcome — see [CONTRIBUTING](./CONTRIBUTING.md) to get set up.
 
 ## Support
 
