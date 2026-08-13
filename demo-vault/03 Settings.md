@@ -1,5 +1,3 @@
-[Docs](https://github.com/mnaoumov/obsidian-smart-rename/)
-
 # Settings
 
 Open **Settings -> Community plugins -> Smart Rename** to configure the plugin. Each option below lists the setting key stored in the plugin's `data.json`.
