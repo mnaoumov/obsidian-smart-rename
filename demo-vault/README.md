@@ -1,3 +1,5 @@
+# Smart Rename demo vault
+
 This is an [Obsidian](https://obsidian.md/) vault demonstrating features of the [Smart Rename](https://github.com/mnaoumov/obsidian-smart-rename) plugin.
 
 ## Opening this vault
