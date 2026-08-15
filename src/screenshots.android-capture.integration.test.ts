@@ -3,7 +3,7 @@
  *
  * Produces the five mobile screenshots the community-store listing needs
  * (T461-P21), driving the demo vault's fixtures in Obsidian Mobile on a real
- * Android emulator and writing `images/screenshot-mobile-N.png`.
+ * Android emulator and writing `images/screenshots/screenshot-mobile-N.png`.
  *
  * The mobile counterpart of the desktop capture suite, showing the same five
  * steps of the same flow. It is worth taking rather than reusing the desktop
@@ -79,7 +79,7 @@ const NEW_TITLE = 'Renamed note';
  */
 const MOBILE_FONT_SIZE_IN_PIXELS = 13;
 
-const IMAGES_DIRECTORY = join(process.cwd(), 'images');
+const IMAGES_DIRECTORY = join(process.cwd(), 'images', 'screenshots');
 const DEMO_VAULT_PATH = join(process.cwd(), 'demo-vault');
 
 /**
