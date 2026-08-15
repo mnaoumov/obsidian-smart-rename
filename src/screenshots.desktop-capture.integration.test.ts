@@ -3,7 +3,7 @@
  *
  * Produces the desktop screenshots the community-store listing needs
  * (T461-P21), driving the demo vault's fixtures in a real Obsidian and writing
- * `images/screenshot-desktop-N.png`.
+ * `images/screenshots/screenshot-desktop-N.png`.
  *
  * Each shot shows a DIFFERENT step of one flow, and each is CAPTIONED by
  * `labelScreenshot` after capture — a listing carousel shows screenshots one at
@@ -77,7 +77,7 @@ const REFERENCE_NOTE_PATH = 'Materials/01 Smart rename/Every link form.md';
 const OLD_TITLE = 'Rename me';
 const NEW_TITLE = 'Renamed note';
 
-const IMAGES_DIRECTORY = join(process.cwd(), 'images');
+const IMAGES_DIRECTORY = join(process.cwd(), 'images', 'screenshots');
 const DEMO_VAULT_PATH = join(process.cwd(), 'demo-vault');
 
 beforeAll(async () => {
