@@ -2,6 +2,26 @@
 
 Open **Settings -> Community plugins -> Smart Rename** to configure the plugin. Each option below lists the setting key stored in the plugin's `data.json`.
 
+The two title options are the ones worth seeing rather than reading - turn both on, run a rename from [01 Smart rename](<./01 Smart rename.md>), and watch the note's first header and frontmatter `title` follow the new name:
+
+```code-button
+---
+caption: Also update the first header and the title key
+---
+await require('/demoSetup.ts').changeSettings(app, { shouldUpdateFirstHeader: true, shouldUpdateTitleKey: true });
+```
+
+Manual equivalent: turn on **Should update first header** and **Should update title key** below.
+
+```code-button
+---
+caption: Restore every setting this vault changes
+---
+await require('/demoSetup.ts').changeSettings(app, { invalidCharacterAction: 'Error', replacementCharacter: '_', shouldStoreInvalidTitle: true, shouldUpdateFirstHeader: false, shouldUpdateTitleKey: false });
+```
+
+Manual equivalent: set **Invalid characters action** back to *Error*, **Replacement character** to `_`, **Should store invalid title** on, and both title options off.
+
 ## Invalid characters
 
 - `invalidCharacterAction`

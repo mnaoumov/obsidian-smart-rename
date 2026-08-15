@@ -4,10 +4,30 @@ Smart Rename renames the **active note** and rewrites its backlinks so their **d
 
 ## Try it
 
-1. Open [Rename me](<./Materials/01 Smart rename/Rename me.md>) (the note this demo renames).
-2. Run **Smart Rename: Invoke** from the Command Palette, or right-click the note in the file explorer and choose the smart rename option.
-3. Type a new title - for example `Renamed note` - and confirm.
-4. Open [References/Note A](<./Materials/01 Smart rename/References/Note A.md>) and [References/Note B](<./Materials/01 Smart rename/References/Note B.md>). Their links now point at the new note, but still **display** the old title.
+1. Open [Rename me](<./Materials/01 Smart rename/Rename me.md>) (the note this demo renames) and start the rename - the button does both:
+
+   ```code-button
+   ---
+   caption: Open "Rename me" and start the rename
+   ---
+   await require('/demoSetup.ts').startRename(app);
+   ```
+
+   Manual equivalent: open that note, then run **Smart Rename: Invoke** from the Command Palette, or right-click the note in the file explorer and choose the smart rename option.
+
+2. Type a new title - for example `Renamed note` - and confirm.
+3. Open [References/Note A](<./Materials/01 Smart rename/References/Note A.md>) and [References/Note B](<./Materials/01 Smart rename/References/Note B.md>). Their links now point at the new note, but still **display** the old title.
+
+Renaming is destructive, so trying a second variation normally means undoing the first by hand. This puts all three notes back exactly as they shipped:
+
+```code-button
+---
+caption: Reset the demo notes
+---
+await require('/demoSetup.ts').resetDemo(app);
+```
+
+Manual equivalent: rename the note back and undo the link rewrites in both referencing notes.
 
 ## What it preserves
 
