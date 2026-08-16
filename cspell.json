@@ -25,6 +25,8 @@
     "tfile",
     "tfolder",
     "tsbuildinfo",
+    "unvalidated",
+    "wdio",
     "Wikilink"
   ],
   "ignoreWords": [],
