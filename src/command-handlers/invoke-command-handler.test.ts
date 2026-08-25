@@ -6,7 +6,8 @@ import type { DisposableEx } from 'obsidian-dev-utils/disposable';
 import type { CommandHandlerRegistrationContext } from 'obsidian-dev-utils/obsidian/command-handlers/command-handler';
 import type {
   FileMenuEventHandler,
-  FilesMenuEventHandler
+  FilesMenuEventHandler,
+  MarkdownViewportMenuEventHandler
 } from 'obsidian-dev-utils/obsidian/menu-event-registrar';
 import type { ReadonlyDeep } from 'type-fest';
 
@@ -88,6 +89,10 @@ function createMockContext(activeFile?: TFile): MockContext {
         },
         registerFilesMenuEventHandler: (handler: FilesMenuEventHandler): DisposableEx => {
           filesMenuHandlers.push(handler);
+          return strictProxy<DisposableEx>({});
+        },
+        registerMarkdownViewportMenuEventHandler: (_handler: MarkdownViewportMenuEventHandler): DisposableEx => {
+          // The handler under test does not use the readable-line-length margin menu.
           return strictProxy<DisposableEx>({});
         }
       },
