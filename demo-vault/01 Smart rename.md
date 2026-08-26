@@ -44,8 +44,7 @@ Renaming to a title that contains characters Obsidian cannot use in a filename i
 
 ## Every link form, before and after
 
-The five ways a note can be linked, and what renaming `OldName` to `NewName` does to each. Start with
-`OldName.md`:
+The five ways a note can be linked, and what renaming `OldName` to `NewName` does to each. Start with `OldName.md`:
 
 ```markdown
 This is a note `OldName.md` that is going to be renamed to `NewName.md`.
@@ -63,8 +62,7 @@ This note references
 5. Markdown link with a custom display text [Custom display text](OldName.md)
 ```
 
-Invoke the command with `NewName` as the new title, and you get `NewName.md` — carrying the old title
-as an alias, so anything still searching for it finds it:
+Invoke the command with `NewName` as the new title, and you get `NewName.md` — carrying the old title as an alias, so anything still searching for it finds it:
 
 ```markdown
 ---
@@ -87,6 +85,4 @@ This note references
 5. Markdown link with a custom display text [Custom display text](NewName.md)
 ```
 
-Links **1, 2 and 4** are the ones this plugin exists for: each was displaying `OldName`, and each still
-does. Links 3 and 5 already had display text you chose yourself, so they are left alone — a plain
-Obsidian rename would have been correct for those two all along.
+Links **1, 2 and 4** are the ones this plugin exists for: each was displaying `OldName`, and each still does. Links 3 and 5 already had display text you chose yourself, so they are left alone — a plain Obsidian rename would have been correct for those two all along.

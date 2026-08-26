@@ -4,8 +4,7 @@ Welcome to the [Smart Rename](https://github.com/mnaoumov/obsidian-smart-rename/
 
 **How to try it:** open [01 Smart rename](<./01 Smart rename.md>) and press its first button - it opens [Rename me](<./Materials/01 Smart rename/Rename me.md>) and starts the rename. Type a new title, then look at [References/Note A](<./Materials/01 Smart rename/References/Note A.md>) and [References/Note B](<./Materials/01 Smart rename/References/Note B.md>) - the links still show the old title.
 
-Because renaming is destructive, every walkthrough has a **Reset the demo notes** button that puts all
-three notes back exactly as they shipped, so you can try each variation from a clean start.
+Because renaming is destructive, every walkthrough has a **Reset the demo notes** button that puts all three notes back exactly as they shipped, so you can try each variation from a clean start.
 
 ## Features
 
@@ -15,7 +14,4 @@ three notes back exactly as they shipped, so you can try each variation from a c
 
 ## Materials
 
-`Materials/` holds the notes the walkthroughs operate on, one folder per note that needs them —
-`Materials/01 Smart rename/` has the note you rename and the two notes linking to it, which is the
-whole demonstration. Expect its contents to change as you follow the steps: renaming things is the
-point.
+`Materials/` holds the notes the walkthroughs operate on, one folder per note that needs them — `Materials/01 Smart rename/` has the note you rename and the two notes linking to it, which is the whole demonstration. Expect its contents to change as you follow the steps: renaming things is the point.
