@@ -114,7 +114,7 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
               f.appendText('Whether to update the first header if it is present in the note. May conflict with the ');
               f.createEl('a', {
                 attr: {
-                  href: 'https://obsidian.md/plugins?id=obsidian-filename-heading-sync'
+                  href: 'https://community.obsidian.md/plugins/obsidian-filename-heading-sync'
                 },
                 text: 'Filename Heading Sync'
               });
