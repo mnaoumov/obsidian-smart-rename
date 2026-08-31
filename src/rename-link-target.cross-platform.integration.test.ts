@@ -12,6 +12,8 @@
  * `isDesktopOnly: false`, so the desktop AND android projects both collect it.
  */
 
+import type { MenuItem } from 'obsidian';
+
 import { evalInObsidian } from 'obsidian-integration-testing';
 import { getTemporaryVault } from 'obsidian-integration-testing/vitest-global-setup-plugin';
 import {
@@ -187,5 +189,112 @@ describe('Invoke on link under cursor', () => {
     // Premise, now reachable without opening the linked note first.
     expect(result.sourceContent).toContain(NEW_TARGET_TITLE);
     expect(result.sourceContent).toContain(TARGET_LINK_TEXT);
+  });
+});
+
+const MENU_ITEM_TITLE = 'Smart rename link target';
+const MENU_SOURCE_PATH = 'invoke-on-link-menu-source.md';
+
+/**
+ * Prose on line 0, the link on line 1 — so the "off a link" cursor has somewhere to sit that is genuinely
+ * Outside every parsed link.
+ */
+const MENU_SOURCE_CONTENT = `prose with no link at all\n[[${TARGET_LINK_TEXT}]]`;
+interface EditorMenuProbePosition {
+  readonly ch: number;
+  readonly line: number;
+}
+
+const OFF_LINK_POSITION: EditorMenuProbePosition = { ch: 4, line: 0 };
+const ON_LINK_POSITION: EditorMenuProbePosition = { ch: CURSOR_CH, line: 1 };
+
+describe('Smart rename link target editor menu item', () => {
+  it('offers the item on a link and withholds it off one', async () => {
+    const result = await evalInObsidian({
+      async callback({
+        app,
+        lib: { createNote, waitUntil },
+        menuSourceContent,
+        obsidianModule,
+        offLinkPosition,
+        onLinkPosition,
+        sourcePath,
+        targetContent,
+        targetLinkText,
+        targetPath,
+        waitTimeoutInMilliseconds
+      }) {
+        for (const path of [sourcePath, targetPath]) {
+          const existing = app.vault.getAbstractFileByPath(path);
+          if (existing) {
+            await app.fileManager.trashFile(existing);
+          }
+        }
+
+        await createNote({ content: targetContent, path: targetPath });
+        const sourceFile = await createNote({ content: menuSourceContent, path: sourcePath });
+
+        const leaf = app.workspace.getLeaf(true);
+        await leaf.openFile(sourceFile, { state: { mode: 'source' } });
+
+        await waitUntil({
+          message: 'source note did not become the active markdown view',
+          predicate: () => app.workspace.getActiveViewOfType(obsidianModule.MarkdownView)?.file?.path === sourcePath,
+          timeoutInMilliseconds: waitTimeoutInMilliseconds
+        });
+
+        await waitUntil({
+          message: 'link target did not resolve',
+          predicate: () => app.metadataCache.getFirstLinkpathDest(targetLinkText, sourcePath) !== null,
+          timeoutInMilliseconds: waitTimeoutInMilliseconds
+        });
+
+        const view = app.workspace.getActiveViewOfType(obsidianModule.MarkdownView);
+        if (!view) {
+          return { offLinkTitles: [], onLinkTitles: [] };
+        }
+
+        // Raising the menu through the very `editor-menu` workspace event the handler subscribes to, so
+        // The registration wiring is exercised rather than the handler being called directly.
+        // A `const` copy taken after the guard above: a hoisted function declaration does not inherit
+        // The narrowing that the `if (!view)` early return gave `view`.
+        const activeView = view;
+
+        function collectTitles(position: EditorMenuProbePosition): string[] {
+          activeView.editor.setCursor(position);
+          const menu = new obsidianModule.Menu();
+          app.workspace.trigger('editor-menu', menu, activeView.editor, activeView);
+          return menu.items
+            .filter((item): item is MenuItem => 'titleEl' in item)
+            .map((item) => item.titleEl.textContent);
+        }
+
+        const onLinkTitles = collectTitles(onLinkPosition);
+        const offLinkTitles = collectTitles(offLinkPosition);
+
+        for (const path of [sourcePath, targetPath]) {
+          const existing = app.vault.getAbstractFileByPath(path);
+          if (existing) {
+            await app.fileManager.trashFile(existing);
+          }
+        }
+
+        return { offLinkTitles, onLinkTitles };
+      },
+      input: {
+        menuSourceContent: MENU_SOURCE_CONTENT,
+        offLinkPosition: OFF_LINK_POSITION,
+        onLinkPosition: ON_LINK_POSITION,
+        sourcePath: MENU_SOURCE_PATH,
+        targetContent: TARGET_CONTENT,
+        targetLinkText: TARGET_LINK_TEXT,
+        targetPath: TARGET_PATH,
+        waitTimeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS
+      },
+      vaultPath: getTemporaryVault().path
+    });
+
+    expect(result.onLinkTitles).toContain(MENU_ITEM_TITLE);
+    expect(result.offLinkTitles).not.toContain(MENU_ITEM_TITLE);
   });
 });
