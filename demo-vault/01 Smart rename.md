@@ -34,11 +34,11 @@ Manual equivalent: rename the note back and undo the link rewrites in both refer
 ## What it preserves
 
 - **Note links**
-  - a bare `[[Rename me]]` becomes `[[Renamed note|Rename me]]`, keeping the old text visible (controlled by the note-links setting in [03 Settings](<./03 Settings.md>)).
+  - a bare `[[Rename me]]` becomes `[[Renamed note|Rename me]]`, keeping the old text visible (controlled by the note-links setting in [04 Settings](<./04 Settings.md>)).
 - **Frontmatter links**
   - links inside YAML frontmatter get the same treatment (controlled by the frontmatter-links setting).
 - **The first header and a title key**
-  - optionally kept in sync with the new name (see [03 Settings](<./03 Settings.md>)).
+  - optionally kept in sync with the new name (see [04 Settings](<./04 Settings.md>)).
 
 Renaming to a title that contains characters Obsidian cannot use in a filename is handled separately - see [02 Invalid characters](<./02 Invalid characters.md>).
 

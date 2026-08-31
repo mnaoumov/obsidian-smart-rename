@@ -4,6 +4,7 @@ import { PluginDataHandler } from 'obsidian-dev-utils/obsidian/data-handler';
 import { PluginBase } from 'obsidian-dev-utils/obsidian/plugin/plugin';
 
 import { InvokeCommandHandler } from './command-handlers/invoke-command-handler.ts';
+import { InvokeOnLinkCommandHandler } from './command-handlers/invoke-on-link-command-handler.ts';
 import { PluginSettingsComponent } from './plugin-settings-component.ts';
 import { PluginSettingsTab } from './plugin-settings-tab.ts';
 import { PluginSettings } from './plugin-settings.ts';
@@ -39,6 +40,12 @@ export class Plugin extends PluginBase {
     );
     await this.commandHandlerComponent.registerCommandHandlers(() => [
       new InvokeCommandHandler({
+        pluginSettingsComponent,
+        smartRenameComponent
+      }),
+      new InvokeOnLinkCommandHandler({
+        app: this.app,
+        pluginNoticeComponent: this.pluginNoticeComponent,
         pluginSettingsComponent,
         smartRenameComponent
       }),
