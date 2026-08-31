@@ -40,11 +40,21 @@ interface CommandsHolder {
 }
 
 function createApp(): AppOriginal {
-  const appMock = App.createConfigured__();
+  return createAppMock().asOriginalType__();
+}
+
+function createAppMock(options?: Parameters<typeof App.createConfigured__>[0]): App {
+  const appMock = App.createConfigured__(options);
   appMock.workspace.onLayoutReady = vi.fn((callback: () => void) => {
     callback();
   });
-  return appMock.asOriginalType__();
+  // The plugin registry is not modelled by `obsidian-test-mocks`, whose strict `App` throws on it.
+  // `obsidian-dev-utils` reads it on layout ready, to find Notebook Navigator's optional menu API.
+  // Reporting every plugin as absent keeps that integration dormant, as a vault without it does.
+  castTo<Pick<AppOriginal, 'plugins'>>(appMock).plugins = strictProxy<AppOriginal['plugins']>({
+    getPlugin: (): null => null
+  });
+  return appMock;
 }
 
 async function createLoadedPlugin(app: AppOriginal): Promise<Plugin> {
@@ -97,10 +107,7 @@ describe('Plugin', () => {
   });
 
   it('should wire the registered command to check the active file via the smart rename component', async () => {
-    const appMock = App.createConfigured__({ files: { 'OldTitle.md': '# OldTitle' } });
-    appMock.workspace.onLayoutReady = vi.fn((callback: () => void) => {
-      callback();
-    });
+    const appMock = createAppMock({ files: { 'OldTitle.md': '# OldTitle' } });
     const activeFile = appMock.vault.getFileByPath('OldTitle.md');
     appMock.workspace.getActiveFile = vi.fn(() => activeFile);
     const plugin = await createLoadedPlugin(appMock.asOriginalType__());
