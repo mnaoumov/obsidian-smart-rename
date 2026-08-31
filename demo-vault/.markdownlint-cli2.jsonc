@@ -1,0 +1,11 @@
+{
+  // Scoped markdownlint config for the demo vault. Only one default rule is incompatible with what
+  // These notes do; every other rule applies, as it does to the rest of the documentation.
+  "config": {
+    // `Materials/03 Rename the link target/Note with links.md` deliberately keeps Obsidian
+    // `[[wikilinks]]` -- they ARE the fixture the rename-the-link-target command acts on, and the
+    // Point of the note is that every link form resolves -- and markdownlint parses one as an
+    // Undefined shortcut reference link.
+    "MD052": false
+  }
+}

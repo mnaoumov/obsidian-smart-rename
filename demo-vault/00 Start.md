@@ -10,8 +10,9 @@ Because renaming is destructive, every walkthrough has a **Reset the demo notes*
 
 - [01 Smart rename](<./01 Smart rename.md>)
 - [02 Invalid characters](<./02 Invalid characters.md>)
-- [03 Settings](<./03 Settings.md>)
+- [03 Rename the link target](<./03 Rename the link target.md>)
+- [04 Settings](<./04 Settings.md>)
 
 ## Materials
 
-`Materials/` holds the notes the walkthroughs operate on, one folder per note that needs them — `Materials/01 Smart rename/` has the note you rename and the two notes linking to it, which is the whole demonstration. Expect its contents to change as you follow the steps: renaming things is the point.
+`Materials/` holds the notes the walkthroughs operate on, one folder per note that needs them — `Materials/01 Smart rename/` has the note you rename and the two notes linking to it, which is the whole demonstration, and `Materials/03 Rename the link target/` has a note whose links are the thing you act on. Expect its contents to change as you follow the steps: renaming things is the point.

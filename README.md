@@ -46,7 +46,8 @@ A copy of the vault ships with every release. You can access it via any of the f
 - **Backlinks keep their old display text.** `[[Old title]]` becomes `[[New title|Old title]]`, and a link that already had display text you chose is left alone — a plain rename was always right for those. Every link form, before and after, is worked through in the vault. [01 Smart rename](<./demo-vault/01 Smart rename.md>)
 - **The old title becomes an alias**, so searches and links using it still resolve. [01 Smart rename](<./demo-vault/01 Smart rename.md>)
 - **Invalid characters are handled**, rather than the rename being refused, when the title you want cannot be a file name. [02 Invalid characters](<./demo-vault/02 Invalid characters.md>)
-- **The first header and a frontmatter title key** can be kept in sync with the new name. [03 Settings](<./demo-vault/03 Settings.md>)
+- **A linked note can be renamed from where you link to it.** Put the cursor on a link, run the command, and the note that link points at is smart-renamed — you never open it. Works on wikilinks, markdown links, embeds and frontmatter links alike. [03 Rename the link target](<./demo-vault/03 Rename the link target.md>)
+- **The first header and a frontmatter title key** can be kept in sync with the new name. [04 Settings](<./demo-vault/04 Settings.md>)
 
 ## Installation
 

@@ -16,6 +16,7 @@
     "backlinks",
     "frontmatter",
     "Jsons",
+    "Linkpath",
     "mnaoumov",
     "Naumov",
     "obsidianmd",
@@ -27,7 +28,8 @@
     "tsbuildinfo",
     "unvalidated",
     "wdio",
-    "Wikilink"
+    "Wikilink",
+    "wikilinks"
   ],
   "ignoreWords": [],
   "import": [],
