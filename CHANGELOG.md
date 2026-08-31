@@ -1,5 +1,9 @@
 # CHANGELOG
 
+## 2.4.1
+
+- fix(deps): move to obsidian-integration-testing 11 and drop the brace-expansion override
+
 ## 2.4.0
 
 - test: fix
