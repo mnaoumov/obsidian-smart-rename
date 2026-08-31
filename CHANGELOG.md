@@ -1,5 +1,12 @@
 # CHANGELOG
 
+## 2.4.0
+
+- test: fix
+- chore: update libs
+- feat(command): smart rename the note a link points at, from the cursor
+- fix(settings): point the Filename Heading Sync link at community.obsidian.md
+
 ## 2.3.4
 
 - docs(demo-vault): unwrap the notes so Obsidian stops rendering a break per line
