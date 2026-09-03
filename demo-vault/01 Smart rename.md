@@ -31,6 +31,22 @@ await require('/demoSetup.ts').resetDemo(app);
 
 Manual equivalent: rename the note back and undo the link rewrites in both referencing notes.
 
+## Choosing the steps for one rename
+
+The rename prompt carries a checkbox for each of the five steps that run after the file itself is renamed. Each starts ticked or unticked according to its setting in [04 Settings](<./04 Settings.md>), and a change applies to **that rename only** - nothing is written back to the settings.
+
+| Checkbox | Shortcut | Unticked, it skips |
+| --- | --- | --- |
+| Keep old title in note links | `Alt+1` | keeping the old title as display text in ordinary note links |
+| Keep old title in frontmatter links | `Alt+2` | keeping the old title as display text in frontmatter links |
+| Add old title as alias | `Alt+3` | adding the old title to the renamed note's `aliases` |
+| Update title key | `Alt+4` | updating the frontmatter `title` key |
+| Update first header | `Alt+5` | updating the note's first header |
+
+The last three apply to markdown notes only, so they are shown disabled when the file being renamed is anything else.
+
+Try it: start the rename again, untick **Add old title as alias**, and confirm with `Renamed note`. The renamed note has no `aliases` in its frontmatter, while both referencing notes still display the old title - that checkbox stayed ticked.
+
 ## What it preserves
 
 - **Note links**
@@ -39,6 +55,8 @@ Manual equivalent: rename the note back and undo the link rewrites in both refer
   - links inside YAML frontmatter get the same treatment (controlled by the frontmatter-links setting).
 - **The first header and a title key**
   - optionally kept in sync with the new name (see [04 Settings](<./04 Settings.md>)).
+- **The old title as an alias**
+  - added to the renamed note unless the prompt's alias checkbox is unticked.
 
 Renaming to a title that contains characters Obsidian cannot use in a filename is handled separately - see [02 Invalid characters](<./02 Invalid characters.md>).
 

@@ -34,6 +34,7 @@ import {
   getBacklinksForFileSafe,
   getCacheSafe
 } from 'obsidian-dev-utils/obsidian/metadata-cache';
+import { ModalCommandBuilder } from 'obsidian-dev-utils/obsidian/modals/modal-command-builder';
 import { prompt } from 'obsidian-dev-utils/obsidian/modals/prompt';
 import { addToQueue } from 'obsidian-dev-utils/obsidian/queue';
 import { getOsAndObsidianUnsafePathCharsRegExp } from 'obsidian-dev-utils/obsidian/validation';
@@ -51,10 +52,48 @@ import type { PluginSettingsComponent } from './plugin-settings-component.ts';
 import { InvalidCharacterAction } from './invalid-character-action.ts';
 import { hasInvalidCharacters } from './invalid-character.ts';
 
+/**
+ * One checkbox in the rename prompt's control strip, bound to the {@link PostRenameSteps} member it
+ * toggles.
+ */
+interface PostRenameStepCheckbox {
+  /**
+   * Whether the step it controls runs only for markdown files, in which case the checkbox is rendered
+   * disabled for any other file — `processRename` returns before those steps.
+   */
+  readonly isMarkdownOnly: boolean;
+
+  readonly key: string;
+  readonly purpose: string;
+  readonly stepName: keyof PostRenameSteps;
+}
+
+/**
+ * The post-rename steps, as they apply to ONE rename.
+ *
+ * Seeded from the settings and then handed to the prompt's checkboxes, so a single rename can deviate
+ * without a trip to Settings. Deliberately mutable and deliberately NOT written back: the checkboxes are
+ * scoped to this rename, and the queued operation captures this object, so a settings change made while
+ * the rename is in flight cannot retroactively alter it.
+ */
+interface PostRenameSteps {
+  shouldAddOldTitleAsAlias: boolean;
+  shouldPreservePreviousDisplayTextInFrontmatterLinks: boolean;
+  shouldPreservePreviousDisplayTextInNoteLinks: boolean;
+  shouldUpdateFirstHeader: boolean;
+  shouldUpdateTitleKey: boolean;
+}
+
 interface SmartRenameComponentAddAliasesParams {
   readonly newPath: string;
   readonly oldTitle: string;
+  readonly steps: PostRenameSteps;
   readonly titleToStore: string;
+}
+
+interface SmartRenameComponentBuildCommandBuilderParams {
+  readonly file: TFile;
+  readonly steps: PostRenameSteps;
 }
 
 interface SmartRenameComponentConstructorParams {
@@ -74,12 +113,14 @@ interface SmartRenameComponentProcessBacklinksParams {
   readonly backlinks: CustomArrayDict<Reference>;
   readonly newPath: string;
   readonly oldPath: string;
+  readonly steps: PostRenameSteps;
 }
 
 interface SmartRenameComponentProcessRenameParams {
   readonly backlinks: CustomArrayDict<Reference>;
   readonly newPath: string;
   readonly oldPath: string;
+  readonly steps: PostRenameSteps;
   readonly titleToStore: string;
 }
 
@@ -90,13 +131,23 @@ interface SmartRenameComponentReplaceInvalidCharactersParams {
 
 interface SmartRenameComponentUpdateFirstHeaderParams {
   readonly newPath: string;
+  readonly steps: PostRenameSteps;
   readonly titleToStore: string;
 }
 
 interface SmartRenameComponentUpdateTitleParams {
   readonly newPath: string;
+  readonly steps: PostRenameSteps;
   readonly titleToStore: string;
 }
+
+const POST_RENAME_STEP_CHECKBOXES: readonly PostRenameStepCheckbox[] = [
+  { isMarkdownOnly: false, key: '1', purpose: 'Keep old title in note links', stepName: 'shouldPreservePreviousDisplayTextInNoteLinks' },
+  { isMarkdownOnly: false, key: '2', purpose: 'Keep old title in frontmatter links', stepName: 'shouldPreservePreviousDisplayTextInFrontmatterLinks' },
+  { isMarkdownOnly: true, key: '3', purpose: 'Add old title as alias', stepName: 'shouldAddOldTitleAsAlias' },
+  { isMarkdownOnly: true, key: '4', purpose: 'Update title key', stepName: 'shouldUpdateTitleKey' },
+  { isMarkdownOnly: true, key: '5', purpose: 'Update first header', stepName: 'shouldUpdateFirstHeader' }
+];
 
 export class SmartRenameComponent extends ComponentEx {
   private readonly app: App;
@@ -114,8 +165,10 @@ export class SmartRenameComponent extends ComponentEx {
 
   public async smartRename(file: TFile): Promise<void> {
     const oldTitle = file.basename;
+    const steps = this.buildPostRenameSteps();
     let newTitle = await prompt({
       app: this.app,
+      commandBuilder: this.buildCommandBuilder({ file, steps }),
       defaultValue: oldTitle,
       title: 'Enter new title'
     }) ?? '';
@@ -167,20 +220,58 @@ export class SmartRenameComponent extends ComponentEx {
 
     addToQueue({
       operationFunction: async () => {
-        await this.processRename({ backlinks, newPath, oldPath, titleToStore });
+        await this.processRename({ backlinks, newPath, oldPath, steps, titleToStore });
       },
       operationName: 'Smart rename'
     });
   }
 
   private async addAliases(params: SmartRenameComponentAddAliasesParams): Promise<void> {
-    const { newPath, oldTitle, titleToStore } = params;
+    const { newPath, oldTitle, steps, titleToStore } = params;
     const newTitle = basename(newPath, extname(newPath));
-    await addAlias({ alias: oldTitle, app: this.app, pathOrFile: newPath, resourceLockComponent: this.resourceLockComponent });
+    if (steps.shouldAddOldTitleAsAlias) {
+      await addAlias({ alias: oldTitle, app: this.app, pathOrFile: newPath, resourceLockComponent: this.resourceLockComponent });
+    }
 
+    // Not governed by the checkbox above: this alias is the NEW title as it was typed, kept because the
+    // Rename had to sanitize it — a different thing from carrying the old title forward.
     if (this.pluginSettingsComponent.settings.shouldStoreInvalidTitle && titleToStore !== newTitle) {
       await addAlias({ alias: titleToStore, app: this.app, pathOrFile: newPath, resourceLockComponent: this.resourceLockComponent });
     }
+  }
+
+  private buildCommandBuilder(params: SmartRenameComponentBuildCommandBuilderParams): ModalCommandBuilder {
+    const { file, steps } = params;
+    const isMarkdown = isMarkdownFile(file);
+    const commandBuilder = new ModalCommandBuilder();
+
+    for (const stepCheckbox of POST_RENAME_STEP_CHECKBOXES) {
+      commandBuilder.addCheckbox({
+        checkIsAvailable: () => isMarkdown || !stepCheckbox.isMarkdownOnly,
+        key: stepCheckbox.key,
+        modifiers: ['Alt'],
+        onChange: (isChecked) => {
+          steps[stepCheckbox.stepName] = isChecked;
+        },
+        onInit: (checkboxEl) => {
+          checkboxEl.checked = steps[stepCheckbox.stepName];
+        },
+        purpose: stepCheckbox.purpose
+      });
+    }
+
+    return commandBuilder;
+  }
+
+  private buildPostRenameSteps(): PostRenameSteps {
+    const settings = this.pluginSettingsComponent.settings;
+    return {
+      shouldAddOldTitleAsAlias: settings.shouldAddOldTitleAsAlias,
+      shouldPreservePreviousDisplayTextInFrontmatterLinks: settings.shouldPreservePreviousDisplayTextInFrontmatterLinks,
+      shouldPreservePreviousDisplayTextInNoteLinks: settings.shouldPreservePreviousDisplayTextInNoteLinks,
+      shouldUpdateFirstHeader: settings.shouldUpdateFirstHeader,
+      shouldUpdateTitleKey: settings.shouldUpdateTitleKey
+    };
   }
 
   private async getValidationError(params: SmartRenameComponentGetValidationErrorParams): Promise<null | string> {
@@ -209,7 +300,7 @@ export class SmartRenameComponent extends ComponentEx {
   }
 
   private async processBacklinks(params: SmartRenameComponentProcessBacklinksParams): Promise<void> {
-    const { backlinks, newPath, oldPath } = params;
+    const { backlinks, newPath, oldPath, steps } = params;
     const newFile = getFile({ app: this.app, pathOrFile: newPath });
     const oldTitle = basename(oldPath, extname(oldPath));
     const newTitle = newFile.basename;
@@ -234,8 +325,8 @@ export class SmartRenameComponent extends ComponentEx {
           }
 
           const isNewTitle = (link.displayText ?? '').toLowerCase() === newTitle.toLowerCase();
-          const shouldPreservePreviousDisplayText = (isReferenceCache(link) && this.pluginSettingsComponent.settings.shouldPreservePreviousDisplayTextInNoteLinks)
-            || (isFrontmatterLinkCache(link) && this.pluginSettingsComponent.settings.shouldPreservePreviousDisplayTextInFrontmatterLinks);
+          const shouldPreservePreviousDisplayText = (isReferenceCache(link) && steps.shouldPreservePreviousDisplayTextInNoteLinks)
+            || (isFrontmatterLinkCache(link) && steps.shouldPreservePreviousDisplayTextInFrontmatterLinks);
 
           const alias = isNewTitle && shouldPreservePreviousDisplayText ? oldTitle : link.displayText;
 
@@ -255,17 +346,17 @@ export class SmartRenameComponent extends ComponentEx {
   }
 
   private async processRename(params: SmartRenameComponentProcessRenameParams): Promise<void> {
-    const { backlinks, newPath, oldPath, titleToStore } = params;
+    const { backlinks, newPath, oldPath, steps, titleToStore } = params;
     const oldTitle = basename(oldPath, extname(oldPath));
-    await this.processBacklinks({ backlinks, newPath, oldPath });
+    await this.processBacklinks({ backlinks, newPath, oldPath, steps });
 
     if (!isMarkdownFile(newPath)) {
       return;
     }
 
-    await this.addAliases({ newPath, oldTitle, titleToStore });
-    await this.updateTitle({ newPath, titleToStore });
-    await this.updateFirstHeader({ newPath, titleToStore });
+    await this.addAliases({ newPath, oldTitle, steps, titleToStore });
+    await this.updateTitle({ newPath, steps, titleToStore });
+    await this.updateFirstHeader({ newPath, steps, titleToStore });
   }
 
   private replaceInvalidCharacters(params: SmartRenameComponentReplaceInvalidCharactersParams): string {
@@ -274,8 +365,8 @@ export class SmartRenameComponent extends ComponentEx {
   }
 
   private async updateFirstHeader(params: SmartRenameComponentUpdateFirstHeaderParams): Promise<void> {
-    const { newPath, titleToStore } = params;
-    if (!this.pluginSettingsComponent.settings.shouldUpdateFirstHeader) {
+    const { newPath, steps, titleToStore } = params;
+    if (!steps.shouldUpdateFirstHeader) {
       return;
     }
 
@@ -308,8 +399,8 @@ export class SmartRenameComponent extends ComponentEx {
   }
 
   private async updateTitle(params: SmartRenameComponentUpdateTitleParams): Promise<void> {
-    const { newPath, titleToStore } = params;
-    if (!this.pluginSettingsComponent.settings.shouldUpdateTitleKey) {
+    const { newPath, steps, titleToStore } = params;
+    if (!steps.shouldUpdateTitleKey) {
       return;
     }
     await processFrontmatter({

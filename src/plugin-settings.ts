@@ -4,6 +4,7 @@ export class PluginSettings {
   public invalidCharacterAction = InvalidCharacterAction.Error;
 
   public replacementCharacter = '_';
+  public shouldAddOldTitleAsAlias = true;
   public shouldPreservePreviousDisplayTextInFrontmatterLinks = true;
   public shouldPreservePreviousDisplayTextInNoteLinks = true;
   public shouldStoreInvalidTitle = true;

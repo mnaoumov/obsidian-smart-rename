@@ -73,6 +73,14 @@ describe('PluginSettingsTab', () => {
     expect(getBoundKeys()).toContain('replacementCharacter');
   });
 
+  it('should bind shouldAddOldTitleAsAlias setting', () => {
+    const tab = createSettingsTab(InvalidCharacterAction.Error);
+
+    renderRows(tab);
+
+    expect(getBoundKeys()).toContain('shouldAddOldTitleAsAlias');
+  });
+
   it('should bind shouldUpdateTitleKey setting', () => {
     const tab = createSettingsTab(InvalidCharacterAction.Error);
 
