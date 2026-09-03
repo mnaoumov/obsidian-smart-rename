@@ -18,6 +18,11 @@ describe('PluginSettings', () => {
     expect(settings.replacementCharacter).toBe('_');
   });
 
+  it('should default shouldAddOldTitleAsAlias to true', () => {
+    const settings = new PluginSettings();
+    expect(settings.shouldAddOldTitleAsAlias).toBe(true);
+  });
+
   it('should default shouldPreservePreviousDisplayTextInFrontmatterLinks to true', () => {
     const settings = new PluginSettings();
     expect(settings.shouldPreservePreviousDisplayTextInFrontmatterLinks).toBe(true);

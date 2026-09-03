@@ -60,6 +60,15 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
         heading: 'Title',
         items: [
           this.settingEx({
+            desc: 'Whether to add the old title as an alias of the renamed note, so searches and links using it still resolve.',
+            name: 'Should add old title as alias',
+            render: (setting) => {
+              setting.addToggle((toggle) => {
+                this.bind({ propertyName: 'shouldAddOldTitleAsAlias', valueComponent: toggle });
+              });
+            }
+          }),
+          this.settingEx({
             desc: 'Whether to update the title key in frontmatter.',
             name: 'Should update title key',
             render: (setting) => {

@@ -5,15 +5,24 @@ import type {
 import type { AsyncEventRef } from 'obsidian-dev-utils/async-events';
 import type { DataHandler } from 'obsidian-dev-utils/obsidian/data-handler';
 import type { CombinedFrontmatter } from 'obsidian-dev-utils/obsidian/frontmatter';
+import type {
+  ModalCommandBuilder,
+  ModalCommandsHost
+} from 'obsidian-dev-utils/obsidian/modals/modal-command-builder';
 import type { PluginEventSource } from 'obsidian-dev-utils/obsidian/plugin/plugin-event-source';
 import type { ResourceLockComponent } from 'obsidian-dev-utils/obsidian/resource-lock';
 
+import { Scope } from 'obsidian';
 import {
   noop,
   noopAsync
 } from 'obsidian-dev-utils/function';
-import { castTo } from 'obsidian-dev-utils/object-utils';
+import {
+  castTo,
+  normalizeOptionalProperties
+} from 'obsidian-dev-utils/object-utils';
 import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
+import { ensureNonNullable } from 'obsidian-dev-utils/type-guards';
 import { App } from 'obsidian-test-mocks/obsidian';
 import {
   afterEach,
@@ -145,6 +154,10 @@ interface CapturedProcessVaultParams {
   readonly newContentProvider: ProcessVaultCallback;
 }
 
+interface CapturedPromptParams {
+  readonly commandBuilder: ModalCommandBuilder;
+}
+
 interface CreateComponentOptions {
   readonly app?: AppOriginal;
   readonly settings?: Partial<PluginSettings>;
@@ -196,7 +209,33 @@ class MockDataHandler implements DataHandler {
   }
 }
 
+const ALIAS_CHECKBOX_INDEX = 2;
+
 const DEFAULT_UNSAFE_CHARS_REGEXP = /[/\\]/;
+
+const TITLE_KEY_CHECKBOX_INDEX = 3;
+
+/**
+ * Renders `commandBuilder`'s control strip the way `prompt` does, and hands back its checkboxes.
+ *
+ * The host is attached to the document because jsdom fires `change` on a checkbox `click()` only for a
+ * connected element, and `change` is the event the builder binds `onChange` to.
+ *
+ * @param commandBuilder - The builder captured from the `prompt` call.
+ * @returns The rendered checkboxes, in the order the builder declared them.
+ */
+function buildStrip(commandBuilder: ModalCommandBuilder): HTMLInputElement[] {
+  const host: ModalCommandsHost = {
+    containerEl: document.body.createDiv(),
+    scope: new Scope()
+  };
+  commandBuilder.build(host);
+  return [...host.containerEl.querySelectorAll<HTMLInputElement>('input[type="checkbox"]')];
+}
+
+function clickCheckbox(checkboxEls: HTMLInputElement[], index: number): void {
+  ensureNonNullable(checkboxEls[index]).click();
+}
 
 function createApp(): AppOriginal {
   const appMock = App.createConfigured__();
@@ -279,6 +318,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  document.body.empty();
   vi.clearAllMocks();
 });
 
@@ -797,6 +837,107 @@ describe('SmartRenameComponent', () => {
       const controller = new AbortController();
       const result = await callback({ abortSignal: controller.signal, content: '# OldTitle\n\nContent\n\n# Another' });
       expect(result).toBe('# NewTitle\n\nContent\n\n# Another');
+    });
+  });
+
+  describe('rename prompt checkboxes', () => {
+    interface RunRenameWithStripOptions {
+      readonly isMarkdown?: boolean;
+      readonly newFile?: Partial<TFile>;
+      readonly newTitle?: string;
+      readonly settings?: Partial<PluginSettings>;
+      toggleCheckboxes?(checkboxEls: HTMLInputElement[]): void;
+    }
+
+    async function runRenameWithStrip(options: RunRenameWithStripOptions = {}): Promise<HTMLInputElement[]> {
+      let checkboxEls: HTMLInputElement[] = [];
+      hoisted.mockIsMarkdownFile.mockReturnValue(options.isMarkdown ?? true);
+      hoisted.mockGetFile.mockReturnValue(strictProxy<TFile>({
+        basename: 'NewTitle',
+        path: 'NewTitle.md',
+        ...options.newFile
+      }));
+      hoisted.mockAddAlias.mockResolvedValue(undefined);
+      hoisted.mockProcessFrontmatter.mockResolvedValue(undefined);
+      hoisted.mockProcessVault.mockResolvedValue(undefined);
+      hoisted.mockPrompt.mockImplementation((params: CapturedPromptParams) => {
+        checkboxEls = buildStrip(params.commandBuilder);
+        options.toggleCheckboxes?.(checkboxEls);
+        return Promise.resolve(options.newTitle ?? 'NewTitle');
+      });
+
+      const component = await createComponent(normalizeOptionalProperties<CreateComponentOptions>({ settings: options.settings }));
+      await component.smartRename(createInputFile());
+      await runEnqueuedOperation();
+      return checkboxEls;
+    }
+
+    it('should seed every checkbox from its setting', async () => {
+      const checkboxEls = await runRenameWithStrip({
+        settings: {
+          shouldAddOldTitleAsAlias: false,
+          shouldPreservePreviousDisplayTextInFrontmatterLinks: true,
+          shouldPreservePreviousDisplayTextInNoteLinks: false,
+          shouldUpdateFirstHeader: true,
+          shouldUpdateTitleKey: false
+        }
+      });
+
+      expect(checkboxEls.map((checkboxEl) => checkboxEl.checked)).toStrictEqual([false, true, false, false, true]);
+    });
+
+    it('should disable the markdown-only checkboxes for a non-markdown file', async () => {
+      const checkboxEls = await runRenameWithStrip({ isMarkdown: false });
+
+      expect(checkboxEls.map((checkboxEl) => checkboxEl.disabled)).toStrictEqual([false, false, true, true, true]);
+    });
+
+    it('should skip only the step whose checkbox is unticked', async () => {
+      await runRenameWithStrip({
+        settings: {
+          shouldAddOldTitleAsAlias: true,
+          shouldUpdateFirstHeader: true,
+          shouldUpdateTitleKey: true
+        },
+        toggleCheckboxes: (checkboxEls) => {
+          clickCheckbox(checkboxEls, ALIAS_CHECKBOX_INDEX);
+        }
+      });
+
+      expect(hoisted.mockAddAlias).not.toHaveBeenCalled();
+      expect(hoisted.mockProcessFrontmatter).toHaveBeenCalled();
+      expect(hoisted.mockProcessVault).toHaveBeenCalled();
+    });
+
+    it('should run a step whose checkbox is ticked even though its setting is off', async () => {
+      await runRenameWithStrip({
+        settings: { shouldUpdateTitleKey: false },
+        toggleCheckboxes: (checkboxEls) => {
+          clickCheckbox(checkboxEls, TITLE_KEY_CHECKBOX_INDEX);
+        }
+      });
+
+      expect(hoisted.mockProcessFrontmatter).toHaveBeenCalled();
+    });
+
+    it('should still store the invalid title when the old title alias is unticked', async () => {
+      await runRenameWithStrip({
+        newFile: {
+          basename: 'foobar',
+          path: 'foobar.md'
+        },
+        newTitle: 'foo/bar',
+        settings: {
+          invalidCharacterAction: castTo<PluginSettings['invalidCharacterAction']>('Remove'),
+          shouldStoreInvalidTitle: true
+        },
+        toggleCheckboxes: (checkboxEls) => {
+          clickCheckbox(checkboxEls, ALIAS_CHECKBOX_INDEX);
+        }
+      });
+
+      expect(hoisted.mockAddAlias).toHaveBeenCalledTimes(1);
+      expect(hoisted.mockAddAlias).toHaveBeenCalledWith(expect.objectContaining({ alias: 'foo/bar' }));
     });
   });
 });
