@@ -14,12 +14,12 @@ This plugin renames the note and keeps the old title as the link's **display tex
 <summary>More screenshots</summary>
 
 <div>
-<a href="https://github.com/mnaoumov/obsidian-smart-rename/blob/HEAD/images/screenshots/screenshot-desktop-2.png"><img src="images/screenshots/screenshot-desktop-2.png" alt="Smart Rename asks for the new title, once" width="600"></a>
+<a href="https://github.com/mnaoumov/obsidian-smart-rename/blob/HEAD/images/screenshots/screenshot-desktop-2.png"><img src="images/screenshots/screenshot-desktop-2.png" alt="Smart Rename asks for the new title, and which steps to run" width="600"></a>
 <a href="https://github.com/mnaoumov/obsidian-smart-rename/blob/HEAD/images/screenshots/screenshot-desktop-3.png"><img src="images/screenshots/screenshot-desktop-3.png" alt="Every link now points at Renamed note" width="600"></a>
 <a href="https://github.com/mnaoumov/obsidian-smart-rename/blob/HEAD/images/screenshots/screenshot-desktop-4.png"><img src="images/screenshots/screenshot-desktop-4.png" alt="...and every one still reads Rename me" width="600"></a>
 <a href="https://github.com/mnaoumov/obsidian-smart-rename/blob/HEAD/images/screenshots/screenshot-desktop-5.png"><img src="images/screenshots/screenshot-desktop-5.png" alt="The old title is kept as an alias, so search still finds it" width="600"></a>
 <a href="https://github.com/mnaoumov/obsidian-smart-rename/blob/HEAD/images/screenshots/screenshot-mobile-1.png"><img src="images/screenshots/screenshot-mobile-1.png" alt="Four ways to link one note, all reading Rename me" width="270"></a>
-<a href="https://github.com/mnaoumov/obsidian-smart-rename/blob/HEAD/images/screenshots/screenshot-mobile-2.png"><img src="images/screenshots/screenshot-mobile-2.png" alt="Smart Rename asks for the new title, once" width="270"></a>
+<a href="https://github.com/mnaoumov/obsidian-smart-rename/blob/HEAD/images/screenshots/screenshot-mobile-2.png"><img src="images/screenshots/screenshot-mobile-2.png" alt="Smart Rename asks for the new title, and which steps to run" width="270"></a>
 <a href="https://github.com/mnaoumov/obsidian-smart-rename/blob/HEAD/images/screenshots/screenshot-mobile-3.png"><img src="images/screenshots/screenshot-mobile-3.png" alt="Every link now points at Renamed note" width="270"></a>
 <a href="https://github.com/mnaoumov/obsidian-smart-rename/blob/HEAD/images/screenshots/screenshot-mobile-4.png"><img src="images/screenshots/screenshot-mobile-4.png" alt="...and every one still reads Rename me" width="270"></a>
 <a href="https://github.com/mnaoumov/obsidian-smart-rename/blob/HEAD/images/screenshots/screenshot-mobile-5.png"><img src="images/screenshots/screenshot-mobile-5.png" alt="The old title is kept as an alias, so search still finds it" width="270"></a>

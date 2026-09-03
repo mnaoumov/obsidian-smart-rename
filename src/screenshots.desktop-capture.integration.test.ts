@@ -132,7 +132,7 @@ describe('desktop store screenshots', () => {
   it('2 - the prompt that asks for the new title', async () => {
     await openNote(SUBJECT_NOTE_PATH, 'source');
     await openRenamePrompt();
-    await shoot(2, 'Smart Rename asks for the new title, once');
+    await shoot(2, 'Smart Rename asks for the new title, and which steps to run');
   });
 
   it('3 - the links after the rename, in source', async () => {
