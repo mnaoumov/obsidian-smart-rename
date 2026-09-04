@@ -48,12 +48,6 @@ function createAppMock(options?: Parameters<typeof App.createConfigured__>[0]): 
   appMock.workspace.onLayoutReady = vi.fn((callback: () => void) => {
     callback();
   });
-  // The plugin registry is not modelled by `obsidian-test-mocks`, whose strict `App` throws on it.
-  // `obsidian-dev-utils` reads it on layout ready, to find Notebook Navigator's optional menu API.
-  // Reporting every plugin as absent keeps that integration dormant, as a vault without it does.
-  castTo<Pick<AppOriginal, 'plugins'>>(appMock).plugins = strictProxy<AppOriginal['plugins']>({
-    getPlugin: (): null => null
-  });
   return appMock;
 }
 
