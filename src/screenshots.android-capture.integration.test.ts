@@ -277,7 +277,7 @@ async function shoot(index: number, caption: string): Promise<void> {
  */
 async function submitRenamePrompt(newTitle: string): Promise<void> {
   await evalInObsidian({
-    async callback({ app, lib: { waitUntil }, newTitle: title }) {
+    async callback({ app, lib: { clickElement, waitUntil }, newTitle: title }) {
       const RENAME_TIMEOUT_IN_MILLISECONDS = 20_000;
       const SETTLE_DELAY_IN_MILLISECONDS = 1200;
 
@@ -296,7 +296,7 @@ async function submitRenamePrompt(newTitle: string): Promise<void> {
         throw new TypeError('The rename prompt has no confirm button.');
       }
 
-      confirmButton.click();
+      await clickElement({ element: confirmButton });
 
       await waitUntil({
         message: 'the renamed note to exist',
