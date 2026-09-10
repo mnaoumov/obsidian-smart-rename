@@ -59,3 +59,7 @@ counters), `lint:md`, `spellcheck`, `build`, then the integration projects: `tes
 `test:integration:desktop`, `test:integration:android`, and `npx vitest run
 --project=integration-tests:demo-vault`. `npm run capture:screenshots` is explicit and deliberately
 excluded from every integration project.
+
+`npm run gate` runs every one of those except the integration projects, in that order. It is the
+release preflight itself rather than a copy of it, so it reaches `format:check`, `spellcheck`,
+`find-overexposed` and `test:coverage` - the four no other routine command does.
