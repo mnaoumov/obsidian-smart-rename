@@ -26,7 +26,8 @@ import {
   isMarkdownFile
 } from 'obsidian-dev-utils/obsidian/file-system';
 import {
-  editLinks,
+  buildBacklinksSnapshot,
+  editBacklinksSnapshot,
   extractLinkFile,
   generateMarkdownLink
 } from 'obsidian-dev-utils/obsidian/link';
@@ -305,44 +306,49 @@ export class SmartRenameComponent extends ComponentEx {
     const oldTitle = basename(oldPath, extname(oldPath));
     const newTitle = newFile.basename;
 
-    for (let backlinkNotePath of backlinks.keys()) {
-      const links = backlinks.get(backlinkNotePath);
-      if (!links) {
-        continue;
-      }
+    /*
+     * The backlinks were captured BEFORE `vault.rename`, so they cannot be re-fetched here — the cache no
+     * longer answers for the old path. `pathRemapper` covers the one holder the rename moved: the note
+     * itself, whose self-links now live at the new path.
+     */
+    const snapshot = buildBacklinksSnapshot<true>({
+      backlinks,
+      linkIdentityKeyProvider: toJson,
+      pathRemapper: (backlinkNotePath) => backlinkNotePath === oldPath ? newPath : backlinkNotePath,
+      // The payload is the capture itself: `true` where the link was snapshotted, `undefined` where it was not.
+      payloadProvider: () => true
+    });
 
-      if (backlinkNotePath === oldPath) {
-        backlinkNotePath = newPath;
-      }
+    await editBacklinksSnapshot<true>({
+      app: this.app,
+      linkConverter: ({ link, payload: wasCaptured, sourcePath }) => {
+        /*
+         * Wider than the snapshot on purpose: a link that already resolves to the renamed file is ours to
+         * restyle even when it was absent from the capture, which is why unmatched links are visited.
+         */
+        if (!wasCaptured && extractLinkFile({ app: this.app, link, sourcePathOrFile: sourcePath }) !== newFile) {
+          return;
+        }
 
-      const linkJsons = new Set(links.map((link) => toJson(link)));
+        const isNewTitle = (link.displayText ?? '').toLowerCase() === newTitle.toLowerCase();
+        const shouldPreservePreviousDisplayText = (isReferenceCache(link) && steps.shouldPreservePreviousDisplayTextInNoteLinks)
+          || (isFrontmatterLinkCache(link) && steps.shouldPreservePreviousDisplayTextInFrontmatterLinks);
 
-      await editLinks({
-        app: this.app,
-        linkConverter: (link) => {
-          if (extractLinkFile({ app: this.app, link, sourcePathOrFile: backlinkNotePath }) !== newFile && !linkJsons.has(toJson(link))) {
-            return;
-          }
+        const alias = isNewTitle && shouldPreservePreviousDisplayText ? oldTitle : link.displayText;
 
-          const isNewTitle = (link.displayText ?? '').toLowerCase() === newTitle.toLowerCase();
-          const shouldPreservePreviousDisplayText = (isReferenceCache(link) && steps.shouldPreservePreviousDisplayTextInNoteLinks)
-            || (isFrontmatterLinkCache(link) && steps.shouldPreservePreviousDisplayTextInFrontmatterLinks);
-
-          const alias = isNewTitle && shouldPreservePreviousDisplayText ? oldTitle : link.displayText;
-
-          return generateMarkdownLink(normalizeOptionalProperties<GenerateMarkdownLinkParams>({
-            alias,
-            app: this.app,
-            originalLink: link.original,
-            sourcePathOrFile: backlinkNotePath,
-            targetPathOrFile: newPath
-          }));
-        },
-        pathOrFile: backlinkNotePath,
-        pluginNoticeComponent: this.pluginNoticeComponent,
-        resourceLockComponent: this.resourceLockComponent
-      });
-    }
+        return generateMarkdownLink(normalizeOptionalProperties<GenerateMarkdownLinkParams>({
+          alias,
+          app: this.app,
+          originalLink: link.original,
+          sourcePathOrFile: sourcePath,
+          targetPathOrFile: newPath
+        }));
+      },
+      pluginNoticeComponent: this.pluginNoticeComponent,
+      resourceLockComponent: this.resourceLockComponent,
+      shouldVisitUnmatchedLinks: true,
+      snapshot
+    });
   }
 
   private async processRename(params: SmartRenameComponentProcessRenameParams): Promise<void> {
