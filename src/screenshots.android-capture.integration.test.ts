@@ -1,8 +1,8 @@
 /**
  * @file
  *
- * Produces the five mobile screenshots the community-store listing needs
- * (T461-P21), driving the demo vault's fixtures in Obsidian Mobile on a real
+ * Produces the five mobile screenshots the community-store listing needs,
+ * driving the demo vault's fixtures in Obsidian Mobile on a real
  * Android emulator and writing `images/screenshots/screenshot-mobile-N.png`.
  *
  * The mobile counterpart of the desktop capture suite, showing the same five
@@ -15,7 +15,8 @@
  * right size: this runs on a dedicated `obsidian_screenshots` AVD built at
  * exactly 900x1600, so the frame already IS the store's size — no crop, no
  * rescale, no letterbox, no post-processing at all. That AVD needs ONE-TIME
- * provisioning, and both steps are non-obvious — see [[T461-P21]].
+ * provisioning, and both steps are non-obvious; they are written out
+ * beside `SCREENSHOT_AVD_NAME` in `scripts/vitest-config.ts`.
  */
 
 import {
