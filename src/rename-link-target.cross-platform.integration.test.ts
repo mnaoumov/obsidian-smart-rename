@@ -8,7 +8,7 @@
  * source note kept its own name — the whole point of the command — and that the link in the source note
  * still displays the old title.
  *
- * Named `*.cross-platform.integration.test.ts` (per G47) because `manifest.json` has
+ * Named `*.cross-platform.integration.test.ts` because `manifest.json` has
  * `isDesktopOnly: false`, so the desktop AND android projects both collect it.
  */
 
@@ -125,7 +125,7 @@ describe('Invoke on link under cursor', () => {
 
         inputEl.value = newTargetTitle;
         // A notification event, not a simulated user gesture — `AbstractTextComponent` listens for
-        // `input` to publish the new value, and nothing on that path gates on `isTrusted` (G107).
+        // `input` to publish the new value, and nothing on that path gates on `isTrusted`.
         inputEl.dispatchEvent(new Event('input', { bubbles: true }));
         okButtonEl.click();
 

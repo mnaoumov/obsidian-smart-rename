@@ -39,7 +39,7 @@ the alias checkbox is unticked.
 **The control strip is obsidian-dev-utils', not ours.** `ModalCommandBuilder` from
 `obsidian-dev-utils/obsidian/modals/modal-command-builder`, passed to `prompt()` as `commandBuilder`. The
 default `Instructions` render mode gives real inline checkboxes, which matters on mobile where there is no
-modifier key to press. Do not hand-roll a modal here (G61).
+modifier key to press. Do not hand-roll a modal here.
 
 ## Testing traps this repo has already hit
 
