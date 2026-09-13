@@ -36,7 +36,7 @@ that keeps the rule honest instead of disabling it.
 `shouldStoreInvalidTitle` — a different thing from carrying the old title forward — and still runs when
 the alias checkbox is unticked.
 
-**The control strip is ODU's, not ours.** `ModalCommandBuilder` from
+**The control strip is obsidian-dev-utils', not ours.** `ModalCommandBuilder` from
 `obsidian-dev-utils/obsidian/modals/modal-command-builder`, passed to `prompt()` as `commandBuilder`. The
 default `Instructions` render mode gives real inline checkboxes, which matters on mobile where there is no
 modifier key to press. Do not hand-roll a modal here (G61).
