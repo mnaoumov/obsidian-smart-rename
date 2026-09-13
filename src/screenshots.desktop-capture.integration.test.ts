@@ -1,8 +1,8 @@
 /**
  * @file
  *
- * Produces the desktop screenshots the community-store listing needs
- * (T461-P21), driving the demo vault's fixtures in a real Obsidian and writing
+ * Produces the desktop screenshots the community-store listing needs,
+ * driving the demo vault's fixtures in a real Obsidian and writing
  * `images/screenshots/screenshot-desktop-N.png`.
  *
  * Each shot shows a DIFFERENT step of one flow, and each is CAPTIONED by

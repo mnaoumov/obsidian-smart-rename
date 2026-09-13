@@ -4,7 +4,7 @@ import type { TestProjectConfiguration } from 'vitest/config';
 import { defineObsidianPluginVitestConfig } from 'obsidian-dev-utils/script-utils/test-runners/vitest-config';
 
 /**
- * The screenshot-capture suites (T461-P21) that write `images/screenshot-*.png`.
+ * The screenshot-capture suites that write `images/screenshot-*.png`.
  *
  * They are named `*.desktop-capture.` / `*.android-capture.` rather than
  * `*.desktop.` / `*.android.` so they match NONE of the standard project globs.
@@ -24,7 +24,7 @@ const ANDROID_CAPTURE_TEST_FILES = 'src/**/*.android-capture.integration.test.ts
  * destroys the Appium session, because the display change recreates the
  * activity and with it the WebView the session is attached to.
  *
- * Needs one-time provisioning — see [[T461-P21]]. Briefly: the harness never
+ * Needs one-time provisioning, and it is not obvious: the harness never
  * installs the Obsidian APK, and because it launches emulators with
  * `-no-snapshot-save`, an install done under that flag is silently discarded.
  * Boot WITHOUT that flag, install, launch Obsidian once, then `adb emu kill`.
