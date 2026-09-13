@@ -8,7 +8,7 @@
  * pointer click, confirms the rename, and asserts that the renamed note carries no `aliases` while the
  * backlink — whose own checkbox stayed ticked — still displays the old title.
  *
- * Named `*.cross-platform.integration.test.ts` (per G47) because `manifest.json` has
+ * Named `*.cross-platform.integration.test.ts` because `manifest.json` has
  * `isDesktopOnly: false`, so the desktop AND android projects both collect it.
  */
 
@@ -111,7 +111,7 @@ describe('Rename prompt checkboxes', () => {
         // Pre-ticked from `shouldAddOldTitleAsAlias`, which defaults to on — the state the click flips.
         const wasAliasCheckboxTicked = aliasCheckboxEl.checked;
 
-        // A real pointer click, not a dispatched event: ticking a checkbox is a user gesture (G107).
+        // A real pointer click, not a dispatched event: ticking a checkbox is a user gesture.
         await clickElement({ element: aliasCheckboxEl });
 
         // The injected click is delivered asynchronously, so the confirm below must not race it.
@@ -123,7 +123,7 @@ describe('Rename prompt checkboxes', () => {
 
         inputEl.value = newTitle;
         // A notification event, not a simulated user gesture — `AbstractTextComponent` listens for
-        // `input` to publish the new value, and nothing on that path gates on `isTrusted` (G107).
+        // `input` to publish the new value, and nothing on that path gates on `isTrusted`.
         inputEl.dispatchEvent(new Event('input', { bubbles: true }));
         okButtonEl.click();
 
