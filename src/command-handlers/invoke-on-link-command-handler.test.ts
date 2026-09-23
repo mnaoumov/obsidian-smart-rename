@@ -44,9 +44,9 @@ interface CreateHandlerOptions {
 // The handler's own hooks are `protected`; a cast reaches them without widening production visibility,
 // Which `find-overexposed:fix --force` would narrow straight back.
 interface TestableHandler {
-  canExecuteEditor(editor: Editor, context: MarkdownFileInfo): boolean;
-  executeEditor(editor: Editor, context: MarkdownFileInfo): Promise<void>;
-  shouldAddToEditorMenu(editor: Editor, context: MarkdownFileInfo): boolean;
+  canExecuteEditor: (editor: Editor, context: MarkdownFileInfo) => boolean;
+  executeEditor: (editor: Editor, context: MarkdownFileInfo) => Promise<void>;
+  shouldAddToEditorMenu: (editor: Editor, context: MarkdownFileInfo) => boolean;
 }
 
 function createContext(app: AppOriginal, path: null | string): MarkdownFileInfo {

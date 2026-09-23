@@ -26,7 +26,7 @@ import { PluginSettingsTab } from './plugin-settings-tab.ts';
 import { PluginSettings } from './plugin-settings.ts';
 
 interface DisabledPredicateRow {
-  disabled(): boolean;
+  disabled: () => boolean;
 }
 
 let app: AppOriginal;
