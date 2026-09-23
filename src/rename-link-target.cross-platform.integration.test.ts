@@ -35,7 +35,22 @@ const INITIAL_SOURCE_CONTENT = `[[${TARGET_LINK_TEXT}]]`;
  * Inside `[[…]]`, so the parsed link's offsets contain it.
  */
 const CURSOR_CH = 3;
-const WAIT_TIMEOUT_IN_MILLISECONDS = 20_000;
+/**
+ * Under the transport's ~30s per-closure cap, not at it.
+ *
+ * This one constant is the budget of BOTH closures below, and the larger spends it five times over - the
+ * view activating, the link target resolving, the prompt opening, the rename landing, the source link
+ * being rewritten. At 20_000 apiece that closure declared 100s and the two-wait closure 40s, both past a
+ * cap neither could ever have been granted. The eval is killed at the cap first and reported as a bare
+ * transport timeout. That names the harness rather than the wait that overran, so the ceiling that
+ * actually blew is invisible in the failure. Sized for the LARGER closure's sum: five at 4_500 declares
+ * 22.5s, which leaves real headroom under the cap, and the two-wait closure then declares 9s. Everything
+ * waited on here lands in well under a second, so the smaller ceiling costs nothing.
+ *
+ * Feeds the two closures' `input` and nothing else, so lowering it cannot shorten a Node-side budget,
+ * where the per-eval cap does not apply.
+ */
+const WAIT_TIMEOUT_IN_MILLISECONDS = 4500;
 
 describe('Invoke on link under cursor', () => {
   it('renames the link target rather than the active note, and keeps the old title as display text', async () => {

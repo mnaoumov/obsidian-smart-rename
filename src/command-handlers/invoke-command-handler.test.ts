@@ -35,7 +35,7 @@ const PLUGIN_NAME = 'Smart Rename';
 
 interface CreateHandlerOptions {
   readonly shouldSupportNonMarkdownFiles?: boolean;
-  smartRename?(file: TFile): Promise<void>;
+  readonly smartRename?: (file: TFile) => Promise<void>;
 }
 
 interface MockContext {

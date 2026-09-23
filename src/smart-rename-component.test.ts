@@ -138,8 +138,8 @@ interface BacklinkLink {
 }
 
 interface BacklinksStub {
-  get(key: string): null | unknown[];
-  keys(): string[];
+  get: (key: string) => null | unknown[];
+  keys: () => string[];
 }
 
 interface CapturedEditLinksParams {
@@ -147,7 +147,7 @@ interface CapturedEditLinksParams {
 }
 
 interface CapturedProcessFrontmatterParams {
-  frontmatterFunction(frontmatter: CombinedFrontmatter<unknown>): void;
+  readonly frontmatterFunction: (frontmatter: CombinedFrontmatter<unknown>) => void;
 }
 
 interface CapturedProcessVaultParams {
@@ -166,7 +166,7 @@ interface CreateComponentOptions {
 type EditLinksCallback = (link: BacklinkLink) => string | undefined;
 
 interface EnqueuedOperation {
-  operationFunction(): Promise<void>;
+  operationFunction: () => Promise<void>;
 }
 
 interface HeadingsCache {
@@ -846,7 +846,7 @@ describe('SmartRenameComponent', () => {
       readonly newFile?: Partial<TFile>;
       readonly newTitle?: string;
       readonly settings?: Partial<PluginSettings>;
-      toggleCheckboxes?(checkboxEls: HTMLInputElement[]): void;
+      readonly toggleCheckboxes?: (checkboxEls: HTMLInputElement[]) => void;
     }
 
     async function runRenameWithStrip(options: RunRenameWithStripOptions = {}): Promise<HTMLInputElement[]> {

@@ -29,7 +29,21 @@ const RENAMED_TARGET_PATH = `${NEW_TITLE}.md`;
 const TARGET_CONTENT = '# Alpha';
 const SOURCE_PATH = 'checkbox-alias-source.md';
 const SOURCE_CONTENT = `[[${OLD_TITLE}]]`;
-const WAIT_TIMEOUT_IN_MILLISECONDS = 20_000;
+/**
+ * Under the transport's ~30s per-closure cap, not at it.
+ *
+ * SIX waits share this one budget - the view activating, the backlink resolving, the prompt opening,
+ * the checkbox being unticked, the rename landing, the backlink being rewritten - so at 20_000 apiece
+ * the closure declared 120s, four times a cap it could never have been granted. The eval is killed at the cap first
+ * and reported as a bare transport timeout. That names the harness rather than the wait that overran, so
+ * the ceiling that actually blew is invisible in the failure. Six at 4_000 declares 24s, which leaves
+ * real headroom under the cap, and every one of those six lands in well under a second, so the smaller
+ * ceiling costs nothing.
+ *
+ * Feeds the closure's `input` and nothing else, so lowering it cannot shorten a Node-side budget, where
+ * the per-eval cap does not apply.
+ */
+const WAIT_TIMEOUT_IN_MILLISECONDS = 4000;
 
 describe('Rename prompt checkboxes', () => {
   it('skips the alias step for the one rename whose alias checkbox is unticked', async () => {
