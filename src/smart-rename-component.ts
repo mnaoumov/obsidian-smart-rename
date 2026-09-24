@@ -12,10 +12,7 @@ import {
   isFrontmatterLinkCache,
   isReferenceCache
 } from '@obsidian-typings/obsidian-public-latest/implementations';
-import {
-  normalizeOptionalProperties,
-  toJson
-} from 'obsidian-dev-utils/object-utils';
+import { normalizeOptionalProperties } from 'obsidian-dev-utils/object-utils';
 import { ComponentEx } from 'obsidian-dev-utils/obsidian/components/component-ex';
 import {
   addAlias,
@@ -310,10 +307,15 @@ export class SmartRenameComponent extends ComponentEx {
      * The backlinks were captured BEFORE `vault.rename`, so they cannot be re-fetched here — the cache no
      * longer answers for the old path. `pathRemapper` covers the one holder the rename moved: the note
      * itself, whose self-links now live at the new path.
+     *
+     * No `linkIdentityKeyProvider` on either call, on purpose. The snapshot is keyed by one provider and
+     * `editBacklinksSnapshot` looks each link up by its own, so the two must agree - and a provider passed to
+     * only one of them makes every captured link read as uncaptured. That is how this rewrite once silently
+     * edited nothing: by then the old link no longer resolves, so the `extractLinkFile` fallback declined it
+     * too. Leaving both on the library default keeps them in step by construction.
      */
     const snapshot = buildBacklinksSnapshot<true>({
       backlinks,
-      linkIdentityKeyProvider: toJson,
       pathRemapper: (backlinkNotePath) => backlinkNotePath === oldPath ? newPath : backlinkNotePath,
       // The payload is the capture itself: `true` where the link was snapshotted, `undefined` where it was not.
       payloadProvider: () => true
