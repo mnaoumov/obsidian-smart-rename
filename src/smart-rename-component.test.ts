@@ -169,6 +169,7 @@ interface CapturedPromptParams {
 // Split from `CapturedEditBacklinksSnapshotParams` rather than folded into it: the capture callback reads
 // Only the converter, and `no-unused-params-members` (rightly) rejects a member its receiver never touches.
 interface CapturedSnapshot {
+  readonly linkIdentityKeyProvider?: (link: BacklinkLink) => string;
   readonly snapshot: ReadonlyMap<string, ReadonlyMap<string, true>>;
 }
 
@@ -695,6 +696,36 @@ describe('SmartRenameComponent', () => {
         hoisted.mockEditBacklinksSnapshot.mock.calls[0]?.[0] as CapturedSnapshot | undefined
       );
       expect([...params.snapshot.keys()]).toEqual(['NewTitle.md']);
+    });
+
+    it('should key the snapshot the way editBacklinksSnapshot will look each captured link up', async () => {
+      const mockLink = { displayText: 'OldTitle', original: '[[OldTitle]]' };
+      hoisted.mockEditBacklinksSnapshot.mockResolvedValue(undefined);
+
+      hoisted.mockPrompt.mockResolvedValue('NewTitle');
+      hoisted.mockIsMarkdownFile.mockReturnValue(false);
+      hoisted.mockGetBacklinksForFileSafe.mockResolvedValue({
+        get: (): unknown[] => [mockLink],
+        keys: (): string[] => ['note.md']
+      });
+      hoisted.mockGetFile.mockReturnValue(strictProxy<TFile>({ basename: 'NewTitle', path: 'NewTitle.md' }));
+
+      const component = await createComponent();
+      await component.smartRename(createInputFile());
+      await runEnqueuedOperation();
+
+      /*
+       * Every other converter case hands `payload` in directly, which skips the one step that joins the two
+       * calls: `editBacklinksSnapshot` recomputing each link's key with ITS provider and reading the payload
+       * under it. Doing that lookup here, with the documented `JSON.stringify` default when none is passed,
+       * is what catches a snapshot keyed by a different provider - the shape that made every captured link
+       * read as uncaptured and left every backlink on the old path.
+       */
+      const params = ensureNonNullable(
+        hoisted.mockEditBacklinksSnapshot.mock.calls[0]?.[0] as CapturedSnapshot | undefined
+      );
+      const linkIdentityKeyProvider = params.linkIdentityKeyProvider ?? JSON.stringify;
+      expect(params.snapshot.get('note.md')?.get(linkIdentityKeyProvider(mockLink))).toBe(true);
     });
 
     it('should still visit a backlink holder whose captured links array is null', async () => {
