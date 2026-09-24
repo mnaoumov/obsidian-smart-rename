@@ -103,8 +103,8 @@ beforeAll(async () => {
   setupDiagnostics = await evalInObsidian({
     async callback({ app, fontSizeInPixels, lib: { waitUntil }, referenceNotePath }) {
       // A closure runs inside ONE Appium `execute/sync` call, which WebDriver
-      // Caps around 30s. A longer wait in here dies as an opaque `script
-      // Timeout` rather than a readable failure, so keep every wait under it.
+      // caps around 30s. A longer wait in here dies as an opaque `script
+      // timeout` rather than a readable failure, so keep every wait under it.
       const SETTLE_TIMEOUT_IN_MILLISECONDS = 20_000;
       const SETTLE_DELAY_IN_MILLISECONDS = 1500;
 
@@ -136,8 +136,8 @@ beforeAll(async () => {
 describe('mobile store screenshots', () => {
   it('stages the fixtures the shots are framed on', () => {
     // Surfaced as an assertion because vitest swallows console output from an
-    // Integration worker, and a silently-wrong layout produces five bad images
-    // Without a single failure.
+    // integration worker, and a silently-wrong layout produces five bad images
+    // without a single failure.
     expect(setupDiagnostics).toMatchObject({ isVaultReady: true });
   });
 
@@ -206,7 +206,7 @@ async function openNote(path: string, mode: string): Promise<void> {
       const leaf = app.workspace.getLeaf(false);
       await leaf.openFile(file);
       // `source: true` forces RAW Markdown rather than live preview, which is
-      // What makes the link syntax visible at all.
+      // what makes the link syntax visible at all.
       await leaf.setViewState({
         state: { file: notePath, mode: viewMode, source: viewMode === 'source' },
         type: 'markdown'
@@ -230,7 +230,7 @@ async function openRenamePrompt(): Promise<void> {
       const SETTLE_DELAY_IN_MILLISECONDS = 700;
 
       // Deliberately NOT awaited. `smartRename` opens a prompt and resolves only
-      // Once it is answered, so awaiting here would hang the whole closure.
+      // once it is answered, so awaiting here would hang the whole closure.
       app.commands.executeCommandById('smart-rename:invoke');
 
       await waitUntil({
@@ -256,15 +256,15 @@ async function shoot(index: number, caption: string): Promise<void> {
   const captured = await captureObsidianScreenshot({ vaultPath: vaultPath() });
 
   // The AVD is 900x1600, so the device frame IS the store's size. Asserting it
-  // Here is what keeps that true: run this against any other AVD and it fails
-  // Loudly instead of quietly shipping an off-spec image.
+  // here is what keeps that true: run this against any other AVD and it fails
+  // loudly instead of quietly shipping an off-spec image.
   expect(readPngDimensions(captured)).toStrictEqual({
     heightInPixels: HEIGHT_IN_PIXELS,
     widthInPixels: WIDTH_IN_PIXELS
   });
 
   // Captioned AFTER capture, so the frame stays an untouched device screenshot
-  // And rewording a label needs no re-shoot.
+  // and rewording a label needs no re-shoot.
   const labeled = await labelScreenshot(captured, { text: caption });
 
   mkdirSync(IMAGES_DIRECTORY, { recursive: true });

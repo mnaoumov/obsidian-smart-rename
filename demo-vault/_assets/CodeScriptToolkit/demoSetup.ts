@@ -23,7 +23,7 @@ interface DemoSettingsPatch {
 }
 
 // The pristine fixture. Renaming is destructive by nature, so the walkthrough is only repeatable if
-// The vault can be put back — which is what the reset button is for.
+// the vault can be put back — which is what the reset button is for.
 const FIXTURE_NOTES: Record<string, string> = {
   [`${DEMO_FOLDER_PATH}/Rename me.md`]: [
     '# Rename me',
@@ -48,8 +48,8 @@ const FIXTURE_NOTES: Record<string, string> = {
 };
 
 // The prefix of the line holding the first wikilink. Located by content rather than by a hard-coded
-// Line number, so editing the note's prose or its frontmatter cannot silently move the cursor off the
-// Link and leave the button doing nothing.
+// line number, so editing the note's prose or its frontmatter cannot silently move the cursor off the
+// link and leave the button doing nothing.
 const WIKILINK_LINE_PREFIX = 'A wikilink: ';
 
 // Far enough past `[[` to land inside the link rather than on its edge.

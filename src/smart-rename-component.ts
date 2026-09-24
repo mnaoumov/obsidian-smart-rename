@@ -232,7 +232,7 @@ export class SmartRenameComponent extends ComponentEx {
     }
 
     // Not governed by the checkbox above: this alias is the NEW title as it was typed, kept because the
-    // Rename had to sanitize it — a different thing from carrying the old title forward.
+    // rename had to sanitize it — a different thing from carrying the old title forward.
     if (this.pluginSettingsComponent.settings.shouldStoreInvalidTitle && titleToStore !== newTitle) {
       await addAlias({ alias: titleToStore, app: this.app, pathOrFile: newPath, resourceLockComponent: this.resourceLockComponent });
     }

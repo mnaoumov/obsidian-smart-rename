@@ -222,7 +222,7 @@ function createSettingsTab(invalidCharacterAction: InvalidCharacterAction): Plug
   const pluginSettingsComponent = createMockSettingsComponent(invalidCharacterAction);
   const tab = new PluginSettingsTab({ plugin, pluginSettingsComponent });
   // The dropdown's `onChanged` asks Obsidian to re-evaluate the `disabled` predicates in place; there is no
-  // Rendered tab in a unit test, so neutralize it.
+  // rendered tab in a unit test, so neutralize it.
   tab.refreshDomState = vi.fn();
   return tab;
 }

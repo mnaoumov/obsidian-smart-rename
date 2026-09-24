@@ -64,7 +64,7 @@ vi.mock('obsidian', async (importOriginal) => {
       noticeMessages.push(typeof message === 'string' ? message : message.textContent);
       return {
         // Since obsidian-dev-utils >= 87 installs click tracking on the notice's containerEl, the stub must
-        // Expose an element with addEventListener for showNotice to attach its listener to.
+        // expose an element with addEventListener for showNotice to attach its listener to.
         containerEl: { addEventListener: vi.fn() },
         hide: vi.fn(),
         setMessage: vi.fn()
@@ -99,7 +99,7 @@ vi.mock('obsidian-dev-utils/obsidian/file-manager', async (importOriginal) => ({
 vi.mock('obsidian-dev-utils/obsidian/link', async (importOriginal) => ({
   ...await importOriginal<typeof import('obsidian-dev-utils/obsidian/link')>(),
   // `buildBacklinksSnapshot` is deliberately NOT mocked: letting the real one run is what proves the
-  // Snapshot the converter is judged against was actually built from these backlinks (G49).
+  // snapshot the converter is judged against was actually built from these backlinks (G49).
   editBacklinksSnapshot: (...$arguments: unknown[]): unknown => hoisted.mockEditBacklinksSnapshot(...$arguments),
   extractLinkFile: (...$arguments: unknown[]): unknown => hoisted.mockExtractLinkFile(...$arguments),
   generateMarkdownLink: (...$arguments: unknown[]): unknown => hoisted.mockGenerateMarkdownLink(...$arguments)
@@ -167,7 +167,7 @@ interface CapturedPromptParams {
 }
 
 // Split from `CapturedEditBacklinksSnapshotParams` rather than folded into it: the capture callback reads
-// Only the converter, and `no-unused-params-members` (rightly) rejects a member its receiver never touches.
+// only the converter, and `no-unused-params-members` (rightly) rejects a member its receiver never touches.
 interface CapturedSnapshot {
   readonly linkIdentityKeyProvider?: (link: BacklinkLink) => string;
   readonly snapshot: ReadonlyMap<string, ReadonlyMap<string, true>>;
@@ -624,7 +624,7 @@ describe('SmartRenameComponent', () => {
 
       hoisted.mockExtractLinkFile.mockReturnValue(null);
       // Absent from the snapshot (`payload: undefined`) AND resolving to some other file: the only
-      // Combination the converter declines.
+      // combination the converter declines.
       const result = callback({
         link: { displayText: 'SomeOther', original: '[[SomeOther]]' },
         payload: undefined,
@@ -691,7 +691,7 @@ describe('SmartRenameComponent', () => {
       await runEnqueuedOperation();
 
       // The remap is now a property of the SNAPSHOT rather than of a per-file call: the note's own
-      // Self-links were captured under its old path and must be rewritten at the new one.
+      // self-links were captured under its old path and must be rewritten at the new one.
       const params = ensureNonNullable(
         hoisted.mockEditBacklinksSnapshot.mock.calls[0]?.[0] as CapturedSnapshot | undefined
       );
