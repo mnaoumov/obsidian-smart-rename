@@ -49,8 +49,8 @@ export function resolveLinkFileAtEditorCursor(params: ResolveLinkFileAtEditorCur
   }
 
   // Only the reference's `link` is read by `extractLinkFile`, so the line offsets computed below do
-  // Not matter here — every link form (wikilink, markdown, angle-bracketed, URL-encoded, embedded,
-  // Subpath) resolves through this one call.
+  // not matter here — every link form (wikilink, markdown, angle-bracketed, URL-encoded, embedded,
+  // subpath) resolves through this one call.
   return extractLinkFile({
     app,
     link: toParseLinkReference({ content: line, parseLinkResult }),

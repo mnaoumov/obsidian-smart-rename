@@ -104,7 +104,7 @@ function createMockContext(activeFile?: TFile): MockContext {
 
 function getFile(app: App, path: string): TFile {
   // `app` is a test-mocks `App`, so `getFileByPath` returns the test-mocks `TFile` type; at
-  // Runtime it is the aliased `obsidian` `TFile`, so cast to the `obsidian` type the handler expects.
+  // runtime it is the aliased `obsidian` `TFile`, so cast to the `obsidian` type the handler expects.
   return castTo<TFile>(ensureNonNullable(app.vault.getFileByPath(path)));
 }
 

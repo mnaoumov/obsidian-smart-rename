@@ -201,7 +201,7 @@ describe('Invoke on link under cursor', () => {
     expect(result.wasSourceRenamed).toBe(false);
 
     // The rewritten link points at the new name but still reads as the old one — the plugin's whole
-    // Premise, now reachable without opening the linked note first.
+    // premise, now reachable without opening the linked note first.
     expect(result.sourceContent).toContain(NEW_TARGET_TITLE);
     expect(result.sourceContent).toContain(TARGET_LINK_TEXT);
   });
@@ -270,9 +270,9 @@ describe('Smart rename link target editor menu item', () => {
         }
 
         // Raising the menu through the very `editor-menu` workspace event the handler subscribes to, so
-        // The registration wiring is exercised rather than the handler being called directly.
+        // the registration wiring is exercised rather than the handler being called directly.
         // A `const` copy taken after the guard above: a hoisted function declaration does not inherit
-        // The narrowing that the `if (!view)` early return gave `view`.
+        // the narrowing that the `if (!view)` early return gave `view`.
         const activeView = view;
 
         function collectTitles(position: EditorMenuProbePosition): string[] {

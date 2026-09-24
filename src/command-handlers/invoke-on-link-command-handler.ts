@@ -44,7 +44,7 @@ export class InvokeOnLinkCommandHandler extends EditorCommandHandler {
 
   protected override canExecuteEditor(editor: Editor, context: MarkdownFileInfo): boolean {
     // Deliberately no `super.canExecuteEditor` guard: the base returns `true` unconditionally, so the
-    // Guard would be a branch no test can reach.
+    // guard would be a branch no test can reach.
     return this.resolveLinkFileToRename(editor, context) !== null;
   }
 
@@ -52,7 +52,7 @@ export class InvokeOnLinkCommandHandler extends EditorCommandHandler {
     const file = this.resolveLinkFileToRename(editor, context);
 
     // `canExecuteEditor` has already passed, so this only fires when the target stopped resolving between
-    // The check and the invocation — the link's file was renamed or deleted in between.
+    // the check and the invocation — the link's file was renamed or deleted in between.
     if (!file) {
       this.pluginNoticeComponent.showNotice('No link to an existing file under the cursor');
       return;

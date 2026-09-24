@@ -32,7 +32,7 @@ function createApp(): AppOriginal {
 }
 
 // `strictProxy` rather than a hand-rolled object so the test fails loudly if the resolver ever starts
-// Reaching for an editor member beyond these two.
+// reaching for an editor member beyond these two.
 function createEditor(line: string, ch: number): Editor {
   return strictProxy<Editor>({
     getCursor: () => ({ ch, line: 0 }),
@@ -84,7 +84,7 @@ describe('resolveLinkFileAtEditorCursor', () => {
     });
 
     // The reason this module parses the line instead of asking for a clickable token: Obsidian decorates
-    // No link inside the frontmatter block, so `getClickableTokenAt` reports nothing here.
+    // no link inside the frontmatter block, so `getClickableTokenAt` reports nothing here.
     it('should resolve a link on a frontmatter line', () => {
       expect(resolve('related: "[[Target]]"', 13)?.path).toBe(TARGET_PATH);
     });

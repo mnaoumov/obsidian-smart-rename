@@ -111,7 +111,7 @@ beforeAll(async () => {
       });
 
       // Nothing but the note matters in these shots: the file explorer and an
-      // Empty right dock would otherwise take a third of a 1200x800 frame.
+      // empty right dock would otherwise take a third of a 1200x800 frame.
       app.workspace.leftSplit.collapse();
       const rightSplit: unknown = app.workspace.rightSplit;
       (rightSplit as ResizableSideDock).setSize(0);
@@ -195,7 +195,7 @@ async function openNote(path: string, mode: string): Promise<void> {
       const leaf = app.workspace.getLeaf(false);
       await leaf.openFile(file);
       // `source: true` forces RAW Markdown rather than live preview, which is
-      // What makes the link syntax visible at all.
+      // what makes the link syntax visible at all.
       await leaf.setViewState({
         state: { file: notePath, mode: viewMode, source: viewMode === 'source' },
         type: 'markdown'
@@ -219,7 +219,7 @@ async function openRenamePrompt(): Promise<void> {
       const SETTLE_DELAY_IN_MILLISECONDS = 700;
 
       // Deliberately NOT awaited. `smartRename` opens a prompt and resolves only
-      // Once it is answered, so awaiting here would hang the whole closure.
+      // once it is answered, so awaiting here would hang the whole closure.
       app.commands.executeCommandById('smart-rename:invoke');
 
       await waitUntil({
@@ -276,9 +276,9 @@ async function submitRenamePrompt(newTitle: string): Promise<void> {
       const SETTLE_DELAY_IN_MILLISECONDS = 1200;
 
       // Let the previous shot's capture settle first. `captureObsidianScreenshot`
-      // Overrides the device metrics and clears them again, and the re-layout
-      // That lands afterwards closes a modal — including this prompt, which the
-      // Previous shot photographed and this one has to fill in.
+      // overrides the device metrics and clears them again, and the re-layout
+      // that lands afterwards closes a modal — including this prompt, which the
+      // previous shot photographed and this one has to fill in.
       const RESIZE_SETTLE_DELAY_IN_MILLISECONDS = 2000;
       await sleep(RESIZE_SETTLE_DELAY_IN_MILLISECONDS);
 
