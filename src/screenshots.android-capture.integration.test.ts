@@ -278,8 +278,13 @@ async function shoot(index: number, caption: string): Promise<void> {
  */
 async function submitRenamePrompt(newTitle: string): Promise<void> {
   await evalInObsidian({
-    async callback({ app, lib: { clickElement, waitUntil }, newTitle: title }) {
-      const RENAME_TIMEOUT_IN_MILLISECONDS = 20_000;
+    async callback({ app, lib: { clickElement, waitUntil }, newTitle: title, referenceNotePath: notePath }) {
+      /*
+       * Both waits and the sleep share ONE eval, capped at ~30s: 10s + 10s + 1.2s. The rename and the rewrite
+       * each land in well under a second, so halving the old single 20s ceiling costs nothing.
+       */
+      const RENAME_TIMEOUT_IN_MILLISECONDS = 10_000;
+      const REWRITE_TIMEOUT_IN_MILLISECONDS = 10_000;
       const SETTLE_DELAY_IN_MILLISECONDS = 1200;
 
       const input = document.querySelector('.modal input');
@@ -305,9 +310,25 @@ async function submitRenamePrompt(newTitle: string): Promise<void> {
         timeoutInMilliseconds: RENAME_TIMEOUT_IN_MILLISECONDS
       });
 
+      /*
+       * The file existing proves only the rename. The frames that follow photograph the reference note's
+       * links, and a rewrite that silently edited nothing once photographed green here with every link still
+       * on the old path - so wait until every link in that note resolves to the renamed file.
+       */
+      const renamedPath = `Materials/01 Smart rename/${title}.md`;
+      await waitUntil({
+        message: 'every link in the reference note to be rewritten to the renamed note',
+        predicate: () => {
+          const links = app.metadataCache.getCache(notePath)?.links ?? [];
+          return links.length > 0
+            && links.every((link) => app.metadataCache.getFirstLinkpathDest(link.link, notePath)?.path === renamedPath);
+        },
+        timeoutInMilliseconds: REWRITE_TIMEOUT_IN_MILLISECONDS
+      });
+
       await sleep(SETTLE_DELAY_IN_MILLISECONDS);
     },
-    input: { newTitle },
+    input: { newTitle, referenceNotePath: REFERENCE_NOTE_PATH },
     vaultPath: vaultPath()
   });
 }
