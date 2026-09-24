@@ -22,6 +22,8 @@ Renames a note and rewrites its backlinks so each one **keeps displaying the old
 
 **Two `addAlias` calls, one checkbox.** `addAliases` gates only its first call on `shouldAddOldTitleAsAlias`. The second carries the *new* title's un-sanitized form under `shouldStoreInvalidTitle` — a different thing from carrying the old title forward — and still runs when the alias checkbox is unticked.
 
+**The backlink snapshot and its edit use the SAME link identity key: the library default, on both calls.** `buildBacklinksSnapshot` keys the capture with one `linkIdentityKeyProvider` and `editBacklinksSnapshot` looks each link up with its own, so a provider passed to only one of them makes every captured link read as uncaptured. The rename then rewrites nothing, because by then the old link no longer resolves and the `extractLinkFile` fallback declines it too. That shipped to `main` once and stayed unnoticed, because the converter unit tests hand `payload` in directly. The case *"should key the snapshot the way editBacklinksSnapshot will look each captured link up"* performs the real lookup instead. Keep it.
+
 **The control strip is obsidian-dev-utils', not ours.** `ModalCommandBuilder` from `obsidian-dev-utils/obsidian/modals/modal-command-builder`, passed to `prompt()` as `commandBuilder`. The default `Instructions` render mode gives real inline checkboxes, which matters on mobile where there is no modifier key to press. Do not hand-roll a modal here.
 
 ## Testing traps this repo has already hit
