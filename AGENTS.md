@@ -51,6 +51,14 @@ modifier key to press. Do not hand-roll a modal here.
   expected DOM state before moving on.
 - The integration harness loads `dist/build`, so a new command or a changed modal that has not been
   rebuilt shows up as a phantom failure. Run `npm run build` before `npm run test:integration:*`.
+- A wait ceiling inside an `evalInObsidian` closure is a budget the transport will not honour. One closure
+  is one eval, capped at ~30s, and every wait in it spends the SAME budget - so a single
+  `WAIT_TIMEOUT_IN_MILLISECONDS` shared by six waits declares six times its value. Over the cap the eval is
+  killed first and reported as a bare transport timeout naming the harness, so the ceiling that actually
+  blew does not appear in the failure at all. Size such a constant for the SUM of the waits that use it,
+  which is why the two cross-platform suites carry 4_000 and 4_500 rather than a round 20_000. If a wait
+  genuinely needs a long budget - an aged Android emulator is the usual reason - do NOT raise the shared
+  constant: move the waiting into Node with `pollInObsidian`, where the cap does not apply.
 
 ## Commands
 
