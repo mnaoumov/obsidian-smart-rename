@@ -290,11 +290,7 @@ export class SmartRenameComponent extends ComponentEx {
       return 'Note with the new title already exists';
     }
 
-    if (newTitle.startsWith('.')) {
-      return 'The title cannot start with a dot';
-    }
-
-    return null;
+    return newTitle.startsWith('.') ? 'The title cannot start with a dot' : null;
   }
 
   private async processBacklinks(params: SmartRenameComponentProcessBacklinksParams): Promise<void> {
