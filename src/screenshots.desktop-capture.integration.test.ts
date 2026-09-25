@@ -47,6 +47,13 @@ import {
 } from 'vitest';
 
 /**
+ * `.obsidian/appearance.json`, reduced to the key the store frames depend on.
+ */
+interface AppearanceConfig {
+  theme?: string;
+}
+
+/**
  * `App`, reduced to the inline-title toggle that `obsidian-typings` does not
  * declare. Setting the config alone changes nothing on screen.
  */
@@ -97,12 +104,29 @@ beforeAll(async () => {
        * Under the transport's ~30s per-closure cap, not at it. At 30_000 this ceiling was unreachable: the
        * whole eval is killed at the cap first, and reported as a bare transport timeout naming the harness
        * rather than the wait that overran — and the settle below shares the same budget, so the closure was
-       * already over it before the wait began. What is waited on here lands in well under a second.
+       * already over it before the wait began. Both waits and the settle share it: 10s + 10s + 1s. What is
+       * waited on here lands in well under a second.
        */
-      const SETTLE_TIMEOUT_IN_MILLISECONDS = 20_000;
+      const SETTLE_TIMEOUT_IN_MILLISECONDS = 10_000;
       const SETTLE_DELAY_IN_MILLISECONDS = 1000;
 
+      /*
+       * `changeTheme` only sets the in-memory config and SCHEDULES the save, 1s later. Until then, any
+       * file-watcher event on `app.json` / `appearance.json` makes Obsidian reload the config from disk, and
+       * that reload DELETES every key the disk does not have yet - `theme` included, so the body falls back to
+       * the light theme and every frame is shot light. Saving at once leaves a reload nothing to drop.
+       */
       app.changeTheme('obsidian');
+      await app.vault.saveConfig();
+
+      await waitUntil({
+        message: 'the dark theme to be applied and saved to appearance.json',
+        predicate: async () => {
+          const appearance = await app.vault.readConfigJson('appearance') as AppearanceConfig | null;
+          return document.body.classList.contains('theme-dark') && appearance?.theme === 'obsidian';
+        },
+        timeoutInMilliseconds: SETTLE_TIMEOUT_IN_MILLISECONDS
+      });
 
       await waitUntil({
         message: 'the staged reference note to appear in the vault',
@@ -242,6 +266,15 @@ async function openRenamePrompt(): Promise<void> {
  * @param caption - The caption drawn across the bottom of the frame.
  */
 async function shoot(index: number, caption: string): Promise<void> {
+  // A light frame would silently overwrite the committed dark one, so refuse it by name.
+  const isDarkTheme = await evalInObsidian({
+    callback: () => document.body.classList.contains('theme-dark'),
+    vaultPath: vaultPath()
+  });
+  if (!isDarkTheme) {
+    throw new Error(`Refusing to shoot desktop frame ${String(index)}: the body is not in the dark theme.`);
+  }
+
   const bytes = await captureObsidianScreenshot({
     heightInPixels: HEIGHT_IN_PIXELS,
     vaultPath: vaultPath(),
