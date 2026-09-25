@@ -45,12 +45,6 @@ const SOURCE_CONTENT = `[[${OLD_TITLE}]]`;
  */
 const WAIT_TIMEOUT_IN_MILLISECONDS = 4000;
 
-/**
- * How long the alias checkbox must hold still, once the mobile slide-in has ended, before the prompt counts as settled. It is spent inside the
- * prompt-opening wait, so it comes out of that wait's share of the budget above rather than adding to it.
- */
-const SETTLE_IN_MILLISECONDS = 300;
-
 describe('Rename prompt checkboxes', () => {
   it('skips the alias step for the one rename whose alias checkbox is unticked', async () => {
     const result = await evalInObsidian({
@@ -66,7 +60,6 @@ describe('Rename prompt checkboxes', () => {
         newTitle,
         obsidianModule,
         renamedTargetPath,
-        settleInMilliseconds,
         sourceContent,
         sourcePath,
         targetContent,
@@ -118,37 +111,13 @@ describe('Rename prompt checkboxes', () => {
         }
 
         /*
-         * The tap below is aimed at the checkbox's rect as read at the moment of the click, so that rect has to be the
-         * one the checkbox keeps. On mobile it is not, when the prompt first appears: Obsidian opens `.modal` shifted
-         * down by `translateY(341px)`, holds it there for a variable 300-600 ms on the Android emulator, then slides
-         * it up - the checkbox measured at top 965.5, then 624.5. A tap aimed at the first position lands on
-         * `.modal-bg`, which closes the prompt, and the injected tap has been measured taking over a second to arrive,
-         * so aiming early and landing late is a real case, not a theoretical one. A plain "the rect held still" test is
-         * not enough, because it is still during the hold. Nor is the inline style: the shift was seen both as an
-         * inline `transform` and with no inline style at all. So the prompt counts as open once `.modal`'s COMPUTED
-         * transform is `none` and the checkbox has then held still for `settleInMilliseconds`. On desktop there is no
-         * shift, so this costs one settle window.
+         * Waits only for the prompt to exist. On mobile Obsidian opens `.modal` shifted down and then slides it up, so
+         * the checkbox is not yet where it will stay - `clickElement` itself waits until nothing is animating the
+         * target or an ancestor and its box has held still, and refuses a covered centre with a named error.
          */
-        let lastAliasCheckboxRectKey = '';
-        let aliasCheckboxRectSinceTimestamp = 0;
         await waitUntil({
-          message: 'rename prompt did not open and settle',
-          predicate: () => {
-            const checkboxEl = findAliasCheckboxEl();
-            const modalEl = document.querySelector<HTMLElement>('.prompt-modal .modal');
-            if (!checkboxEl || !modalEl || getComputedStyle(modalEl).transform !== 'none') {
-              lastAliasCheckboxRectKey = '';
-              return false;
-            }
-            const rect = checkboxEl.getBoundingClientRect();
-            const rectKey = [rect.left, rect.top, rect.width, rect.height].join(',');
-            if (rectKey !== lastAliasCheckboxRectKey) {
-              lastAliasCheckboxRectKey = rectKey;
-              aliasCheckboxRectSinceTimestamp = Date.now();
-              return false;
-            }
-            return Date.now() - aliasCheckboxRectSinceTimestamp >= settleInMilliseconds;
-          },
+          message: 'rename prompt did not open',
+          predicate: () => findAliasCheckboxEl() !== null,
           timeoutInMilliseconds: waitTimeoutInMilliseconds
         });
 
@@ -220,7 +189,6 @@ describe('Rename prompt checkboxes', () => {
         commandId: COMMAND_ID,
         newTitle: NEW_TITLE,
         renamedTargetPath: RENAMED_TARGET_PATH,
-        settleInMilliseconds: SETTLE_IN_MILLISECONDS,
         sourceContent: SOURCE_CONTENT,
         sourcePath: SOURCE_PATH,
         targetContent: TARGET_CONTENT,
