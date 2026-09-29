@@ -1,5 +1,42 @@
 # CHANGELOG
 
+## 2.5.0
+
+- test(screenshots): merge the desktop capture onto applyObsidianTheme
+- test(screenshots): merge the dark-theme guard for the desktop capture
+- docs(screenshots): merge the frame 2 caption that fits both frames
+- test(integration): merge the clickElement-settled rename prompt
+- chore(deps): merge the obsidian-integration-testing 17 raise
+- chore(deps): merge the obsidian-test-mocks 7.0.0 raise
+- style(comments): stop capitalizing the middle of a wrapped comment
+- test(demo-vault): merge the headless toolkit install
+- test(checkboxes): merge the settled-prompt tap fix for Android
+- docs(agents): merge the backlink snapshot key note
+- fix(smart-rename): merge the backlink rewrite fix
+- chore(deps): merge the restored lockfile resolved and integrity fields
+- docs(screenshots): merge the mobile rename-prompt re-capture
+- fix(deps): float the transitive devalue past GHSA-9rgm-9g3h-6x36
+- docs(agents): record why the mobile prompt frame does not raise the soft keyboard
+- build(markdownlint): forbid hard-wrapped markdown paragraphs
+- refactor(smart-rename): rewrite backlinks through the shared snapshot primitive
+- docs(agents): record the per-eval cap trap behind the shared wait ceilings
+- fix(tests): size the two shared wait ceilings under the per-eval cap
+- chore(deps): drop the dead markdown-it override
+- chore(deps): drop the dead js-yaml override
+- docs: replace the private rule-id citations with what they assert
+- docs: name the library and the sibling plugins so a reader can resolve them
+- docs: replace the private tracker references with what they pointed at
+- docs(agents): name the branch gate in the commands section
+- chore: adopt the npm run gate branch gate
+- docs: say where the debug command is run
+- test: bring the in-closure wait ceiling under the transport's per-eval cap
+- refactor(android): drive the Android suites with trusted input
+- chore: make the LICENSE copyright line checkable by the linter and guard it against the year roll-over
+- test(test-mocks): drop the hand-rolled app.plugins stub, and sweep the dependencies
+- docs(screenshots): re-capture the desktop rename-prompt set
+- feat(rename): put the five post-rename steps in the rename prompt as per-rename checkboxes
+- fix(build): wire build:compile to buildCompile and drop the duplicate leaf script
+
 ## 2.4.1
 
 - fix(deps): move to obsidian-integration-testing 11 and drop the brace-expansion override
