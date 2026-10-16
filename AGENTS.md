@@ -18,13 +18,13 @@ Renames a note and rewrites its backlinks so each one **keeps displaying the old
 
 **The post-rename steps are per-rename, not per-setting.** `smartRename` seeds a mutable `PostRenameSteps` object from the settings and hands it both to the prompt's checkbox strip (which mutates it) and to the queued operation (which captures it). Nothing is written back to `data.json`: a checkbox scopes to one rename, and capturing the object means a settings change made while a rename is in flight cannot retroactively alter that rename.
 
-**That interface deliberately does not end in `Options`.** ESLint's `obsidian-dev-utils/readonly-params-options-result-members` requires all-readonly members on any interface named `*Params` / `*Options` / `*Result`, and this one has to be mutable. `PostRenameSteps` is the name that keeps the rule honest instead of disabling it.
+**That interface deliberately does not end in `Options`.** ESLint's `typescript-dev-toolkit/readonly-params-options-result-members` requires all-readonly members on any interface named `*Params` / `*Options` / `*Result`, and this one has to be mutable. `PostRenameSteps` is the name that keeps the rule honest instead of disabling it.
 
 **Two `addAlias` calls, one checkbox.** `addAliases` gates only its first call on `shouldAddOldTitleAsAlias`. The second carries the *new* title's un-sanitized form under `shouldStoreInvalidTitle` — a different thing from carrying the old title forward — and still runs when the alias checkbox is unticked.
 
 **The backlink snapshot and its edit use the SAME link identity key: the library default, on both calls.** `buildBacklinksSnapshot` keys the capture with one `linkIdentityKeyProvider` and `editBacklinksSnapshot` looks each link up with its own, so a provider passed to only one of them makes every captured link read as uncaptured. The rename then rewrites nothing, because by then the old link no longer resolves and the `extractLinkFile` fallback declines it too. That shipped to `main` once and stayed unnoticed, because the converter unit tests hand `payload` in directly. The case *"should key the snapshot the way editBacklinksSnapshot will look each captured link up"* performs the real lookup instead. Keep it.
 
-**The control strip is obsidian-dev-utils', not ours.** `ModalCommandBuilder` from `obsidian-dev-utils/obsidian/modals/modal-command-builder`, passed to `prompt()` as `commandBuilder`. The default `Instructions` render mode gives real inline checkboxes, which matters on mobile where there is no modifier key to press. Do not hand-roll a modal here.
+**The control strip is `@mnaoumov/obsidian-lib`'s, not ours.** `ModalCommandBuilder` from `@mnaoumov/obsidian-lib/modals/modal-command-builder`, passed to `prompt()` as `commandBuilder`. The default `Instructions` render mode gives real inline checkboxes, which matters on mobile where there is no modifier key to press. Do not hand-roll a modal here.
 
 ## Testing traps this repo has already hit
 
@@ -40,7 +40,7 @@ Renames a note and rewrites its backlinks so each one **keeps displaying the old
 
 Mobile frame 2 is the rename prompt, and it ends on a focused text field - so it looks like a candidate for the device-capture-with-a-keyboard treatment (`withSoftKeyboardEnabled` + `raiseSoftKeyboard` + `captureDeviceScreenshot`) that the command-palette frames in sibling plugins now use. It is not one, and the frame deliberately keeps `captureObsidianScreenshot`. Written down because the frame alone does not show it, and the next reader would reasonably try again.
 
-The prompt is obsidian-dev-utils' `prompt` - a **centred modal**, not the bottom-anchored suggester that treatment was built for. It was never driven on this repo's frame; it was measured on the same component in two sibling plugins, which gave two different answers, neither of them a better frame:
+The prompt is `@mnaoumov/obsidian-lib`'s `prompt` - a **centred modal**, not the bottom-anchored suggester that treatment was built for. It was never driven on this repo's frame; it was measured on the same component in two sibling plugins, which gave two different answers, neither of them a better frame:
 
 - On one sibling's alias prompt the field does not move at all under real `adb` taps: `top` `352.4453125` before and after. So either the keyboard never arrives, or it arrives without Obsidian lifting the modal - and in that second case it covers the OK and Cancel buttons, which this frame shows in full today, along with the checkbox strip that is the whole subject of shot 2.
 - On the other sibling's rename prompt the keyboard DID arrive, and brought Android's own text-selection toolbar up with it, floating across the dialog title.

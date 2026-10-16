@@ -1,20 +1,20 @@
-import type {
-  Menu,
-  TFile
-} from 'obsidian';
-import type { DisposableEx } from 'obsidian-dev-utils/disposable';
-import type { CommandHandlerRegistrationContext } from 'obsidian-dev-utils/obsidian/command-handlers/command-handler';
+import type { CommandHandlerRegistrationContext } from '@mnaoumov/obsidian-lib/command-handlers/command-handler';
 import type {
   FileMenuEventHandler,
   FilesMenuEventHandler,
   MarkdownViewportMenuEventHandler
-} from 'obsidian-dev-utils/obsidian/menu-event-registrar';
+} from '@mnaoumov/obsidian-lib/menu-event-registrar';
+import type { DisposableEx } from '@mnaoumov/typescript-lib/disposable';
+import type {
+  Menu,
+  TFile
+} from 'obsidian';
 import type { ReadonlyDeep } from 'type-fest';
 
-import { noopAsync } from 'obsidian-dev-utils/function';
-import { castTo } from 'obsidian-dev-utils/object-utils';
-import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
-import { ensureNonNullable } from 'obsidian-dev-utils/type-guards';
+import { noopAsync } from '@mnaoumov/typescript-lib/function';
+import { castTo } from '@mnaoumov/typescript-lib/object-utils';
+import { ensureNonNullable } from '@mnaoumov/typescript-lib/type-guards';
+import { strictProxy } from '@mnaoumov/typescript-test-toolkit/strict-proxy';
 import { App } from 'obsidian-test-mocks/obsidian';
 import {
   describe,

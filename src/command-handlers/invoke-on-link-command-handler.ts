@@ -1,13 +1,13 @@
+import type { PluginNoticeComponent } from '@mnaoumov/obsidian-lib/components/plugin-notice-component';
 import type {
   App,
   Editor,
   MarkdownFileInfo,
   TFile
 } from 'obsidian';
-import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
 
-import { EditorCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/editor-command-handler';
-import { isMarkdownFile } from 'obsidian-dev-utils/obsidian/file-system';
+import { EditorCommandHandler } from '@mnaoumov/obsidian-lib/command-handlers/editor-command-handler';
+import { isMarkdownFile } from '@mnaoumov/obsidian-lib/file-system';
 
 import type { PluginSettingsComponent } from '../plugin-settings-component.ts';
 import type { SmartRenameComponent } from '../smart-rename-component.ts';

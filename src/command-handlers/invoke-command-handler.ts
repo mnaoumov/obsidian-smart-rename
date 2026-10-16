@@ -1,7 +1,7 @@
 import type { TFile } from 'obsidian';
 
-import { FileCommandHandler } from 'obsidian-dev-utils/obsidian/command-handlers/file-command-handler';
-import { isMarkdownFile } from 'obsidian-dev-utils/obsidian/file-system';
+import { FileCommandHandler } from '@mnaoumov/obsidian-lib/command-handlers/file-command-handler';
+import { isMarkdownFile } from '@mnaoumov/obsidian-lib/file-system';
 
 import type { PluginSettingsComponent } from '../plugin-settings-component.ts';
 import type { SmartRenameComponent } from '../smart-rename-component.ts';
