@@ -1,6 +1,6 @@
 # Invalid characters
 
-Some characters (like `:` `/` `\` `*` `?`) cannot appear in a file name. Smart Rename lets you decide what happens when your new title contains one.
+Some characters (like `:` `/` `\` `*` `?`) cannot appear in a file name. `Smart Rename` lets you decide what happens when your new title contains one.
 
 ## Try it
 
@@ -38,7 +38,7 @@ await require('/demoSetup.ts').startRename(app);
 
 1. With the action chosen above, run the rename.
 2. Type a title that contains an invalid character, such as `Chapter 1: Beginnings`.
-3. Smart Rename either shows an error, strips the invalid character, or replaces it - matching the action you picked.
+3. `Smart Rename` either shows an error, strips the invalid character, or replaces it - matching the action you picked.
 
 Each attempt changes the vault, so reset between runs:
 

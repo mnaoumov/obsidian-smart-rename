@@ -108,8 +108,8 @@
 - docs: standardize demo-vault README
 - docs: drop per-plugin demo-vault setup notes (bootstrap covered by the obsidian-dev-utils harness)
 - docs: unnumber demo-vault setup notes
-- docs(demo-vault): number the Smart Rename demo vault example notes
-- docs(demo-vault): create the Smart Rename demo vault
+- docs(demo-vault): number the `Smart Rename` demo vault example notes
+- docs(demo-vault): create the `Smart Rename` demo vault
 - chore: update lib
 - docs: update
 - docs: migrate to AGENTS.md
