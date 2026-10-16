@@ -1,28 +1,28 @@
+import type { DataHandler } from '@mnaoumov/obsidian-lib/data-handler';
+import type { CombinedFrontmatter } from '@mnaoumov/obsidian-lib/frontmatter';
+import type {
+  ModalCommandBuilder,
+  ModalCommandsHost
+} from '@mnaoumov/obsidian-lib/modals/modal-command-builder';
+import type { PluginEventSource } from '@mnaoumov/obsidian-lib/plugin/plugin-event-source';
+import type { ResourceLockComponent } from '@mnaoumov/obsidian-lib/resource-lock';
+import type { AsyncEventRef } from '@mnaoumov/typescript-lib/async-events';
 import type {
   App as AppOriginal,
   TFile
 } from 'obsidian';
-import type { AsyncEventRef } from 'obsidian-dev-utils/async-events';
-import type { DataHandler } from 'obsidian-dev-utils/obsidian/data-handler';
-import type { CombinedFrontmatter } from 'obsidian-dev-utils/obsidian/frontmatter';
-import type {
-  ModalCommandBuilder,
-  ModalCommandsHost
-} from 'obsidian-dev-utils/obsidian/modals/modal-command-builder';
-import type { PluginEventSource } from 'obsidian-dev-utils/obsidian/plugin/plugin-event-source';
-import type { ResourceLockComponent } from 'obsidian-dev-utils/obsidian/resource-lock';
 
-import { Scope } from 'obsidian';
 import {
   noop,
   noopAsync
-} from 'obsidian-dev-utils/function';
+} from '@mnaoumov/typescript-lib/function';
 import {
   castTo,
   normalizeOptionalProperties
-} from 'obsidian-dev-utils/object-utils';
-import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
-import { ensureNonNullable } from 'obsidian-dev-utils/type-guards';
+} from '@mnaoumov/typescript-lib/object-utils';
+import { ensureNonNullable } from '@mnaoumov/typescript-lib/type-guards';
+import { strictProxy } from '@mnaoumov/typescript-test-toolkit/strict-proxy';
+import { Scope } from 'obsidian';
 import { App } from 'obsidian-test-mocks/obsidian';
 import {
   afterEach,
@@ -63,7 +63,7 @@ vi.mock('obsidian', async (importOriginal) => {
     Notice: vi.fn(function NoticeStub(message: DocumentFragment | string) {
       noticeMessages.push(typeof message === 'string' ? message : message.textContent);
       return {
-        // Since obsidian-dev-utils >= 87 installs click tracking on the notice's containerEl, the stub must
+        // Since `obsidian-dev-utils` 87 (and `@mnaoumov/obsidian-lib` after it) installs click tracking on the notice's containerEl, the stub must
         // expose an element with addEventListener for showNotice to attach its listener to.
         containerEl: { addEventListener: vi.fn() },
         hide: vi.fn(),
@@ -73,31 +73,31 @@ vi.mock('obsidian', async (importOriginal) => {
   };
 });
 
-vi.mock('obsidian-dev-utils/obsidian/modals/prompt', async (importOriginal) => ({
-  ...await importOriginal<typeof import('obsidian-dev-utils/obsidian/modals/prompt')>(),
+vi.mock('@mnaoumov/obsidian-lib/modals/prompt', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@mnaoumov/obsidian-lib/modals/prompt')>(),
   prompt: (...$arguments: unknown[]): unknown => hoisted.mockPrompt(...$arguments)
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/metadata-cache', async (importOriginal) => ({
-  ...await importOriginal<typeof import('obsidian-dev-utils/obsidian/metadata-cache')>(),
+vi.mock('@mnaoumov/obsidian-lib/metadata-cache', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@mnaoumov/obsidian-lib/metadata-cache')>(),
   getBacklinksForFileSafe: (...$arguments: unknown[]): unknown => hoisted.mockGetBacklinksForFileSafe(...$arguments),
   getCacheSafe: (...$arguments: unknown[]): unknown => hoisted.mockGetCacheSafe(...$arguments)
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/file-system', async (importOriginal) => ({
-  ...await importOriginal<typeof import('obsidian-dev-utils/obsidian/file-system')>(),
+vi.mock('@mnaoumov/obsidian-lib/file-system', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@mnaoumov/obsidian-lib/file-system')>(),
   getFile: (...$arguments: unknown[]): unknown => hoisted.mockGetFile(...$arguments),
   isMarkdownFile: (...$arguments: unknown[]): unknown => hoisted.mockIsMarkdownFile(...$arguments)
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/file-manager', async (importOriginal) => ({
-  ...await importOriginal<typeof import('obsidian-dev-utils/obsidian/file-manager')>(),
+vi.mock('@mnaoumov/obsidian-lib/file-manager', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@mnaoumov/obsidian-lib/file-manager')>(),
   addAlias: (...$arguments: unknown[]): unknown => hoisted.mockAddAlias(...$arguments),
   processFrontmatter: (...$arguments: unknown[]): unknown => hoisted.mockProcessFrontmatter(...$arguments)
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/link', async (importOriginal) => ({
-  ...await importOriginal<typeof import('obsidian-dev-utils/obsidian/link')>(),
+vi.mock('@mnaoumov/obsidian-lib/link', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@mnaoumov/obsidian-lib/link')>(),
   // `buildBacklinksSnapshot` is deliberately NOT mocked: letting the real one run is what proves the
   // snapshot the converter is judged against was actually built from these backlinks (G49).
   editBacklinksSnapshot: (...$arguments: unknown[]): unknown => hoisted.mockEditBacklinksSnapshot(...$arguments),
@@ -105,18 +105,18 @@ vi.mock('obsidian-dev-utils/obsidian/link', async (importOriginal) => ({
   generateMarkdownLink: (...$arguments: unknown[]): unknown => hoisted.mockGenerateMarkdownLink(...$arguments)
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/queue', async (importOriginal) => ({
-  ...await importOriginal<typeof import('obsidian-dev-utils/obsidian/queue')>(),
+vi.mock('@mnaoumov/obsidian-lib/queue', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@mnaoumov/obsidian-lib/queue')>(),
   addToQueue: (...$arguments: unknown[]): unknown => hoisted.mockAddToQueue(...$arguments)
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/vault', async (importOriginal) => ({
-  ...await importOriginal<typeof import('obsidian-dev-utils/obsidian/vault')>(),
+vi.mock('@mnaoumov/obsidian-lib/vault', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@mnaoumov/obsidian-lib/vault')>(),
   process: (...$arguments: unknown[]): unknown => hoisted.mockProcessVault(...$arguments)
 }));
 
-vi.mock('obsidian-dev-utils/obsidian/validation', async (importOriginal) => ({
-  ...await importOriginal<typeof import('obsidian-dev-utils/obsidian/validation')>(),
+vi.mock('@mnaoumov/obsidian-lib/validation', async (importOriginal) => ({
+  ...await importOriginal<typeof import('@mnaoumov/obsidian-lib/validation')>(),
   getOsAndObsidianUnsafePathCharsRegExp: (): unknown => hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp()
 }));
 
@@ -127,7 +127,7 @@ vi.mock('@obsidian-typings/obsidian-public-latest/implementations', async (impor
 }));
 
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
-import { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
+import { PluginNoticeComponent } from '@mnaoumov/obsidian-lib/components/plugin-notice-component';
 
 // eslint-disable-next-line import-x/first, import-x/imports-first -- vi.mock must precede imports.
 import { PluginSettingsComponent } from './plugin-settings-component.ts';

@@ -1,6 +1,6 @@
-import type { MaybeReturn } from 'obsidian-dev-utils/type';
+import type { MaybeReturn } from '@mnaoumov/typescript-lib/type';
 
-import { PluginSettingsComponentBase } from 'obsidian-dev-utils/obsidian/components/plugin-settings-component';
+import { PluginSettingsComponentBase } from '@mnaoumov/obsidian-lib/components/plugin-settings-component';
 
 import { hasInvalidCharacters } from './invalid-character.ts';
 import { PluginSettings } from './plugin-settings.ts';

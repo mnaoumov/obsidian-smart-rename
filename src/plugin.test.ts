@@ -4,8 +4,8 @@ import type {
   PluginManifest
 } from 'obsidian';
 
-import { castTo } from 'obsidian-dev-utils/object-utils';
-import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
+import { castTo } from '@mnaoumov/typescript-lib/object-utils';
+import { strictProxy } from '@mnaoumov/typescript-test-toolkit/strict-proxy';
 import { App } from 'obsidian-test-mocks/obsidian';
 import {
   afterEach,
@@ -22,7 +22,7 @@ vi.mock('obsidian', async (importOriginal) => {
     // eslint-disable-next-line prefer-arrow-callback -- constructor stub needs `function` to be used with `new`.
     Notice: vi.fn(function NoticeStub() {
       return {
-        // Click tracking is installed on the notice's containerEl by obsidian-dev-utils.
+        // Click tracking is installed on the notice's containerEl by `@mnaoumov/obsidian-lib`.
         // So the stub exposes an element with addEventListener for showNotice to attach to.
         containerEl: { addEventListener: vi.fn() },
         hide: vi.fn(),

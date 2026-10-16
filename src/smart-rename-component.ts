@@ -1,49 +1,49 @@
+import type { PluginNoticeComponent } from '@mnaoumov/obsidian-lib/components/plugin-notice-component';
+import type { GenerateMarkdownLinkParams } from '@mnaoumov/obsidian-lib/link';
+import type { ResourceLockComponent } from '@mnaoumov/obsidian-lib/resource-lock';
 import type { CustomArrayDict } from '@obsidian-typings/obsidian-public-latest';
 import type {
   App,
   Reference,
   TFile
 } from 'obsidian';
-import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
-import type { GenerateMarkdownLinkParams } from 'obsidian-dev-utils/obsidian/link';
-import type { ResourceLockComponent } from 'obsidian-dev-utils/obsidian/resource-lock';
 
-import {
-  isFrontmatterLinkCache,
-  isReferenceCache
-} from '@obsidian-typings/obsidian-public-latest/implementations';
-import { normalizeOptionalProperties } from 'obsidian-dev-utils/object-utils';
-import { ComponentEx } from 'obsidian-dev-utils/obsidian/components/component-ex';
+import { ComponentEx } from '@mnaoumov/obsidian-lib/components/component-ex';
 import {
   addAlias,
   processFrontmatter
-} from 'obsidian-dev-utils/obsidian/file-manager';
+} from '@mnaoumov/obsidian-lib/file-manager';
 import {
   getFile,
   isMarkdownFile
-} from 'obsidian-dev-utils/obsidian/file-system';
+} from '@mnaoumov/obsidian-lib/file-system';
 import {
   buildBacklinksSnapshot,
   editBacklinksSnapshot,
   extractLinkFile,
   generateMarkdownLink
-} from 'obsidian-dev-utils/obsidian/link';
+} from '@mnaoumov/obsidian-lib/link';
 import {
   getBacklinksForFileSafe,
   getCacheSafe
-} from 'obsidian-dev-utils/obsidian/metadata-cache';
-import { ModalCommandBuilder } from 'obsidian-dev-utils/obsidian/modals/modal-command-builder';
-import { prompt } from 'obsidian-dev-utils/obsidian/modals/prompt';
-import { addToQueue } from 'obsidian-dev-utils/obsidian/queue';
-import { getOsAndObsidianUnsafePathCharsRegExp } from 'obsidian-dev-utils/obsidian/validation';
-import { process } from 'obsidian-dev-utils/obsidian/vault';
+} from '@mnaoumov/obsidian-lib/metadata-cache';
+import { ModalCommandBuilder } from '@mnaoumov/obsidian-lib/modals/modal-command-builder';
+import { prompt } from '@mnaoumov/obsidian-lib/modals/prompt';
+import { addToQueue } from '@mnaoumov/obsidian-lib/queue';
+import { getOsAndObsidianUnsafePathCharsRegExp } from '@mnaoumov/obsidian-lib/validation';
+import { process } from '@mnaoumov/obsidian-lib/vault';
+import { normalizeOptionalProperties } from '@mnaoumov/typescript-lib/object-utils';
 import {
   basename,
   extname,
   join,
   makeFileName
-} from 'obsidian-dev-utils/path';
-import { insertAt } from 'obsidian-dev-utils/string';
+} from '@mnaoumov/typescript-lib/path';
+import { insertAt } from '@mnaoumov/typescript-lib/string';
+import {
+  isFrontmatterLinkCache,
+  isReferenceCache
+} from '@obsidian-typings/obsidian-public-latest/implementations';
 
 import type { PluginSettingsComponent } from './plugin-settings-component.ts';
 

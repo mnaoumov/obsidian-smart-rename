@@ -1,16 +1,16 @@
+import type { PluginNoticeComponent } from '@mnaoumov/obsidian-lib/components/plugin-notice-component';
 import type {
   App as AppOriginal,
   Editor,
   MarkdownFileInfo,
   TFile
 } from 'obsidian';
-import type { PluginNoticeComponent } from 'obsidian-dev-utils/obsidian/components/plugin-notice-component';
 import type { ReadonlyDeep } from 'type-fest';
 
-import { noopAsync } from 'obsidian-dev-utils/function';
-import { castTo } from 'obsidian-dev-utils/object-utils';
-import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
-import { ensureNonNullable } from 'obsidian-dev-utils/type-guards';
+import { noopAsync } from '@mnaoumov/typescript-lib/function';
+import { castTo } from '@mnaoumov/typescript-lib/object-utils';
+import { ensureNonNullable } from '@mnaoumov/typescript-lib/type-guards';
+import { strictProxy } from '@mnaoumov/typescript-test-toolkit/strict-proxy';
 import { App } from 'obsidian-test-mocks/obsidian';
 import {
   describe,

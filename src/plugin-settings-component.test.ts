@@ -1,12 +1,12 @@
-import type { AsyncEventRef } from 'obsidian-dev-utils/async-events';
-import type { DataHandler } from 'obsidian-dev-utils/obsidian/data-handler';
-import type { PluginEventSource } from 'obsidian-dev-utils/obsidian/plugin/plugin-event-source';
+import type { DataHandler } from '@mnaoumov/obsidian-lib/data-handler';
+import type { PluginEventSource } from '@mnaoumov/obsidian-lib/plugin/plugin-event-source';
+import type { AsyncEventRef } from '@mnaoumov/typescript-lib/async-events';
 
 import {
   noop,
   noopAsync
-} from 'obsidian-dev-utils/function';
-import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
+} from '@mnaoumov/typescript-lib/function';
+import { strictProxy } from '@mnaoumov/typescript-test-toolkit/strict-proxy';
 import {
   describe,
   expect,

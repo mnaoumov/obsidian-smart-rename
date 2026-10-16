@@ -4,11 +4,11 @@ import type {
   TFile
 } from 'obsidian';
 
-import { extractLinkFile } from 'obsidian-dev-utils/obsidian/link';
+import { extractLinkFile } from '@mnaoumov/obsidian-lib/link';
 import {
   parseLinks,
   toParseLinkReference
-} from 'obsidian-dev-utils/obsidian/parse-link';
+} from '@mnaoumov/obsidian-lib/parse-link';
 
 interface ResolveLinkFileAtEditorCursorParams {
   readonly app: App;

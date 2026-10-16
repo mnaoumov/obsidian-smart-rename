@@ -1,16 +1,16 @@
+import type { PluginSettingsComponentBase } from '@mnaoumov/obsidian-lib/components/plugin-settings-component';
 import type {
   App as AppOriginal,
   Plugin,
   SettingDefinition,
   SettingGroup
 } from 'obsidian';
-import type { PluginSettingsComponentBase } from 'obsidian-dev-utils/obsidian/components/plugin-settings-component';
 
-import { noopAsync } from 'obsidian-dev-utils/function';
-import { castTo } from 'obsidian-dev-utils/object-utils';
-import { PluginSettingsTabBase } from 'obsidian-dev-utils/obsidian/plugin/plugin-settings-tab';
-import { SettingEx } from 'obsidian-dev-utils/obsidian/setting-ex';
-import { strictProxy } from 'obsidian-dev-utils/strict-proxy';
+import { PluginSettingsTabBase } from '@mnaoumov/obsidian-lib/plugin/plugin-settings-tab';
+import { SettingEx } from '@mnaoumov/obsidian-lib/setting-ex';
+import { noopAsync } from '@mnaoumov/typescript-lib/function';
+import { castTo } from '@mnaoumov/typescript-lib/object-utils';
+import { strictProxy } from '@mnaoumov/typescript-test-toolkit/strict-proxy';
 import { App } from 'obsidian-test-mocks/obsidian';
 import {
   afterEach,
