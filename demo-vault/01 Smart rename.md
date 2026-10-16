@@ -1,6 +1,6 @@
 # Smart rename
 
-Smart Rename renames the **active note** and rewrites its backlinks so their **display text keeps showing the old title**. A plain rename would change the visible link text to the new name; Smart Rename turns `[[Old title]]` into `[[New title|Old title]]` so the reader still sees what you originally wrote.
+`Smart Rename` renames the **active note** and rewrites its backlinks so their **display text keeps showing the old title**. A plain rename would change the visible link text to the new name; `Smart Rename` turns `[[Old title]]` into `[[New title|Old title]]` so the reader still sees what you originally wrote.
 
 ## Try it
 
