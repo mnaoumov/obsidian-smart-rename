@@ -2,7 +2,7 @@
 
 Everything so far renames the note you are *in*. This renames the note you are *pointing at*.
 
-Put the cursor on a link and run **Smart Rename: Invoke on link under cursor** - the note that link points to is smart-renamed, with its backlinks rewritten and its old title kept as display text, exactly as [01 Smart rename](<./01 Smart rename.md>) describes. You never open the note being renamed.
+Put the cursor on a link and run **`Smart Rename`: Invoke on link under cursor** - the note that link points to is smart-renamed, with its backlinks rewritten and its old title kept as display text, exactly as [01 Smart rename](<./01 Smart rename.md>) describes. You never open the note being renamed.
 
 ## Try it
 
@@ -19,7 +19,7 @@ Manual equivalent: open that note and click inside the `Target note` wikilink.
 
 Then:
 
-1. Run **Smart Rename: Invoke on link under cursor** from the Command Palette - or right-click the link and choose **Smart rename link target**.
+1. Run **`Smart Rename`: Invoke on link under cursor** from the Command Palette - or right-click the link and choose **Smart rename link target**.
 2. Type a new title, for example `Renamed target`, and confirm.
 3. [Note with links](<./Materials/03 Rename the link target/Note with links.md>) still has its own name, but every link in it now points at `Renamed target` while still reading `Target note`.
 

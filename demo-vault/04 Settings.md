@@ -1,6 +1,6 @@
 # Settings
 
-Open **Settings -> Community plugins -> Smart Rename** to configure the plugin. Each option below lists the setting key stored in the plugin's `data.json`.
+Open **Settings -> Community plugins -> `Smart Rename`** to configure the plugin. Each option below lists the setting key stored in the plugin's `data.json`.
 
 The five post-rename steps - the two display-text options, the alias, the title key and the first header - each also have a checkbox in the rename prompt itself, pre-ticked from the value set here. Changing a checkbox applies to that one rename and is never written back, so the settings below are the defaults rather than the last word; see [01 Smart rename](<./01 Smart rename.md>).
 

@@ -13,7 +13,7 @@ caption: Open "Rename me" and start the rename
 await require('/demoSetup.ts').startRename(app);
 ```
 
-Manual equivalent: open that note, then run **Smart Rename: Invoke** from the Command Palette, or right-click the note in the file explorer and choose the smart rename option.
+Manual equivalent: open that note, then run **`Smart Rename`: Invoke** from the Command Palette, or right-click the note in the file explorer and choose the smart rename option.
 
 Then:
 

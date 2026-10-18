@@ -5,7 +5,7 @@ obsidian-dev-utils:
 ---
 # Note with links
 
-Put the cursor inside any link below and run **Smart Rename: Invoke on link under cursor**. The link's *target* is renamed; this note keeps its own name.
+Put the cursor inside any link below and run **`Smart Rename`: Invoke on link under cursor**. The link's *target* is renamed; this note keeps its own name.
 
 Walkthrough in [03 Rename the link target](<../../03 Rename the link target.md>).
 

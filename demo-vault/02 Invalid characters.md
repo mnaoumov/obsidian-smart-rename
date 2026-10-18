@@ -27,7 +27,7 @@ caption: Action - Replace (with `_`)
 await require('/demoSetup.ts').changeSettings(app, { invalidCharacterAction: 'Replace', replacementCharacter: '_' });
 ```
 
-Manual equivalent for all three: choose from **Invalid characters action** in **Settings -> Community plugins -> Smart Rename** (and set **Replacement character** for the third).
+Manual equivalent for all three: choose from **Invalid characters action** in **Settings -> Community plugins -> `Smart Rename`** (and set **Replacement character** for the third).
 
 ```code-button
 ---
