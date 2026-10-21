@@ -58,7 +58,7 @@ const WIKILINK_CURSOR_OFFSET = 4;
 const LINK_FIXTURE_NOTES: Record<string, string> = {
   [LINK_DEMO_SOURCE_PATH]: [
     '---',
-    'obsidian-dev-utils:',
+    'obsidian-dev-toolkit:',
     '  demo-vault-validation:',
     '    allow-wikilinks: These links ARE the fixture - the command acts on whichever one the cursor is in, and the point is that every link form resolves.',
     '---',

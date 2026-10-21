@@ -1,5 +1,5 @@
 ---
-obsidian-dev-utils:
+obsidian-dev-toolkit:
   demo-vault-validation:
     allow-wikilinks: These links ARE the fixture - the command acts on whichever one the cursor is in, and the point is that every link form resolves.
 ---
