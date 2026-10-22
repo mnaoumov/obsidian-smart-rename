@@ -63,7 +63,7 @@ vi.mock('obsidian', async (importOriginal) => {
     Notice: vi.fn(function NoticeStub(message: DocumentFragment | string) {
       noticeMessages.push(typeof message === 'string' ? message : message.textContent);
       return {
-        // Since `obsidian-dev-utils` 87 (and `@mnaoumov/obsidian-lib` after it) installs click tracking on the notice's containerEl, the stub must
+        // Since `@mnaoumov/obsidian-lib` installs click tracking on the notice's containerEl, the stub must
         // expose an element with addEventListener for showNotice to attach its listener to.
         containerEl: { addEventListener: vi.fn() },
         hide: vi.fn(),
