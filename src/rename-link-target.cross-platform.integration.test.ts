@@ -14,7 +14,10 @@
 
 import type { MenuItem } from 'obsidian';
 
-import { evalInObsidian } from 'obsidian-integration-testing';
+import {
+  evalInObsidian,
+  pollInObsidian
+} from 'obsidian-integration-testing';
 import { getTemporaryVault } from 'obsidian-integration-testing/vitest-global-setup-plugin';
 import {
   describe,
@@ -38,174 +41,184 @@ const CURSOR_CH = 3;
 /**
  * Under the transport's ~30s per-closure cap, not at it.
  *
- * This one constant is the budget of BOTH closures below, and the larger spends it five times over - the
- * view activating, the link target resolving, the prompt opening, the rename landing, the source link
- * being rewritten. At 20_000 apiece that closure declared 100s and the two-wait closure 40s, both past a
- * cap neither could ever have been granted. The eval is killed at the cap first and reported as a bare
- * transport timeout. That names the harness rather than the wait that overran, so the ceiling that
- * actually blew is invisible in the failure. Sized for the LARGER closure's sum: five at 4_500 declares
- * 22.5s, which leaves real headroom under the cap, and the two-wait closure then declares 9s. Everything
- * waited on here lands in well under a second, so the smaller ceiling costs nothing.
+ * This one constant is the budget of every in-Obsidian wait below, and the largest closure spends it
+ * three times over - the view activating, the link target resolving, the prompt opening - so it declares
+ * 13.5s; the menu closure spends it twice. Each of those lands in well under a second. One eval is capped
+ * at ~30s however many waits share it, and an overrun is killed at the cap and reported as a bare transport
+ * timeout naming the harness rather than the wait that blew, which is why a ceiling here is sized for the
+ * sum of its closure's waits and is never the place to buy a slow step more time.
  *
- * Feeds the two closures' `input` and nothing else, so lowering it cannot shorten a Node-side budget,
- * where the per-eval cap does not apply.
+ * Feeds the closures' `input` and nothing else, so lowering it cannot shorten a Node-side budget, where
+ * the per-eval cap does not apply.
  */
 const WAIT_TIMEOUT_IN_MILLISECONDS = 4500;
 
+/**
+ * The Node-side budget for the rename to land and the source link to be rewritten.
+ *
+ * That is the one step here doing real work - the queued rename, then the backlink snapshot and its
+ * rewrite - and on a loaded Android emulator it overran the 4.5s in-closure ceiling it used to share with
+ * the cheap waits above. It is polled from Node with {@link pollInObsidian}, one short read per eval, so
+ * this budget is not bounded by the per-eval cap.
+ */
+const RENAME_POLL_TIMEOUT_IN_MILLISECONDS = 30_000;
+
+/**
+ * Above the Android project's 60s default, which the setup closure's declared 13.5s plus
+ * {@link RENAME_POLL_TIMEOUT_IN_MILLISECONDS} plus the eval round trips of a starved emulator could reach.
+ */
+const RENAME_TEST_TIMEOUT_IN_MILLISECONDS = 90_000;
+
 describe('Invoke on link under cursor', () => {
-  it('renames the link target rather than the active note, and keeps the old title as display text', async () => {
-    const result = await evalInObsidian({
-      async callback({
-        app,
-        commandId,
-        cursorCh,
-        initialSourceContent,
-        lib: { createNote, waitUntil },
-        newTargetTitle,
-        obsidianModule,
-        renamedTargetPath,
-        sourcePath,
-        targetContent,
-        targetLinkText,
-        targetPath,
-        waitTimeoutInMilliseconds
-      }) {
-        for (const path of [sourcePath, targetPath, renamedTargetPath]) {
-          const existing = app.vault.getAbstractFileByPath(path);
-          if (existing) {
-            await app.fileManager.trashFile(existing);
+  it('renames the link target rather than the active note, and keeps the old title as display text', { timeout: RENAME_TEST_TIMEOUT_IN_MILLISECONDS }, async () => {
+    const vaultPath = getTemporaryVault().path;
+    const cleanupInput = {
+      paths: [SOURCE_PATH, TARGET_PATH, RENAMED_TARGET_PATH]
+    };
+
+    try {
+      await runRenameLinkTarget(vaultPath);
+    } finally {
+      await evalInObsidian({
+        async callback({ app, paths }) {
+          for (const path of paths) {
+            const existing = app.vault.getAbstractFileByPath(path);
+            if (existing) {
+              await app.fileManager.trashFile(existing);
+            }
           }
-        }
-
-        await createNote({ content: targetContent, path: targetPath });
-        const sourceFile = await createNote({ content: initialSourceContent, path: sourcePath });
-
-        const leaf = app.workspace.getLeaf(true);
-        await leaf.openFile(sourceFile, { state: { mode: 'source' } });
-
-        await waitUntil({
-          message: 'source note did not become the active markdown view',
-          predicate: () => app.workspace.getActiveViewOfType(obsidianModule.MarkdownView)?.file?.path === sourcePath,
-          timeoutInMilliseconds: waitTimeoutInMilliseconds
-        });
-
-        await waitUntil({
-          message: 'link target did not resolve',
-          predicate: () => app.metadataCache.getFirstLinkpathDest(targetLinkText, sourcePath) !== null,
-          timeoutInMilliseconds: waitTimeoutInMilliseconds
-        });
-
-        const view = app.workspace.getActiveViewOfType(obsidianModule.MarkdownView);
-        if (!view) {
-          return {
-            didCommandRun: false,
-            didModalOpen: false,
-            sourceContent: '',
-            wasSourceRenamed: false,
-            wasTargetRenamed: false
-          };
-        }
-
-        view.editor.focus();
-        view.editor.setCursor({ ch: cursorCh, line: 0 });
-
-        const didCommandRun = app.commands.executeCommandById(commandId);
-        if (!didCommandRun) {
-          return {
-            didCommandRun: false,
-            didModalOpen: false,
-            sourceContent: '',
-            wasSourceRenamed: false,
-            wasTargetRenamed: false
-          };
-        }
-
-        await waitUntil({
-          message: 'rename prompt did not open',
-          predicate: () => document.querySelector('.prompt-modal input.text-box') !== null,
-          timeoutInMilliseconds: waitTimeoutInMilliseconds
-        });
-
-        const inputEl = document.querySelector<HTMLInputElement>('.prompt-modal input.text-box');
-        const okButtonEl = document.querySelector<HTMLElement>('.prompt-modal .ok-button');
-        if (!inputEl || !okButtonEl) {
-          return {
-            didCommandRun: true,
-            didModalOpen: false,
-            sourceContent: '',
-            wasSourceRenamed: false,
-            wasTargetRenamed: false
-          };
-        }
-
-        inputEl.value = newTargetTitle;
-        // A notification event, not a simulated user gesture — `AbstractTextComponent` listens for
-        // `input` to publish the new value, and nothing on that path gates on `isTrusted`.
-        inputEl.dispatchEvent(new Event('input', { bubbles: true }));
-        okButtonEl.click();
-
-        await waitUntil({
-          message: 'link target was not renamed',
-          predicate: () => app.vault.getFileByPath(renamedTargetPath) !== null,
-          timeoutInMilliseconds: waitTimeoutInMilliseconds
-        });
-
-        await waitUntil({
-          message: 'source link was not rewritten to the new target',
-          predicate: async () => {
-            const content = await app.vault.read(sourceFile);
-            return content.includes(newTargetTitle);
-          },
-          timeoutInMilliseconds: waitTimeoutInMilliseconds
-        });
-
-        const sourceContent = await app.vault.read(sourceFile);
-        const wasSourceRenamed = app.vault.getFileByPath(sourcePath) === null;
-        const wasTargetRenamed = app.vault.getFileByPath(targetPath) === null;
-
-        for (const path of [sourcePath, targetPath, renamedTargetPath]) {
-          const existing = app.vault.getAbstractFileByPath(path);
-          if (existing) {
-            await app.fileManager.trashFile(existing);
-          }
-        }
-
-        return {
-          didCommandRun: true,
-          didModalOpen: true,
-          sourceContent,
-          wasSourceRenamed,
-          wasTargetRenamed
-        };
-      },
-      input: {
-        commandId: COMMAND_ID,
-        cursorCh: CURSOR_CH,
-        initialSourceContent: INITIAL_SOURCE_CONTENT,
-        newTargetTitle: NEW_TARGET_TITLE,
-        renamedTargetPath: RENAMED_TARGET_PATH,
-        sourcePath: SOURCE_PATH,
-        targetContent: TARGET_CONTENT,
-        targetLinkText: TARGET_LINK_TEXT,
-        targetPath: TARGET_PATH,
-        waitTimeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS
-      },
-      vaultPath: getTemporaryVault().path
-    });
-
-    expect(result.didCommandRun).toBe(true);
-    expect(result.didModalOpen).toBe(true);
-
-    // The command renamed the LINK'S TARGET, and left the note the cursor was in alone.
-    expect(result.wasTargetRenamed).toBe(true);
-    expect(result.wasSourceRenamed).toBe(false);
-
-    // The rewritten link points at the new name but still reads as the old one — the plugin's whole
-    // premise, now reachable without opening the linked note first.
-    expect(result.sourceContent).toContain(NEW_TARGET_TITLE);
-    expect(result.sourceContent).toContain(TARGET_LINK_TEXT);
+        },
+        input: cleanupInput,
+        vaultPath
+      });
+    }
   });
 });
+
+async function runRenameLinkTarget(vaultPath: string): Promise<void> {
+  const submitResult = await evalInObsidian({
+    async callback({
+      app,
+      commandId,
+      cursorCh,
+      initialSourceContent,
+      lib: { createNote, waitUntil },
+      newTargetTitle,
+      obsidianModule,
+      renamedTargetPath,
+      sourcePath,
+      targetContent,
+      targetLinkText,
+      targetPath,
+      waitTimeoutInMilliseconds
+    }) {
+      for (const path of [sourcePath, targetPath, renamedTargetPath]) {
+        const existing = app.vault.getAbstractFileByPath(path);
+        if (existing) {
+          await app.fileManager.trashFile(existing);
+        }
+      }
+
+      await createNote({ content: targetContent, path: targetPath });
+      const sourceFile = await createNote({ content: initialSourceContent, path: sourcePath });
+
+      const leaf = app.workspace.getLeaf(true);
+      await leaf.openFile(sourceFile, { state: { mode: 'source' } });
+
+      await waitUntil({
+        message: 'source note did not become the active markdown view',
+        predicate: () => app.workspace.getActiveViewOfType(obsidianModule.MarkdownView)?.file?.path === sourcePath,
+        timeoutInMilliseconds: waitTimeoutInMilliseconds
+      });
+
+      await waitUntil({
+        message: 'link target did not resolve',
+        predicate: () => app.metadataCache.getFirstLinkpathDest(targetLinkText, sourcePath) !== null,
+        timeoutInMilliseconds: waitTimeoutInMilliseconds
+      });
+
+      const view = app.workspace.getActiveViewOfType(obsidianModule.MarkdownView);
+      if (!view) {
+        return { didCommandRun: false, didModalOpen: false };
+      }
+
+      view.editor.focus();
+      view.editor.setCursor({ ch: cursorCh, line: 0 });
+
+      const didCommandRun = app.commands.executeCommandById(commandId);
+      if (!didCommandRun) {
+        return { didCommandRun: false, didModalOpen: false };
+      }
+
+      await waitUntil({
+        message: 'rename prompt did not open',
+        predicate: () => document.querySelector('.prompt-modal input.text-box') !== null,
+        timeoutInMilliseconds: waitTimeoutInMilliseconds
+      });
+
+      const inputEl = document.querySelector<HTMLInputElement>('.prompt-modal input.text-box');
+      const okButtonEl = document.querySelector<HTMLElement>('.prompt-modal .ok-button');
+      if (!inputEl || !okButtonEl) {
+        return { didCommandRun: true, didModalOpen: false };
+      }
+
+      inputEl.value = newTargetTitle;
+      // A notification event, not a simulated user gesture — `AbstractTextComponent` listens for
+      // `input` to publish the new value, and nothing on that path gates on `isTrusted`.
+      inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+      okButtonEl.click();
+
+      return { didCommandRun: true, didModalOpen: true };
+    },
+    input: {
+      commandId: COMMAND_ID,
+      cursorCh: CURSOR_CH,
+      initialSourceContent: INITIAL_SOURCE_CONTENT,
+      newTargetTitle: NEW_TARGET_TITLE,
+      renamedTargetPath: RENAMED_TARGET_PATH,
+      sourcePath: SOURCE_PATH,
+      targetContent: TARGET_CONTENT,
+      targetLinkText: TARGET_LINK_TEXT,
+      targetPath: TARGET_PATH,
+      waitTimeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS
+    },
+    vaultPath
+  });
+
+  expect(submitResult.didCommandRun).toBe(true);
+  expect(submitResult.didModalOpen).toBe(true);
+
+  const result = await pollInObsidian({
+    input: {
+      newTargetTitle: NEW_TARGET_TITLE,
+      renamedTargetPath: RENAMED_TARGET_PATH,
+      sourcePath: SOURCE_PATH,
+      targetPath: TARGET_PATH
+    },
+    async poll({ app, renamedTargetPath, sourcePath, targetPath }) {
+      const sourceFile = app.vault.getFileByPath(sourcePath);
+      return {
+        isRenamedTargetPresent: app.vault.getFileByPath(renamedTargetPath) !== null,
+        sourceContent: sourceFile ? await app.vault.read(sourceFile) : '',
+        wasSourceRenamed: sourceFile === null,
+        wasTargetRenamed: app.vault.getFileByPath(targetPath) === null
+      };
+    },
+    timeoutInMilliseconds: RENAME_POLL_TIMEOUT_IN_MILLISECONDS,
+    timeoutMessage: 'link target was not renamed, or the source link was not rewritten to the new target',
+    until: ({ isRenamedTargetPresent, sourceContent }) => isRenamedTargetPresent && sourceContent.includes(NEW_TARGET_TITLE),
+    vaultPath
+  });
+
+  // The command renamed the LINK'S TARGET, and left the note the cursor was in alone.
+  expect(result.wasTargetRenamed).toBe(true);
+  expect(result.wasSourceRenamed).toBe(false);
+
+  // The rewritten link points at the new name but still reads as the old one — the plugin's whole
+  // premise, now reachable without opening the linked note first.
+  expect(result.sourceContent).toContain(NEW_TARGET_TITLE);
+  expect(result.sourceContent).toContain(TARGET_LINK_TEXT);
+}
 
 const MENU_ITEM_TITLE = 'Smart rename link target';
 const MENU_SOURCE_PATH = 'invoke-on-link-menu-source.md';
