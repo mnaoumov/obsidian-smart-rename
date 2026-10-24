@@ -1,5 +1,23 @@
 # CHANGELOG
 
+## 2.5.1
+
+- test(integration): poll the invoke-on-link rename from Node
+- test(demo-vault): floor `CodeScript Toolkit` at 15.0.0
+- chore(deps): move to obsidian-lib 6 and off the dropped obsidian-dev-utils names
+- chore(deps): move to obsidian-dev-toolkit 4 and its demo-vault directive spelling
+- docs: shorten the debugging section
+- fix(demo-vault): load the demo setup helpers from @mnaoumov/obsidian-lib
+- docs(readme): lead the Debugging section with `Advanced Debug Mode`
+- build(deps): float brace-expansion, sharp and fast-uri past their advisories
+- docs: mark plugin names as code
+- chore(github): point questions to Discussions from the new-issue page
+- ci: merge attesting release assets through the toolkit's reusable workflow
+- build(deps): move off obsidian-dev-utils onto the @mnaoumov packages
+- chore(spellcheck): accept Sidedock from the obsidian-typings sidedock declarations
+- docs: mark plugin names as code in prose, comments and the changelog
+- test: merge using the obsidian-typings declarations of Obsidian internals
+
 ## 2.5.0
 
 - test(screenshots): merge the desktop capture onto applyObsidianTheme
