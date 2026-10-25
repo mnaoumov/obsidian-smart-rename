@@ -30,7 +30,10 @@ import {
 import { ModalCommandBuilder } from '@mnaoumov/obsidian-lib/modals/modal-command-builder';
 import { prompt } from '@mnaoumov/obsidian-lib/modals/prompt';
 import { addToQueue } from '@mnaoumov/obsidian-lib/queue';
-import { getOsAndObsidianUnsafePathCharsRegExp } from '@mnaoumov/obsidian-lib/validation';
+import {
+  getFileNameValidationMessage,
+  getOsAndObsidianUnsafePathCharsRegExp
+} from '@mnaoumov/obsidian-lib/validation';
 import { process } from '@mnaoumov/obsidian-lib/vault';
 import { normalizeOptionalProperties } from '@mnaoumov/typescript-lib/object-utils';
 import {
@@ -280,6 +283,16 @@ export class SmartRenameComponent extends ComponentEx {
 
     if (newTitle === oldTitle) {
       return 'The title did not change';
+    }
+
+    /*
+     * Ahead of the case-only shortcut, so a case change cannot sneak a device name or a trailing dot past it.
+     * The title is validated rather than the file name: `Note.` would become `Note..md`, which Windows accepts,
+     * yet a title ending in a dot is exactly what the rule exists to refuse.
+     */
+    const fileNameValidationMessage = getFileNameValidationMessage(newTitle);
+    if (fileNameValidationMessage) {
+      return fileNameValidationMessage;
     }
 
     if (newTitle.toLowerCase() === oldTitle.toLowerCase()) {

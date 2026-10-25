@@ -59,3 +59,7 @@ await require('/demoSetup.ts').resetDemo(app);
   - swap each invalid character for the configured replacement character (default `_`).
 
 When the invalid title is stored as the note's display text (so the reader still sees `Chapter 1: Beginnings` even though the file name is sanitized) is controlled by the store-invalid-title setting. See [04 Settings](<./04 Settings.md>) for all of these keys.
+
+## Names Windows refuses
+
+Some titles have no invalid character, yet still cannot be a file name on Windows: a device name such as `CON`, `NUL` or `COM1`, and a title ending in a dot or a space, such as `Note.`. `Smart Rename` refuses those on every platform and says why in a notice, whichever action you picked, because a synced vault that holds such a note breaks on the Windows machines it syncs to.

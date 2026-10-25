@@ -12,6 +12,7 @@ import type {
   TFile
 } from 'obsidian';
 
+import { getFileNameValidationMessage } from '@mnaoumov/obsidian-lib/validation';
 import {
   noop,
   noopAsync
@@ -381,6 +382,29 @@ describe('SmartRenameComponent', () => {
       const component = await createComponent();
       await component.smartRename(createInputFile());
       expectNoticeShown('The title cannot start with a dot');
+    });
+
+    it.each([
+      ['a Windows device name', 'CON'],
+      ['a Windows device name with an extension', 'nul.md'],
+      ['a trailing dot', 'Note.'],
+      ['a trailing space', 'Note ']
+    ])('should show the validator notice when the title has %s', async (_description, newTitle) => {
+      hoisted.mockPrompt.mockResolvedValue(newTitle);
+      const component = await createComponent();
+      await component.smartRename(createInputFile());
+      const expectedMessage = getFileNameValidationMessage(newTitle);
+      expect(expectedMessage).not.toBe('');
+      expectNoticeShown(expectedMessage);
+      expect(hoisted.mockAddToQueue).not.toHaveBeenCalled();
+    });
+
+    it('should show the validator notice when only casing changes into a Windows device name', async () => {
+      hoisted.mockPrompt.mockResolvedValue('CON');
+      const component = await createComponent();
+      await component.smartRename(createInputFile({ basename: 'con' }));
+      expectNoticeShown(getFileNameValidationMessage('CON'));
+      expect(hoisted.mockAddToQueue).not.toHaveBeenCalled();
     });
 
     it('should show notice when rename throws Error action for invalid characters', async () => {
