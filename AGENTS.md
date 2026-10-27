@@ -18,7 +18,7 @@ Renames a note and rewrites its backlinks so each one **keeps displaying the old
 
 **The post-rename steps are per-rename, not per-setting.** `smartRename` seeds a mutable `PostRenameSteps` object from the settings and hands it both to the prompt's checkbox strip (which mutates it) and to the queued operation (which captures it). Nothing is written back to `data.json`: a checkbox scopes to one rename, and capturing the object means a settings change made while a rename is in flight cannot retroactively alter that rename.
 
-**That interface deliberately does not end in `Options`.** ESLint's `typescript-dev-toolkit/readonly-params-options-result-members` requires all-readonly members on any interface named `*Params` / `*Options` / `*Result`, and this one has to be mutable. `PostRenameSteps` is the name that keeps the rule honest instead of disabling it.
+**Those five flags deliberately remain mutable.** ESLint's `typescript-dev-toolkit/readonly-interface-members` requires readonly interface properties regardless of the interface name. Each `PostRenameSteps` property carries an explained next-line exception because the prompt checkbox reassigns it; immutable interface properties remain readonly.
 
 **Two `addAlias` calls, one checkbox.** `addAliases` gates only its first call on `shouldAddOldTitleAsAlias`. The second carries the *new* title's un-sanitized form under `shouldStoreInvalidTitle` — a different thing from carrying the old title forward — and still runs when the alias checkbox is unticked.
 
