@@ -50,11 +50,15 @@ A copy of the vault ships with every release. You can access it via any of the f
 - **A linked note can be renamed from where you link to it.** Put the cursor on a link, run the command, and the note that link points at is smart-renamed — you never open it. Works on wikilinks, markdown links, embeds and frontmatter links alike. [03 Rename the link target](<./demo-vault/03 Rename the link target.md>)
 - **The first header and a frontmatter title key** can be kept in sync with the new name. [04 Settings](<./demo-vault/04 Settings.md>)
 
-## Similar plugins
+## See also
 
-- [`Link with alias`](https://community.obsidian.md/plugins/link-with-alias) — works when a link is created rather than when its target is renamed: it writes the display text into the link up front and adds it as an alias of the target note, so a later plain rename leaves that text alone; it does not rename notes or rewrite existing backlinks.
-- [`Update Title on Rename`](https://community.obsidian.md/plugins/update-title-on-rename) — keeps a frontmatter title in sync with the file name automatically on every rename, with no command to run, and leaves a custom title alone; it does not touch backlinks, aliases or headers.
-- [`Alias Picker`](https://community.obsidian.md/plugins/alias-picker) — updates backlinks when an alias is renamed, rather than when the note itself is, and adds alias picking and an alias backlink overview.
+[My other Obsidian resources](https://github.com/mnaoumov/obsidian-resources)
+
+| Plugin | Features | How `Smart Rename` differs |
+| --- | --- | --- |
+| [`Alias Picker`](https://community.obsidian.md/plugins/alias-picker) | Alias-rename backlink updates; alias picker and overview | Different trigger: note rename rather than alias rename |
+| [`Link with alias`](https://community.obsidian.md/plugins/link-with-alias) | Writes link display text and target aliases at link creation; no rename/backlink rewrite | Different trigger: note rename; rewrites existing backlinks |
+| [`Update Title on Rename`](https://community.obsidian.md/plugins/update-title-on-rename) | Automatic filename-to-title sync; preserves custom titles; no backlink/alias/header edits | Broader rename handling: backlinks, aliases and headers |
 
 Last searched for similar plugins on 2026-10-26.
 
@@ -91,10 +95,6 @@ Contributions are welcome — see [CONTRIBUTING](./CONTRIBUTING.md) to get set u
 <a href="https://www.buymeacoffee.com/mnaoumov" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="60" width="217"></a>
 
 <!-- markdownlint-enable MD033 -->
-
-## My other Obsidian resources
-
-[See my other Obsidian resources](https://github.com/mnaoumov/obsidian-resources).
 
 ## License
 
