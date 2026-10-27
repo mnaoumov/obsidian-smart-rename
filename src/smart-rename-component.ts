@@ -78,10 +78,15 @@ interface PostRenameStepCheckbox {
  * the rename is in flight cannot retroactively alter it.
  */
 interface PostRenameSteps {
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- The rename prompt checkbox toggles this per-rename flag.
   shouldAddOldTitleAsAlias: boolean;
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- The rename prompt checkbox toggles this per-rename flag.
   shouldPreservePreviousDisplayTextInFrontmatterLinks: boolean;
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- The rename prompt checkbox toggles this per-rename flag.
   shouldPreservePreviousDisplayTextInNoteLinks: boolean;
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- The rename prompt checkbox toggles this per-rename flag.
   shouldUpdateFirstHeader: boolean;
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- The rename prompt checkbox toggles this per-rename flag.
   shouldUpdateTitleKey: boolean;
 }
 

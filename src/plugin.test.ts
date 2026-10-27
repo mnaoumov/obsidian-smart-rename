@@ -36,7 +36,7 @@ vi.mock('obsidian', async (importOriginal) => {
 import { Plugin } from './plugin.ts';
 
 interface CommandsHolder {
-  commands__: Map<string, Command>;
+  readonly commands__: Map<string, Command>;
 }
 
 function createApp(): AppOriginal {

@@ -39,8 +39,8 @@ interface CreateHandlerOptions {
 }
 
 interface MockContext {
-  context: CommandHandlerRegistrationContext;
-  fileMenuHandlers: FileMenuEventHandler[];
+  readonly context: CommandHandlerRegistrationContext;
+  readonly fileMenuHandlers: FileMenuEventHandler[];
 }
 
 function createApp(): App {

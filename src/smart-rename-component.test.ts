@@ -142,13 +142,13 @@ interface BacklinkConversion {
 }
 
 interface BacklinkLink {
-  displayText?: string;
-  original: string;
+  readonly displayText?: string;
+  readonly original: string;
 }
 
 interface BacklinksStub {
-  get: (key: string) => null | unknown[];
-  keys: () => string[];
+  readonly get: (key: string) => null | unknown[];
+  readonly keys: () => string[];
 }
 
 interface CapturedEditBacklinksSnapshotParams {
@@ -182,18 +182,18 @@ interface CreateComponentOptions {
 type EditLinksCallback = (params: BacklinkConversion) => string | undefined;
 
 interface EnqueuedOperation {
-  operationFunction: () => Promise<void>;
+  readonly operationFunction: () => Promise<void>;
 }
 
 interface HeadingsCache {
-  headings: never[];
+  readonly headings: never[];
 }
 
 type ProcessVaultCallback = (context: ProcessVaultContext) => Promise<null | string>;
 
 interface ProcessVaultContext {
-  abortSignal: AbortSignal;
-  content: string;
+  readonly abortSignal: AbortSignal;
+  readonly content: string;
 }
 
 interface SetupBacklinkCallbackOptions {
