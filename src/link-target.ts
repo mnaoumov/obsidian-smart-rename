@@ -4,7 +4,7 @@ import type {
   TFile
 } from 'obsidian';
 
-import { extractLinkFile } from '@mnaoumov/obsidian-lib/link';
+import { extractReferenceFile } from '@mnaoumov/obsidian-lib/link';
 import {
   parseLinks,
   toParseLinkReference
@@ -48,12 +48,12 @@ export function resolveLinkFileAtEditorCursor(params: ResolveLinkFileAtEditorCur
     return null;
   }
 
-  // Only the reference's `link` is read by `extractLinkFile`, so the line offsets computed below do
+  // Only the reference's `link` is read by `extractReferenceFile`, so the line offsets computed below do
   // not matter here — every link form (wikilink, markdown, angle-bracketed, URL-encoded, embedded,
   // subpath) resolves through this one call.
-  return extractLinkFile({
+  return extractReferenceFile({
     app,
-    link: toParseLinkReference({ content: line, parseLinkResult }),
+    reference: toParseLinkReference({ content: line, parseLinkResult }),
     sourcePathOrFile: sourceFile
   });
 }

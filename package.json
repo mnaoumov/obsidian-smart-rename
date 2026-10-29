@@ -50,8 +50,8 @@
     "typescript": "$typescript"
   },
   "dependencies": {
-    "@mnaoumov/obsidian-lib": "^6.1.0",
-    "@mnaoumov/typescript-lib": "^1.6.1"
+    "@mnaoumov/obsidian-lib": "^10.1.0",
+    "@mnaoumov/typescript-lib": "^2.0.0"
   },
   "devDependencies": {
     "@commitlint/cli": "^21.2.4",

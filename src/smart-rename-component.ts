@@ -20,7 +20,7 @@ import {
 import {
   buildBacklinksSnapshot,
   editBacklinksSnapshot,
-  extractLinkFile,
+  extractReferenceFile,
   generateMarkdownLink,
   hasWikilinkSyntax,
   shouldResetAlias
@@ -407,7 +407,7 @@ export class SmartRenameComponent extends ComponentEx {
      * No `linkIdentityKeyProvider` on either call, on purpose. The snapshot is keyed by one provider and
      * `editBacklinksSnapshot` looks each link up by its own, so the two must agree - and a provider passed to
      * only one of them makes every captured link read as uncaptured. That is how this rewrite once silently
-     * edited nothing: by then the old link no longer resolves, so the `extractLinkFile` fallback declined it
+     * edited nothing: by then the old link no longer resolves, so the `extractReferenceFile` fallback declined it
      * too. Leaving both on the library default keeps them in step by construction.
      */
     const snapshot = buildBacklinksSnapshot<true>({
@@ -419,18 +419,19 @@ export class SmartRenameComponent extends ComponentEx {
 
     await editBacklinksSnapshot<true>({
       app: this.app,
-      linkConverter: ({ link, payload: wasCaptured, sourcePath }) => {
+      pluginNoticeComponent: this.pluginNoticeComponent,
+      referenceConverter: ({ payload: wasCaptured, reference, sourcePath }) => {
         /*
          * Wider than the snapshot on purpose: a link that already resolves to the renamed file is ours to
          * restyle even when it was absent from the capture, which is why unmatched links are visited.
          */
-        if (!wasCaptured && extractLinkFile({ app: this.app, link, sourcePathOrFile: sourcePath }) !== newFile) {
+        if (!wasCaptured && extractReferenceFile({ app: this.app, reference, sourcePathOrFile: sourcePath }) !== newFile) {
           return;
         }
 
-        const isNewTitle = (link.displayText ?? '').toLowerCase() === newTitle.toLowerCase();
-        const shouldPreservePreviousDisplayText = (isReferenceCache(link) && steps.shouldPreservePreviousDisplayTextInNoteLinks)
-          || (isFrontmatterLinkCache(link) && steps.shouldPreservePreviousDisplayTextInFrontmatterLinks);
+        const isNewTitle = (reference.displayText ?? '').toLowerCase() === newTitle.toLowerCase();
+        const shouldPreservePreviousDisplayText = (isReferenceCache(reference) && steps.shouldPreservePreviousDisplayTextInNoteLinks)
+          || (isFrontmatterLinkCache(reference) && steps.shouldPreservePreviousDisplayTextInFrontmatterLinks);
 
         /*
          * A display text Obsidian derived from the old name is not the author's choice: it shows the old title
@@ -439,14 +440,14 @@ export class SmartRenameComponent extends ComponentEx {
          */
         const isDerivedDisplayText = shouldResetAlias({
           app: this.app,
-          displayText: link.displayText,
-          isWikilink: hasWikilinkSyntax(link.original),
+          displayText: reference.displayText,
+          isWikilink: hasWikilinkSyntax(reference.original),
           newSourcePathOrFile: sourcePath,
           oldTargetPath: oldPath,
           targetPathOrFile: newPath
         });
 
-        let alias = link.displayText;
+        let alias = reference.displayText;
         if (isNewTitle || isDerivedDisplayText) {
           alias = shouldPreservePreviousDisplayText ? oldTitle : undefined;
         }
@@ -454,14 +455,13 @@ export class SmartRenameComponent extends ComponentEx {
         return generateMarkdownLink(normalizeOptionalProperties<GenerateMarkdownLinkParams>({
           alias,
           app: this.app,
-          originalLink: link.original,
+          originalLink: reference.original,
           sourcePathOrFile: sourcePath,
           targetPathOrFile: newPath
         }));
       },
-      pluginNoticeComponent: this.pluginNoticeComponent,
       resourceLockComponent: this.resourceLockComponent,
-      shouldVisitUnmatchedLinks: true,
+      shouldVisitUnmatchedReferences: true,
       snapshot
     });
   }
