@@ -1,8 +1,5 @@
 import type { FileExplorerView } from '@obsidian-typings/obsidian-public-latest';
-import type {
-  App,
-  TAbstractFile
-} from 'obsidian';
+import type { App } from 'obsidian';
 
 import { CallbackLayoutReadyComponent } from '@mnaoumov/obsidian-lib/components/layout-ready-component';
 import { MonkeyAroundComponent } from '@mnaoumov/obsidian-lib/components/monkey-around-component';
@@ -17,18 +14,6 @@ import {
 import type { PluginSettingsComponent } from './plugin-settings-component.ts';
 import type { SmartRenameComponent } from './smart-rename-component.ts';
 
-/**
- * The file explorer's inline-rename members `obsidian-typings` does not declare yet.
- *
- * TODO: Drop once `obsidian-typings` declares `fileBeingRenamed` and `saveRename` on `FileExplorerView`.
- */
-interface FileExplorerViewRenameMembers {
-  readonly fileBeingRenamed: null | TAbstractFile;
-  readonly saveRename: () => Promise<boolean>;
-}
-
-type FileExplorerViewWithRenameMembers = FileExplorerView & FileExplorerViewRenameMembers;
-
 interface RenameIntentHooksComponentConstructorParams {
   readonly app: App;
   readonly pluginSettingsComponent: PluginSettingsComponent;
@@ -37,7 +22,7 @@ interface RenameIntentHooksComponentConstructorParams {
 
 interface RenameIntentHooksComponentSaveRenameParams {
   readonly fallback: () => Promise<boolean>;
-  readonly view: FileExplorerViewWithRenameMembers;
+  readonly view: FileExplorerView;
 }
 
 interface RenameIntentHooksComponentSaveTitleParams {
@@ -92,9 +77,7 @@ export class RenameIntentHooksComponent extends MonkeyAroundComponent {
     this.registerMethodPatch({
       $object: EditableFileView.prototype,
       methodName: 'saveTitle',
-      patchHandler: ({ fallback, originalArguments: [titleEl], originalThis }) =>
-        // TODO: Drop both casts once `obsidian-typings` types `EditableFileView.saveTitle` as returning `Promise<boolean>`.
-        castTo<Promise<void>>(this.saveTitle({ fallback: castTo<() => Promise<boolean>>(fallback), titleEl, view: originalThis }))
+      patchHandler: ({ fallback, originalArguments: [titleEl], originalThis }) => this.saveTitle({ fallback, titleEl, view: originalThis })
     });
 
     // The explorer view is created lazily, so its class is reached through the first loaded instance.
@@ -112,7 +95,7 @@ export class RenameIntentHooksComponent extends MonkeyAroundComponent {
         continue;
       }
 
-      const prototype = castTo<FileExplorerViewWithRenameMembers>(Object.getPrototypeOf(leaf.view));
+      const prototype = castTo<FileExplorerView>(Object.getPrototypeOf(leaf.view));
       this.registerMethodPatch({
         $object: prototype,
         methodName: 'saveRename',
