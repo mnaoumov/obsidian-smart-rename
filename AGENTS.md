@@ -13,6 +13,7 @@ Renames a note and rewrites its backlinks so each one **keeps displaying the old
 - `src/command-handlers/` — one handler per command (`invoke`, `invoke-on-link`).
 - `src/plugin-settings.ts` / `-component.ts` / `-tab.ts` — the settings class, its persistence and its tab.
 - `src/link-target.ts`, `src/invalid-character*.ts` — the two supporting concerns.
+- `src/rename-intent-hooks-component.ts` / `rename-intent-modal.ts` / `rename-intent.ts` — the rename intent: Obsidian's own rename surfaces ask what a rename is for.
 
 ## Non-obvious design decisions
 
@@ -23,6 +24,12 @@ Renames a note and rewrites its backlinks so each one **keeps displaying the old
 **Two `addAlias` calls, one checkbox.** `addAliases` gates only its first call on `shouldAddOldTitleAsAlias`. The second carries the *new* title's un-sanitized form under `shouldStoreInvalidTitle` — a different thing from carrying the old title forward — and still runs when the alias checkbox is unticked.
 
 **The backlink snapshot and its edit use the SAME link identity key: the library default, on both calls.** `buildBacklinksSnapshot` keys the capture with one `linkIdentityKeyProvider` and `editBacklinksSnapshot` looks each link up with its own, so a provider passed to only one of them makes every captured link read as uncaptured. The rename then rewrites nothing, because by then the old link no longer resolves and the `extractLinkFile` fallback declines it too. That shipped to `main` once and stayed unnoticed, because the converter unit tests hand `payload` in directly. The case *"should key the snapshot the way editBacklinksSnapshot will look each captured link up"* performs the real lookup instead. Keep it.
+
+**The rename intent hooks three UI entry points, never the rename API.** In Obsidian's `app.js` every user rename funnels into one module-private helper that calls `fileManager.renameFile`, so the named methods above it are what gets patched: `EditableFileView.prototype.saveTitle` (inline title and view header title, where F2 lands), `FileExplorerView.saveRename` (the explorer's inline rename; its class is reached through the first loaded explorer view, on layout ready or a later `layout-change`), and `fileManager.promptForFileRename` (the rename modal). Patching `renameFile` instead would catch renames made by code, which must stay "rename only". The inline title of a markdown EMBED (`commitTitle`) is deliberately not hooked. Each hook takes the rename over before opening the dialog - `fileBeingRenamed = null` for a view, `exitRename()` for the explorer - because the dialog steals focus, the blur re-enters the same save, and without that the rename would be asked twice.
+
+**`obsidian-typings` gaps the hooks work around.** It does not declare `FileExplorerView.fileBeingRenamed` / `saveRename` (its `acceptRename` there belongs to the properties view), and it types `EditableFileView.saveTitle` as `Promise<void>` though it resolves a boolean the callers branch on. Both are local stopgaps marked `TODO` in `rename-intent-hooks-component.ts`.
+
+**A wikilink's derived display text is not the author's choice.** `processBacklinks` asks `shouldResetAlias` whether a link's display text is just the old name; if so it becomes the old title when the previous display text is kept, and is dropped otherwise, so the link follows the new name. Before this, an unticked "Keep old title in note links" still produced `[[New|Old]]` for a plain `[[Old]]`, because the metadata cache always fills `displayText`.
 
 **The control strip is `@mnaoumov/obsidian-lib`'s, not ours.** `ModalCommandBuilder` from `@mnaoumov/obsidian-lib/modals/modal-command-builder`, passed to `prompt()` as `commandBuilder`. The default `Instructions` render mode gives real inline checkboxes, which matters on mobile where there is no modifier key to press. Do not hand-roll a modal here.
 

@@ -20,10 +20,7 @@ import {
 const INTENT_MODAL_SELECTOR = '.smart-rename-intent-modal';
 const OLD_TITLE = 'intent-alpha';
 const NEW_TITLE = 'intent-beta';
-const TARGET_PATH = `${OLD_TITLE}.md`;
-const RENAMED_TARGET_PATH = `${NEW_TITLE}.md`;
 const TARGET_CONTENT = `---\ntitle: ${OLD_TITLE}\n---\n# ${OLD_TITLE}\n`;
-const SOURCE_PATH = 'intent-source.md';
 const SOURCE_CONTENT = `[[${OLD_TITLE}]]`;
 /**
  * Under the transport's ~30s per-closure cap, not at it: each closure spends this budget on six waits at most.
@@ -38,7 +35,7 @@ interface IntentRenameResult {
 
 describe('Rename intent dialog', () => {
   it('syncs title and H1 when the inline title is renamed with the default choice', async () => {
-    const result = await runIntentRename({ intent: 'SyncTitleAndHeading', surface: 'inlineTitle' });
+    const result = await runIntentRename({ folder: 'intent-inline-sync', intent: 'SyncTitleAndHeading', surface: 'inlineTitle' });
 
     expect(result.wasDialogShown).toBe(true);
     expect(result.renamedContent).toContain(`title: ${NEW_TITLE}`);
@@ -48,7 +45,7 @@ describe('Rename intent dialog', () => {
   });
 
   it('stores the previous name when the rename dialog is used with that choice', async () => {
-    const result = await runIntentRename({ intent: 'StorePreviousName', surface: 'renameDialog' });
+    const result = await runIntentRename({ folder: 'intent-dialog-store', intent: 'StorePreviousName', surface: 'renameDialog' });
 
     expect(result.wasDialogShown).toBe(true);
     expect(result.renamedContent).toContain(`title: ${NEW_TITLE}`);
@@ -59,7 +56,7 @@ describe('Rename intent dialog', () => {
   });
 
   it('syncs title and H1 when the file explorer renames the note', async () => {
-    const result = await runIntentRename({ intent: 'SyncTitleAndHeading', surface: 'fileExplorer' });
+    const result = await runIntentRename({ folder: 'intent-explorer-sync', intent: 'SyncTitleAndHeading', surface: 'fileExplorer' });
 
     expect(result.wasDialogShown).toBe(true);
     expect(result.renamedContent).toContain(`title: ${NEW_TITLE}`);
@@ -68,7 +65,7 @@ describe('Rename intent dialog', () => {
   });
 
   it('changes only the file name when rename only is chosen', async () => {
-    const result = await runIntentRename({ intent: 'RenameOnly', surface: 'inlineTitle' });
+    const result = await runIntentRename({ folder: 'intent-inline-only', intent: 'RenameOnly', surface: 'inlineTitle' });
 
     expect(result.wasDialogShown).toBe(true);
     expect(result.renamedContent).toBe(TARGET_CONTENT);
@@ -77,6 +74,10 @@ describe('Rename intent dialog', () => {
 });
 
 interface RunIntentRenameParams {
+  /**
+   * The folder each case works in, so no case recreates a note another case has just trashed.
+   */
+  readonly folder: string;
   readonly intent: string;
   readonly surface: 'fileExplorer' | 'inlineTitle' | 'renameDialog';
 }
@@ -113,11 +114,18 @@ async function runIntentRename(params: RunIntentRenameParams): Promise<IntentRen
       }
 
       await cleanUp();
+      const folderPath = targetPath.slice(0, targetPath.lastIndexOf('/'));
+      if (!app.vault.getFolderByPath(folderPath)) {
+        await app.vault.createFolder(folderPath);
+      }
+
       const targetFile = await createNote({ content: targetContent, path: targetPath });
       const sourceFile = await createNote({ content: sourceContent, path: sourcePath });
 
       const leaf = app.workspace.getLeaf(true);
-      await leaf.openFile(targetFile, { state: { mode: 'source' } });
+      await leaf.openFile(targetFile, { active: true, state: { mode: 'source' } });
+      // Activated explicitly: after the file explorer case, the explorer holds the focus and would stay active.
+      app.workspace.setActiveLeaf(leaf, { focus: true });
 
       await waitUntil({
         message: 'backlink did not resolve',
@@ -236,12 +244,12 @@ async function runIntentRename(params: RunIntentRenameParams): Promise<IntentRen
       intent: params.intent,
       intentModalSelector: INTENT_MODAL_SELECTOR,
       newTitle: NEW_TITLE,
-      renamedTargetPath: RENAMED_TARGET_PATH,
+      renamedTargetPath: `${params.folder}/${NEW_TITLE}.md`,
       sourceContent: SOURCE_CONTENT,
-      sourcePath: SOURCE_PATH,
+      sourcePath: `${params.folder}/intent-source.md`,
       surface: params.surface,
       targetContent: TARGET_CONTENT,
-      targetPath: TARGET_PATH,
+      targetPath: `${params.folder}/${OLD_TITLE}.md`,
       waitTimeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS
     },
     vaultPath: getTemporaryVault().path

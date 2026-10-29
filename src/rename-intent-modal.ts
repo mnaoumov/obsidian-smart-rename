@@ -36,7 +36,7 @@ interface RenameIntentOption {
   readonly text: string;
 }
 
-export const RENAME_INTENT_MODAL_CSS_CLASS = 'smart-rename-intent-modal';
+const RENAME_INTENT_MODAL_CSS_CLASS = 'smart-rename-intent-modal';
 
 const RENAME_INTENT_OPTIONS: readonly RenameIntentOption[] = [
   { intent: RenameIntent.SyncTitleAndHeading, text: 'Rename and sync to title/H1' },

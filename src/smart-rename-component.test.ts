@@ -35,6 +35,7 @@ import {
 } from 'vitest';
 
 import { PluginSettings } from './plugin-settings.ts';
+import { RenameIntent } from './rename-intent.ts';
 
 const noticeMessages: string[] = [];
 
@@ -53,7 +54,9 @@ const hoisted = vi.hoisted(() => ({
   mockIsReferenceCache: vi.fn(),
   mockProcessFrontmatter: vi.fn(),
   mockProcessVault: vi.fn(),
-  mockPrompt: vi.fn()
+  mockPrompt: vi.fn(),
+  mockSelectRenameIntent: vi.fn(),
+  mockShouldResetAlias: vi.fn()
 }));
 
 vi.mock('obsidian', async (importOriginal) => {
@@ -103,7 +106,13 @@ vi.mock('@mnaoumov/obsidian-lib/link', async (importOriginal) => ({
   // snapshot the converter is judged against was actually built from these backlinks (G49).
   editBacklinksSnapshot: (...$arguments: unknown[]): unknown => hoisted.mockEditBacklinksSnapshot(...$arguments),
   extractLinkFile: (...$arguments: unknown[]): unknown => hoisted.mockExtractLinkFile(...$arguments),
-  generateMarkdownLink: (...$arguments: unknown[]): unknown => hoisted.mockGenerateMarkdownLink(...$arguments)
+  generateMarkdownLink: (...$arguments: unknown[]): unknown => hoisted.mockGenerateMarkdownLink(...$arguments),
+  shouldResetAlias: (...$arguments: unknown[]): unknown => hoisted.mockShouldResetAlias(...$arguments)
+}));
+
+vi.mock('./rename-intent-modal.ts', async (importOriginal) => ({
+  ...await importOriginal<typeof import('./rename-intent-modal.ts')>(),
+  selectRenameIntent: (...$arguments: unknown[]): unknown => hoisted.mockSelectRenameIntent(...$arguments)
 }));
 
 vi.mock('@mnaoumov/obsidian-lib/queue', async (importOriginal) => ({
@@ -194,6 +203,10 @@ type ProcessVaultCallback = (context: ProcessVaultContext) => Promise<null | str
 interface ProcessVaultContext {
   readonly abortSignal: AbortSignal;
   readonly content: string;
+}
+
+interface RenameWithIntentOptions extends CreateComponentOptions {
+  readonly typedTitle?: string;
 }
 
 interface SetupBacklinkCallbackOptions {
@@ -327,6 +340,7 @@ beforeEach(() => {
   hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp.mockReturnValue(DEFAULT_UNSAFE_CHARS_REGEXP);
   hoisted.mockIsFrontmatterLinkCache.mockReturnValue(false);
   hoisted.mockIsReferenceCache.mockReturnValue(true);
+  hoisted.mockShouldResetAlias.mockReturnValue(false);
   hoisted.mockGetBacklinksForFileSafe.mockResolvedValue({
     get: (): null => null,
     keys: (): string[] => []
@@ -1027,6 +1041,193 @@ describe('SmartRenameComponent', () => {
 
       expect(hoisted.mockAddAlias).toHaveBeenCalledTimes(1);
       expect(hoisted.mockAddAlias).toHaveBeenCalledWith(expect.objectContaining({ alias: 'foo/bar' }));
+    });
+  });
+});
+
+describe('SmartRenameComponent rename intent', () => {
+  async function checkRenamedWithIntent(intent: null | RenameIntent, options?: RenameWithIntentOptions): Promise<boolean> {
+    hoisted.mockSelectRenameIntent.mockResolvedValue(intent === null ? null : { intent, shouldSaveLastUsedChoice: false });
+    hoisted.mockIsMarkdownFile.mockReturnValue(true);
+    hoisted.mockGetFile.mockReturnValue(strictProxy<TFile>({ basename: 'NewTitle', path: 'NewTitle.md' }));
+    const component = await createComponent(options);
+    const isResult = await component.renameWithIntent({ file: createInputFile(), typedTitle: options?.typedTitle ?? 'NewTitle' });
+    await runEnqueuedOperation();
+    return isResult;
+  }
+
+  function getFrontmatterTitle(): unknown {
+    const frontmatter: Record<string, unknown> = {};
+    const call = hoisted.mockProcessFrontmatter.mock.calls[0] as [CapturedProcessFrontmatterParams] | undefined;
+    call?.[0].frontmatterFunction(castTo<CombinedFrontmatter<unknown>>(frontmatter));
+    return frontmatter['title'];
+  }
+
+  it('should sync title and H1 without an alias by default', async () => {
+    const isResult = await checkRenamedWithIntent(RenameIntent.SyncTitleAndHeading);
+
+    expect(isResult).toBe(true);
+    expect(getFrontmatterTitle()).toBe('NewTitle');
+    expect(hoisted.mockProcessVault).toHaveBeenCalled();
+    expect(hoisted.mockAddAlias).not.toHaveBeenCalled();
+  });
+
+  it('should also store the previous name as an alias', async () => {
+    await checkRenamedWithIntent(RenameIntent.StorePreviousName);
+
+    expect(getFrontmatterTitle()).toBe('NewTitle');
+    expect(hoisted.mockAddAlias).toHaveBeenCalledWith(expect.objectContaining({ alias: 'OldTitle' }));
+  });
+
+  it('should leave the note alone when only renaming', async () => {
+    const isResult = await checkRenamedWithIntent(RenameIntent.RenameOnly, {
+      settings: { invalidCharacterAction: castTo<PluginSettings['invalidCharacterAction']>('Replace') },
+      typedTitle: 'foo/bar'
+    });
+
+    expect(isResult).toBe(true);
+    expect(hoisted.mockProcessFrontmatter).not.toHaveBeenCalled();
+    expect(hoisted.mockProcessVault).not.toHaveBeenCalled();
+    expect(hoisted.mockAddAlias).not.toHaveBeenCalled();
+  });
+
+  it('should keep the typed title with its real characters when the file name had them replaced', async () => {
+    await checkRenamedWithIntent(RenameIntent.SyncTitleAndHeading, {
+      settings: { invalidCharacterAction: castTo<PluginSettings['invalidCharacterAction']>('Replace') },
+      typedTitle: 'foo/bar'
+    });
+
+    expect(getFrontmatterTitle()).toBe('foo/bar');
+    expect(hoisted.mockSelectRenameIntent).toHaveBeenCalledWith(expect.objectContaining({ newTitle: 'foo/bar', oldTitle: 'OldTitle' }));
+  });
+
+  it('should not ask when the new title is refused', async () => {
+    const isResult = await checkRenamedWithIntent(RenameIntent.SyncTitleAndHeading, { typedTitle: 'OldTitle' });
+
+    expect(isResult).toBe(false);
+    expect(hoisted.mockSelectRenameIntent).not.toHaveBeenCalled();
+    expectNoticeShown('The title did not change');
+  });
+
+  it('should not rename when the dialog is dismissed', async () => {
+    const isResult = await checkRenamedWithIntent(null);
+
+    expect(isResult).toBe(false);
+    expect(hoisted.mockAddToQueue).not.toHaveBeenCalled();
+  });
+
+  it('should report a failed rename', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const failingApp = createApp();
+    failingApp.vault.rename = vi.fn().mockRejectedValue(new Error('rename failed'));
+
+    const isResult = await checkRenamedWithIntent(RenameIntent.SyncTitleAndHeading, { app: failingApp });
+
+    expect(isResult).toBe(false);
+    expectNoticeShown('Failed to rename file');
+  });
+
+  it('should preselect sync to title/H1 unless the last choice is saved', async () => {
+    await checkRenamedWithIntent(RenameIntent.RenameOnly, { settings: { lastRenameIntent: RenameIntent.RenameOnly } });
+
+    expect(hoisted.mockSelectRenameIntent).toHaveBeenCalledWith(expect.objectContaining({
+      preselectedIntent: RenameIntent.SyncTitleAndHeading,
+      shouldSaveLastUsedChoice: false
+    }));
+  });
+
+  it('should preselect the saved last choice', async () => {
+    await checkRenamedWithIntent(RenameIntent.RenameOnly, {
+      settings: { lastRenameIntent: RenameIntent.StorePreviousName, shouldSaveLastRenameIntent: true }
+    });
+
+    expect(hoisted.mockSelectRenameIntent).toHaveBeenCalledWith(expect.objectContaining({
+      preselectedIntent: RenameIntent.StorePreviousName,
+      shouldSaveLastUsedChoice: true
+    }));
+  });
+
+  it('should save the choice while the checkbox is ticked, and the unticked checkbox itself', async () => {
+    const pluginSettingsComponent = await createSettingsComponent();
+    const component = new SmartRenameComponent({
+      app: createApp(),
+      pluginNoticeComponent: new PluginNoticeComponent({ app: createApp(), pluginName: 'Smart Rename' }),
+      pluginSettingsComponent,
+      resourceLockComponent: strictProxy<ResourceLockComponent>({})
+    });
+    const editAndSaveSpy = vi.spyOn(pluginSettingsComponent, 'editAndSave');
+
+    hoisted.mockSelectRenameIntent.mockResolvedValue({ intent: RenameIntent.RenameOnly, shouldSaveLastUsedChoice: true });
+    await component.renameWithIntent({ file: createInputFile(), typedTitle: 'NewTitle' });
+    expect(pluginSettingsComponent.settings.shouldSaveLastRenameIntent).toBe(true);
+    expect(pluginSettingsComponent.settings.lastRenameIntent).toBe(RenameIntent.RenameOnly);
+
+    // The same answer again writes nothing.
+    await component.renameWithIntent({ file: createInputFile(), typedTitle: 'NewTitle' });
+    expect(editAndSaveSpy).toHaveBeenCalledOnce();
+
+    hoisted.mockSelectRenameIntent.mockResolvedValue({ intent: RenameIntent.SyncTitleAndHeading, shouldSaveLastUsedChoice: false });
+    await component.renameWithIntent({ file: createInputFile(), typedTitle: 'NewTitle' });
+    expect(pluginSettingsComponent.settings.shouldSaveLastRenameIntent).toBe(false);
+    // Unticked, so the remembered choice is kept rather than overwritten.
+    expect(pluginSettingsComponent.settings.lastRenameIntent).toBe(RenameIntent.RenameOnly);
+  });
+
+  describe('promptAndRenameWithIntent', () => {
+    it('should ask the new name and then the intent', async () => {
+      hoisted.mockPrompt.mockResolvedValue('NewTitle');
+      hoisted.mockSelectRenameIntent.mockResolvedValue({ intent: RenameIntent.SyncTitleAndHeading, shouldSaveLastUsedChoice: false });
+      const component = await createComponent();
+
+      await component.promptAndRenameWithIntent(createInputFile());
+
+      expect(hoisted.mockPrompt).toHaveBeenCalledWith(expect.objectContaining({ defaultValue: 'OldTitle', title: 'Rename note' }));
+      expect(hoisted.mockAddToQueue).toHaveBeenCalled();
+    });
+
+    it('should do nothing when the prompt is cancelled', async () => {
+      hoisted.mockPrompt.mockResolvedValue(null);
+      const component = await createComponent();
+
+      await component.promptAndRenameWithIntent(createInputFile());
+
+      expect(hoisted.mockSelectRenameIntent).not.toHaveBeenCalled();
+      expect(noticeMessages).toStrictEqual([]);
+    });
+  });
+
+  describe('derived display text', () => {
+    async function convertDerivedLink(settings: Partial<PluginSettings>): Promise<void> {
+      hoisted.mockShouldResetAlias.mockReturnValue(true);
+      hoisted.mockPrompt.mockResolvedValue('NewTitle');
+      hoisted.mockIsMarkdownFile.mockReturnValue(false);
+      hoisted.mockGetFile.mockReturnValue(strictProxy<TFile>({ basename: 'NewTitle', path: 'NewTitle.md' }));
+      let linkConverter: EditLinksCallback | undefined;
+      hoisted.mockEditBacklinksSnapshot.mockImplementation((params: CapturedEditBacklinksSnapshotParams) => {
+        linkConverter = params.linkConverter;
+      });
+      const component = await createComponent({ settings });
+      await component.smartRename(createInputFile());
+      await runEnqueuedOperation();
+      ensureNonNullable(linkConverter)({ link: { displayText: 'OldTitle', original: '[[OldTitle]]' }, payload: true, sourcePath: 'note.md' });
+    }
+
+    it('should show the old title when the previous display text is kept', async () => {
+      await convertDerivedLink({ shouldPreservePreviousDisplayTextInNoteLinks: true });
+
+      expect(hoisted.mockGenerateMarkdownLink).toHaveBeenCalledWith(expect.objectContaining({ alias: 'OldTitle' }));
+      expect(hoisted.mockShouldResetAlias).toHaveBeenCalledWith(expect.objectContaining({
+        displayText: 'OldTitle',
+        isWikilink: true,
+        oldTargetPath: 'OldTitle.md',
+        targetPathOrFile: 'NewTitle.md'
+      }));
+    });
+
+    it('should let the link follow the new name otherwise', async () => {
+      await convertDerivedLink({ shouldPreservePreviousDisplayTextInNoteLinks: false });
+
+      expect(hoisted.mockGenerateMarkdownLink).toHaveBeenCalledWith(expect.not.objectContaining({ alias: expect.anything() as unknown }));
     });
   });
 });

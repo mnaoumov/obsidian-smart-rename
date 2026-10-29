@@ -12,6 +12,7 @@ Because renaming is destructive, every walkthrough has a **Reset the demo notes*
 - [02 Invalid characters](<./02 Invalid characters.md>)
 - [03 Rename the link target](<./03 Rename the link target.md>)
 - [04 Settings](<./04 Settings.md>)
+- [05 Rename intent](<./05 Rename intent.md>)
 
 ## Materials
 
