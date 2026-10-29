@@ -8,6 +8,7 @@ import { InvokeOnLinkCommandHandler } from './command-handlers/invoke-on-link-co
 import { PluginSettingsComponent } from './plugin-settings-component.ts';
 import { PluginSettingsTab } from './plugin-settings-tab.ts';
 import { PluginSettings } from './plugin-settings.ts';
+import { RenameIntentHooksComponent } from './rename-intent-hooks-component.ts';
 import { SmartRenameComponent } from './smart-rename-component.ts';
 
 export class Plugin extends PluginBase {
@@ -36,6 +37,13 @@ export class Plugin extends PluginBase {
         pluginNoticeComponent: this.pluginNoticeComponent,
         pluginSettingsComponent,
         resourceLockComponent: this.resourceLockComponent
+      })
+    );
+    this.addChild(
+      new RenameIntentHooksComponent({
+        app: this.app,
+        pluginSettingsComponent,
+        smartRenameComponent
       })
     );
     await this.commandHandlerComponent.registerCommandHandlers(() => [

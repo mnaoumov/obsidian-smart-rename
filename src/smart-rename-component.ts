@@ -21,7 +21,9 @@ import {
   buildBacklinksSnapshot,
   editBacklinksSnapshot,
   extractLinkFile,
-  generateMarkdownLink
+  generateMarkdownLink,
+  hasWikilinkSyntax,
+  shouldResetAlias
 } from '@mnaoumov/obsidian-lib/link';
 import {
   getBacklinksForFileSafe,
@@ -49,9 +51,12 @@ import {
 } from '@obsidian-typings/obsidian-public-latest/implementations';
 
 import type { PluginSettingsComponent } from './plugin-settings-component.ts';
+import type { RenameIntentChoice } from './rename-intent-modal.ts';
 
 import { InvalidCharacterAction } from './invalid-character-action.ts';
 import { hasInvalidCharacters } from './invalid-character.ts';
+import { selectRenameIntent } from './rename-intent-modal.ts';
+import { RenameIntent } from './rename-intent.ts';
 
 /**
  * One checkbox in the rename prompt's control strip, bound to the {@link PostRenameSteps} member it
@@ -66,7 +71,7 @@ interface PostRenameStepCheckbox {
 
   readonly key: string;
   readonly purpose: string;
-  readonly stepName: keyof PostRenameSteps;
+  readonly stepName: Exclude<keyof PostRenameSteps, 'shouldStoreInvalidTitleAsAlias'>;
 }
 
 /**
@@ -84,10 +89,20 @@ interface PostRenameSteps {
   shouldPreservePreviousDisplayTextInFrontmatterLinks: boolean;
   // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- The rename prompt checkbox toggles this per-rename flag.
   shouldPreservePreviousDisplayTextInNoteLinks: boolean;
+  // No checkbox: the new title as typed, kept as an alias when the rename had to sanitize it.
+  readonly shouldStoreInvalidTitleAsAlias: boolean;
   // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- The rename prompt checkbox toggles this per-rename flag.
   shouldUpdateFirstHeader: boolean;
   // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- The rename prompt checkbox toggles this per-rename flag.
   shouldUpdateTitleKey: boolean;
+}
+
+/**
+ * Where a validated rename goes, and the title the note keeps for it.
+ */
+interface ResolvedRename {
+  readonly newPath: string;
+  readonly titleToStore: string;
 }
 
 interface SmartRenameComponentAddAliasesParams {
@@ -115,6 +130,12 @@ interface SmartRenameComponentGetValidationErrorParams {
   readonly oldTitle: string;
 }
 
+interface SmartRenameComponentPerformRenameParams {
+  readonly file: TFile;
+  readonly resolvedRename: ResolvedRename;
+  readonly steps: PostRenameSteps;
+}
+
 interface SmartRenameComponentProcessBacklinksParams {
   readonly backlinks: CustomArrayDict<Reference>;
   readonly newPath: string;
@@ -130,9 +151,19 @@ interface SmartRenameComponentProcessRenameParams {
   readonly titleToStore: string;
 }
 
+interface SmartRenameComponentRenameWithIntentParams {
+  readonly file: TFile;
+  readonly typedTitle: string;
+}
+
 interface SmartRenameComponentReplaceInvalidCharactersParams {
   readonly $string: string;
   readonly replacement: string;
+}
+
+interface SmartRenameComponentResolveRenameParams {
+  readonly file: TFile;
+  readonly typedTitle: string;
 }
 
 interface SmartRenameComponentUpdateFirstHeaderParams {
@@ -169,67 +200,71 @@ export class SmartRenameComponent extends ComponentEx {
     this.pluginSettingsComponent = params.pluginSettingsComponent;
   }
 
+  /**
+   * Asks for the new name, then for the rename intent, and renames - the rename modal Obsidian opens from F2 when
+   * no title is shown, and from the pane, tab and link menus.
+   *
+   * @param file - The note to rename.
+   */
+  public async promptAndRenameWithIntent(file: TFile): Promise<void> {
+    const typedTitle = await prompt({
+      app: this.app,
+      defaultValue: file.basename,
+      title: 'Rename note'
+    });
+
+    if (typedTitle === null) {
+      return;
+    }
+
+    await this.renameWithIntent({ file, typedTitle });
+  }
+
+  /**
+   * Asks the rename intent for a new name the user already typed, and renames accordingly.
+   *
+   * @param params - The parameters.
+   * @returns Whether the note was renamed. `false` when the name is refused or the dialog is dismissed.
+   */
+  public async renameWithIntent(params: SmartRenameComponentRenameWithIntentParams): Promise<boolean> {
+    const { file, typedTitle } = params;
+    const resolvedRename = await this.resolveRename({ file, typedTitle });
+    if (!resolvedRename) {
+      return false;
+    }
+
+    const settings = this.pluginSettingsComponent.settings;
+    const choice = await selectRenameIntent({
+      app: this.app,
+      newTitle: resolvedRename.titleToStore,
+      oldTitle: file.basename,
+      preselectedIntent: settings.shouldSaveLastRenameIntent ? settings.lastRenameIntent : RenameIntent.SyncTitleAndHeading,
+      shouldSaveLastUsedChoice: settings.shouldSaveLastRenameIntent
+    });
+
+    if (!choice) {
+      return false;
+    }
+
+    await this.saveLastUsedChoice(choice);
+    return await this.performRename({ file, resolvedRename, steps: this.buildIntentSteps(choice.intent) });
+  }
+
   public async smartRename(file: TFile): Promise<void> {
-    const oldTitle = file.basename;
     const steps = this.buildPostRenameSteps();
-    let newTitle = await prompt({
+    const typedTitle = await prompt({
       app: this.app,
       commandBuilder: this.buildCommandBuilder({ file, steps }),
-      defaultValue: oldTitle,
+      defaultValue: file.basename,
       title: 'Enter new title'
     }) ?? '';
 
-    let titleToStore = newTitle;
-
-    if (hasInvalidCharacters(newTitle)) {
-      switch (this.pluginSettingsComponent.settings.invalidCharacterAction) {
-        case InvalidCharacterAction.Error: {
-          this.pluginNoticeComponent.showNotice('The new title has invalid characters');
-          return;
-        }
-        case InvalidCharacterAction.Remove: {
-          newTitle = this.replaceInvalidCharacters({ $string: newTitle, replacement: '' });
-          break;
-        }
-        case InvalidCharacterAction.Replace: {
-          newTitle = this.replaceInvalidCharacters({ $string: newTitle, replacement: this.pluginSettingsComponent.settings.replacementCharacter });
-          break;
-        }
-        default: {
-          throw new Error('Invalid character action');
-        }
-      }
-    }
-
-    if (!this.pluginSettingsComponent.settings.shouldStoreInvalidTitle) {
-      titleToStore = newTitle;
-    }
-
-    const newPath = join(file.parent?.getParentPrefix() ?? '', makeFileName({ fileBaseName: newTitle, fileExtension: file.extension }));
-
-    const validationError = await this.getValidationError({ newPath, newTitle, oldTitle });
-    if (validationError) {
-      this.pluginNoticeComponent.showNotice(validationError);
+    const resolvedRename = await this.resolveRename({ file, typedTitle });
+    if (!resolvedRename) {
       return;
     }
 
-    const backlinks = await getBacklinksForFileSafe({ app: this.app, pathOrFile: file });
-    const oldPath = file.path;
-
-    try {
-      await this.app.vault.rename(file, newPath);
-    } catch (error) {
-      this.pluginNoticeComponent.showNotice('Failed to rename file');
-      console.error(new Error('Failed to rename file', { cause: error }));
-      return;
-    }
-
-    addToQueue({
-      operationFunction: async () => {
-        await this.processRename({ backlinks, newPath, oldPath, steps, titleToStore });
-      },
-      operationName: 'Smart rename'
-    });
+    await this.performRename({ file, resolvedRename, steps });
   }
 
   private async addAliases(params: SmartRenameComponentAddAliasesParams): Promise<void> {
@@ -241,7 +276,7 @@ export class SmartRenameComponent extends ComponentEx {
 
     // Not governed by the checkbox above: this alias is the NEW title as it was typed, kept because the
     // rename had to sanitize it — a different thing from carrying the old title forward.
-    if (this.pluginSettingsComponent.settings.shouldStoreInvalidTitle && titleToStore !== newTitle) {
+    if (steps.shouldStoreInvalidTitleAsAlias && titleToStore !== newTitle) {
       await addAlias({ alias: titleToStore, app: this.app, pathOrFile: newPath, resourceLockComponent: this.resourceLockComponent });
     }
   }
@@ -269,12 +304,37 @@ export class SmartRenameComponent extends ComponentEx {
     return commandBuilder;
   }
 
+  /**
+   * The post-rename steps a rename intent stands for.
+   *
+   * Rename only runs none of them, so it matches a rename made by code: the links follow the new name and the
+   * note itself is left alone. The display-text steps belong to storing the previous name, because a link that
+   * keeps showing the old name is the other half of keeping it as an alias.
+   *
+   * @param intent - The intent chosen in the dialog.
+   * @returns The steps.
+   */
+  private buildIntentSteps(intent: RenameIntent): PostRenameSteps {
+    const settings = this.pluginSettingsComponent.settings;
+    const shouldSync = intent !== RenameIntent.RenameOnly;
+    const shouldStorePreviousName = intent === RenameIntent.StorePreviousName;
+    return {
+      shouldAddOldTitleAsAlias: shouldStorePreviousName,
+      shouldPreservePreviousDisplayTextInFrontmatterLinks: shouldStorePreviousName && settings.shouldPreservePreviousDisplayTextInFrontmatterLinks,
+      shouldPreservePreviousDisplayTextInNoteLinks: shouldStorePreviousName && settings.shouldPreservePreviousDisplayTextInNoteLinks,
+      shouldStoreInvalidTitleAsAlias: shouldSync && settings.shouldStoreInvalidTitle,
+      shouldUpdateFirstHeader: shouldSync,
+      shouldUpdateTitleKey: shouldSync
+    };
+  }
+
   private buildPostRenameSteps(): PostRenameSteps {
     const settings = this.pluginSettingsComponent.settings;
     return {
       shouldAddOldTitleAsAlias: settings.shouldAddOldTitleAsAlias,
       shouldPreservePreviousDisplayTextInFrontmatterLinks: settings.shouldPreservePreviousDisplayTextInFrontmatterLinks,
       shouldPreservePreviousDisplayTextInNoteLinks: settings.shouldPreservePreviousDisplayTextInNoteLinks,
+      shouldStoreInvalidTitleAsAlias: settings.shouldStoreInvalidTitle,
       shouldUpdateFirstHeader: settings.shouldUpdateFirstHeader,
       shouldUpdateTitleKey: settings.shouldUpdateTitleKey
     };
@@ -309,6 +369,28 @@ export class SmartRenameComponent extends ComponentEx {
     }
 
     return newTitle.startsWith('.') ? 'The title cannot start with a dot' : null;
+  }
+
+  private async performRename(params: SmartRenameComponentPerformRenameParams): Promise<boolean> {
+    const { file, resolvedRename: { newPath, titleToStore }, steps } = params;
+    const backlinks = await getBacklinksForFileSafe({ app: this.app, pathOrFile: file });
+    const oldPath = file.path;
+
+    try {
+      await this.app.vault.rename(file, newPath);
+    } catch (error) {
+      this.pluginNoticeComponent.showNotice('Failed to rename file');
+      console.error(new Error('Failed to rename file', { cause: error }));
+      return false;
+    }
+
+    addToQueue({
+      operationFunction: async () => {
+        await this.processRename({ backlinks, newPath, oldPath, steps, titleToStore });
+      },
+      operationName: 'Smart rename'
+    });
+    return true;
   }
 
   private async processBacklinks(params: SmartRenameComponentProcessBacklinksParams): Promise<void> {
@@ -350,7 +432,24 @@ export class SmartRenameComponent extends ComponentEx {
         const shouldPreservePreviousDisplayText = (isReferenceCache(link) && steps.shouldPreservePreviousDisplayTextInNoteLinks)
           || (isFrontmatterLinkCache(link) && steps.shouldPreservePreviousDisplayTextInFrontmatterLinks);
 
-        const alias = isNewTitle && shouldPreservePreviousDisplayText ? oldTitle : link.displayText;
+        /*
+         * A display text Obsidian derived from the old name is not the author's choice: it shows the old title
+         * only when that is asked for, and otherwise goes, so the link follows the new name as after a plain
+         * rename. A display text the author chose is kept as is.
+         */
+        const isDerivedDisplayText = shouldResetAlias({
+          app: this.app,
+          displayText: link.displayText,
+          isWikilink: hasWikilinkSyntax(link.original),
+          newSourcePathOrFile: sourcePath,
+          oldTargetPath: oldPath,
+          targetPathOrFile: newPath
+        });
+
+        let alias = link.displayText;
+        if (isNewTitle || isDerivedDisplayText) {
+          alias = shouldPreservePreviousDisplayText ? oldTitle : undefined;
+        }
 
         return generateMarkdownLink(normalizeOptionalProperties<GenerateMarkdownLinkParams>({
           alias,
@@ -384,6 +483,69 @@ export class SmartRenameComponent extends ComponentEx {
   private replaceInvalidCharacters(params: SmartRenameComponentReplaceInvalidCharactersParams): string {
     const { $string, replacement } = params;
     return $string.replace(getOsAndObsidianUnsafePathCharsRegExp(), () => replacement);
+  }
+
+  /**
+   * Sanitizes and validates a typed title into the rename it asks for, showing why when it is refused.
+   *
+   * @param params - The parameters.
+   * @returns The rename, or `null` when the title is refused.
+   */
+  private async resolveRename(params: SmartRenameComponentResolveRenameParams): Promise<null | ResolvedRename> {
+    const { file, typedTitle } = params;
+    const settings = this.pluginSettingsComponent.settings;
+    let newTitle = typedTitle;
+
+    if (hasInvalidCharacters(newTitle)) {
+      switch (settings.invalidCharacterAction) {
+        case InvalidCharacterAction.Error: {
+          this.pluginNoticeComponent.showNotice('The new title has invalid characters');
+          return null;
+        }
+        case InvalidCharacterAction.Remove: {
+          newTitle = this.replaceInvalidCharacters({ $string: newTitle, replacement: '' });
+          break;
+        }
+        case InvalidCharacterAction.Replace: {
+          newTitle = this.replaceInvalidCharacters({ $string: newTitle, replacement: settings.replacementCharacter });
+          break;
+        }
+        default: {
+          throw new Error('Invalid character action');
+        }
+      }
+    }
+
+    const titleToStore = settings.shouldStoreInvalidTitle ? typedTitle : newTitle;
+    const newPath = join(file.parent?.getParentPrefix() ?? '', makeFileName({ fileBaseName: newTitle, fileExtension: file.extension }));
+
+    const validationError = await this.getValidationError({ newPath, newTitle, oldTitle: file.basename });
+    if (validationError) {
+      this.pluginNoticeComponent.showNotice(validationError);
+      return null;
+    }
+
+    return { newPath, titleToStore };
+  }
+
+  /**
+   * Remembers the dialog's sticky checkbox, and the choice itself while it is ticked.
+   *
+   * Writes only on a change, so a dialog answered the same way as last time does not rewrite `data.json`.
+   *
+   * @param choice - The choice made in the dialog.
+   */
+  private async saveLastUsedChoice(choice: RenameIntentChoice): Promise<void> {
+    const settings = this.pluginSettingsComponent.settings;
+    const lastRenameIntent = choice.shouldSaveLastUsedChoice ? choice.intent : settings.lastRenameIntent;
+    if (settings.shouldSaveLastRenameIntent === choice.shouldSaveLastUsedChoice && settings.lastRenameIntent === lastRenameIntent) {
+      return;
+    }
+
+    await this.pluginSettingsComponent.editAndSave((editedSettings) => {
+      editedSettings.shouldSaveLastRenameIntent = choice.shouldSaveLastUsedChoice;
+      editedSettings.lastRenameIntent = lastRenameIntent;
+    });
   }
 
   private async updateFirstHeader(params: SmartRenameComponentUpdateFirstHeaderParams): Promise<void> {

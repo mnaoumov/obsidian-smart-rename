@@ -57,6 +57,39 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
         ]
       }),
       this.settingGroupEx({
+        heading: 'Rename intent',
+        items: [
+          this.settingEx({
+            desc: createFragment((f) => {
+              f.appendText('Whether renaming a note through Obsidian itself - the inline title, the file explorer, the rename dialog - asks what the rename is meant to do: ');
+              appendCodeBlock(f, 'Rename and sync to title/H1');
+              f.appendText(', ');
+              appendCodeBlock(f, 'Rename and store previous name/title/H1');
+              f.appendText(' or ');
+              appendCodeBlock(f, 'Rename only');
+              f.appendText('.');
+              f.createEl('br');
+              f.appendText('Renames made by other plugins, by sync or by scripts never ask.');
+            }),
+            name: 'Ask rename intent',
+            render: (setting) => {
+              setting.addToggle((toggle) => {
+                this.bind({ propertyName: 'shouldAskRenameIntent', valueComponent: toggle });
+              });
+            }
+          }),
+          this.settingEx({
+            desc: 'Whether the rename intent dialog preselects the choice made last time instead of syncing to title/H1. The dialog\'s own checkbox changes it too.',
+            name: 'Save last used choice',
+            render: (setting) => {
+              setting.addToggle((toggle) => {
+                this.bind({ propertyName: 'shouldSaveLastRenameIntent', valueComponent: toggle });
+              });
+            }
+          })
+        ]
+      }),
+      this.settingGroupEx({
         heading: 'Title',
         items: [
           this.settingEx({

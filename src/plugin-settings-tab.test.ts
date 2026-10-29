@@ -54,7 +54,7 @@ describe('PluginSettingsTab', () => {
 
     const headings = tab.getSettingDefinitions().map((item) => 'heading' in item ? item.heading : '');
 
-    expect(headings).toStrictEqual(['Invalid characters', 'Title', 'Previous display text', 'Other']);
+    expect(headings).toStrictEqual(['Invalid characters', 'Rename intent', 'Title', 'Previous display text', 'Other']);
   });
 
   it('should bind invalidCharacterAction setting', () => {
@@ -71,6 +71,22 @@ describe('PluginSettingsTab', () => {
     renderRows(tab);
 
     expect(getBoundKeys()).toContain('replacementCharacter');
+  });
+
+  it('should bind shouldAskRenameIntent setting', () => {
+    const tab = createSettingsTab(InvalidCharacterAction.Error);
+
+    renderRows(tab);
+
+    expect(getBoundKeys()).toContain('shouldAskRenameIntent');
+  });
+
+  it('should bind shouldSaveLastRenameIntent setting', () => {
+    const tab = createSettingsTab(InvalidCharacterAction.Error);
+
+    renderRows(tab);
+
+    expect(getBoundKeys()).toContain('shouldSaveLastRenameIntent');
   });
 
   it('should bind shouldAddOldTitleAsAlias setting', () => {
