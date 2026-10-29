@@ -105,7 +105,7 @@ vi.mock('@mnaoumov/obsidian-lib/link', async (importOriginal) => ({
   // `buildBacklinksSnapshot` is deliberately NOT mocked: letting the real one run is what proves the
   // snapshot the converter is judged against was actually built from these backlinks (G49).
   editBacklinksSnapshot: (...$arguments: unknown[]): unknown => hoisted.mockEditBacklinksSnapshot(...$arguments),
-  extractLinkFile: (...$arguments: unknown[]): unknown => hoisted.mockExtractLinkFile(...$arguments),
+  extractReferenceFile: (...$arguments: unknown[]): unknown => hoisted.mockExtractLinkFile(...$arguments),
   generateMarkdownLink: (...$arguments: unknown[]): unknown => hoisted.mockGenerateMarkdownLink(...$arguments),
   shouldResetAlias: (...$arguments: unknown[]): unknown => hoisted.mockShouldResetAlias(...$arguments)
 }));
@@ -145,8 +145,8 @@ import { PluginSettingsComponent } from './plugin-settings-component.ts';
 import { SmartRenameComponent } from './smart-rename-component.ts';
 
 interface BacklinkConversion {
-  readonly link: BacklinkLink;
   readonly payload: true | undefined;
+  readonly reference: BacklinkLink;
   readonly sourcePath: string;
 }
 
@@ -161,7 +161,7 @@ interface BacklinksStub {
 }
 
 interface CapturedEditBacklinksSnapshotParams {
-  readonly linkConverter: EditLinksCallback;
+  readonly referenceConverter: EditLinksCallback;
 }
 
 interface CapturedProcessFrontmatterParams {
@@ -179,7 +179,7 @@ interface CapturedPromptParams {
 // Split from `CapturedEditBacklinksSnapshotParams` rather than folded into it: the capture callback reads
 // only the converter, and `no-unused-params-members` (rightly) rejects a member its receiver never touches.
 interface CapturedSnapshot {
-  readonly linkIdentityKeyProvider?: (link: BacklinkLink) => string;
+  readonly referenceIdentityKeyProvider?: (link: BacklinkLink) => string;
   readonly snapshot: ReadonlyMap<string, ReadonlyMap<string, true>>;
 }
 
@@ -626,7 +626,7 @@ describe('SmartRenameComponent', () => {
     });
   });
 
-  describe('processBacklinks (editLinks callback)', () => {
+  describe('processBacklinks (editReferences callback)', () => {
     async function setupBacklinkCallback(options: SetupBacklinkCallbackOptions): Promise<EditLinksCallback> {
       hoisted.mockPrompt.mockResolvedValue('NewTitle');
       hoisted.mockIsMarkdownFile.mockReturnValue(false);
@@ -635,7 +635,7 @@ describe('SmartRenameComponent', () => {
 
       let editLinksCallback: EditLinksCallback | undefined;
       hoisted.mockEditBacklinksSnapshot.mockImplementation((params: CapturedEditBacklinksSnapshotParams) => {
-        editLinksCallback = params.linkConverter;
+        editLinksCallback = params.referenceConverter;
       });
 
       const component = await createComponent(options.settings ? { settings: options.settings } : undefined);
@@ -644,7 +644,7 @@ describe('SmartRenameComponent', () => {
       await runEnqueuedOperation();
 
       if (!editLinksCallback) {
-        throw new Error('editLinks callback was not captured');
+        throw new Error('editReferences callback was not captured');
       }
 
       return editLinksCallback;
@@ -664,8 +664,8 @@ describe('SmartRenameComponent', () => {
       // Absent from the snapshot (`payload: undefined`) AND resolving to some other file: the only
       // combination the converter declines.
       const result = callback({
-        link: { displayText: 'SomeOther', original: '[[SomeOther]]' },
         payload: undefined,
+        reference: { displayText: 'SomeOther', original: '[[SomeOther]]' },
         sourcePath: 'note.md'
       });
       expect(result).toBeUndefined();
@@ -685,7 +685,7 @@ describe('SmartRenameComponent', () => {
       });
 
       hoisted.mockExtractLinkFile.mockReturnValue(hoisted.mockGetFile());
-      const result = callback({ link: mockLink, payload: true, sourcePath: 'note.md' });
+      const result = callback({ payload: true, reference: mockLink, sourcePath: 'note.md' });
       expect(result).toBe('[[NewTitle|OldTitle]]');
     });
 
@@ -705,7 +705,7 @@ describe('SmartRenameComponent', () => {
       });
 
       hoisted.mockExtractLinkFile.mockReturnValue(hoisted.mockGetFile());
-      callback({ link: mockLink, payload: true, sourcePath: 'note.md' });
+      callback({ payload: true, reference: mockLink, sourcePath: 'note.md' });
       expect(hoisted.mockGenerateMarkdownLink).toHaveBeenCalledWith(
         expect.objectContaining({ alias: 'OldTitle' })
       );
@@ -762,7 +762,7 @@ describe('SmartRenameComponent', () => {
       const params = ensureNonNullable(
         hoisted.mockEditBacklinksSnapshot.mock.calls[0]?.[0] as CapturedSnapshot | undefined
       );
-      const linkIdentityKeyProvider = params.linkIdentityKeyProvider ?? JSON.stringify;
+      const linkIdentityKeyProvider = params.referenceIdentityKeyProvider ?? JSON.stringify;
       expect(params.snapshot.get('note.md')?.get(linkIdentityKeyProvider(mockLink))).toBe(true);
     });
 
@@ -784,7 +784,7 @@ describe('SmartRenameComponent', () => {
        * outright. That contradicted this plugin's own widening: it visits links ABSENT from the snapshot
        * precisely so one already resolving to the renamed file still gets restyled, and skipping the whole
        * file denied those links the same chance. The holder is now visited with an empty capture set, and
-       * every link in it is judged by `extractLinkFile` alone.
+       * every link in it is judged by `extractReferenceFile` alone.
        */
       const params = ensureNonNullable(
         hoisted.mockEditBacklinksSnapshot.mock.calls[0]?.[0] as CapturedSnapshot | undefined
@@ -807,7 +807,7 @@ describe('SmartRenameComponent', () => {
       });
 
       hoisted.mockExtractLinkFile.mockReturnValue(hoisted.mockGetFile());
-      const result = callback({ link: mockLink, payload: true, sourcePath: 'note.md' });
+      const result = callback({ payload: true, reference: mockLink, sourcePath: 'note.md' });
       expect(result).toBe('[[NewTitle]]');
     });
 
@@ -828,7 +828,7 @@ describe('SmartRenameComponent', () => {
       });
 
       hoisted.mockExtractLinkFile.mockReturnValue(hoisted.mockGetFile());
-      callback({ link: mockLink, payload: true, sourcePath: 'note.md' });
+      callback({ payload: true, reference: mockLink, sourcePath: 'note.md' });
       expect(hoisted.mockGenerateMarkdownLink).toHaveBeenCalledWith(
         expect.objectContaining({ alias: 'OldTitle' })
       );
@@ -1204,12 +1204,12 @@ describe('SmartRenameComponent rename intent', () => {
       hoisted.mockGetFile.mockReturnValue(strictProxy<TFile>({ basename: 'NewTitle', path: 'NewTitle.md' }));
       let linkConverter: EditLinksCallback | undefined;
       hoisted.mockEditBacklinksSnapshot.mockImplementation((params: CapturedEditBacklinksSnapshotParams) => {
-        linkConverter = params.linkConverter;
+        linkConverter = params.referenceConverter;
       });
       const component = await createComponent({ settings });
       await component.smartRename(createInputFile());
       await runEnqueuedOperation();
-      ensureNonNullable(linkConverter)({ link: { displayText: 'OldTitle', original: '[[OldTitle]]' }, payload: true, sourcePath: 'note.md' });
+      ensureNonNullable(linkConverter)({ payload: true, reference: { displayText: 'OldTitle', original: '[[OldTitle]]' }, sourcePath: 'note.md' });
     }
 
     it('should show the old title when the previous display text is kept', async () => {
