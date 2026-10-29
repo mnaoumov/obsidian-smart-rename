@@ -49,6 +49,7 @@ A copy of the vault ships with every release. You can access it via any of the f
 - **Invalid characters are handled**, rather than the rename being refused, when the title you want cannot be a file name. [02 Invalid characters](<./demo-vault/02 Invalid characters.md>)
 - **A linked note can be renamed from where you link to it.** Put the cursor on a link, run the command, and the note that link points at is smart-renamed — you never open it. Works on wikilinks, markdown links, embeds and frontmatter links alike. [03 Rename the link target](<./demo-vault/03 Rename the link target.md>)
 - **The first header and a frontmatter title key** can be kept in sync with the new name. [04 Settings](<./demo-vault/04 Settings.md>)
+- **Obsidian's own renames ask what they are for.** Renaming a note through its inline title, the file explorer, F2 or a **Rename...** menu item offers to sync the frontmatter `title` and the first H1 to the new name (the default), to also keep the previous name, or to rename the file only. Renames made by other plugins, by sync or by scripts never ask. Works on mobile too. [05 Rename intent](<./demo-vault/05 Rename intent.md>)
 
 ## See also
 

@@ -33,6 +33,15 @@ Manual equivalent: set **Invalid characters action** back to *Error*, **Replacem
 - `shouldStoreInvalidTitle`
   - keep the original, invalid title as the note's display text; if disabled, the sanitized version is stored.
 
+## Rename intent
+
+- `shouldAskRenameIntent`
+  - ask the rename intent when a note is renamed through Obsidian itself; see [05 Rename intent](<./05 Rename intent.md>).
+- `shouldSaveLastRenameIntent`
+  - preselect the choice made last time in the rename intent dialog instead of syncing to title/H1. The dialog's own checkbox changes it too.
+- `lastRenameIntent`
+  - the choice made last time, stored while `shouldSaveLastRenameIntent` is on: `SyncTitleAndHeading`, `StorePreviousName` or `RenameOnly`.
+
 ## Title
 
 - `shouldAddOldTitleAsAlias`

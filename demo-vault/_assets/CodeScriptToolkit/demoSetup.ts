@@ -129,6 +129,22 @@ export async function startRename(app: App): Promise<void> {
 }
 
 /**
+ * Opens the note the walkthrough renames and starts Obsidian's own rename on it, the way F2 does: the inline title
+ * takes focus, or the rename dialog opens when no title is shown.
+ *
+ * Manual equivalent: open `Materials/01 Smart rename/Rename me.md` and press F2, or click its inline title.
+ */
+export async function startIntentRename(app: App): Promise<void> {
+  const note = app.vault.getFileByPath(`${DEMO_FOLDER_PATH}/Rename me.md`);
+  if (!note) {
+    new Notice('"Rename me" is not there — press the reset button first.');
+    return;
+  }
+
+  await app.workspace.getLeaf(false).openFile(note);
+  app.commands.executeCommandById('workspace:edit-file-title');
+}
+/**
  * Opens the note that links to the target and drops the cursor inside its first wikilink, so the
  * command is immediately available.
  *
