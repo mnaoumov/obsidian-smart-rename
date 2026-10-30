@@ -2,6 +2,12 @@
 
 Developer-facing notes for this repo. User-facing documentation is the demo vault (`demo-vault/`) and `README.md`; nothing here is meant for end users.
 
+## Filing an issue (for AI agents and humans)
+
+Open issues through the [issue forms](https://github.com/mnaoumov/obsidian-smart-rename/issues/new/choose), not as blank issues.
+
+Filing from the CLI or the API (`gh issue create --body`, or an AI agent filing for you) skips the form, and `gh issue create --template` cannot load an issue form. In that case, open the matching form in [`.github/ISSUE_TEMPLATE/`](https://github.com/mnaoumov/obsidian-smart-rename/tree/HEAD/.github/ISSUE_TEMPLATE), copy every field as a `### <label>` heading in the form's order, and fill in each one. Always state the plugin version, the Obsidian version and your operating system.
+
 ## What the plugin does
 
 Renames a note and rewrites its backlinks so each one **keeps displaying the old title** — `[[Old]]` becomes `[[New|Old]]`. A link that already carried display text the author chose is left alone, because a plain Obsidian rename was always correct for those.
