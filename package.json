@@ -46,6 +46,7 @@
     "eslint": "$eslint",
     "katex": "^0.18.2",
     "moment": "^2.31.0",
+    "re2js": "^2.9.1",
     "type-fest": "$type-fest",
     "typescript": "$typescript"
   },
@@ -57,7 +58,7 @@
     "@commitlint/cli": "^21.2.4",
     "@commitlint/config-conventional": "^21.2.4",
     "@eslint/config-helpers": "^0.7.0",
-    "@mnaoumov/obsidian-dev-toolkit": "^7.2.0",
+    "@mnaoumov/obsidian-dev-toolkit": "^7.4.0",
     "@mnaoumov/typescript-dev-toolkit": "^5.2.0",
     "@mnaoumov/typescript-test-toolkit": "^1.0.2",
     "@obsidian-typings/obsidian-public-latest": "^6.54.0",
