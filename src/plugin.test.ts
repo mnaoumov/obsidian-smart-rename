@@ -96,6 +96,15 @@ describe('Plugin', () => {
     );
   });
 
+  it('should register the report bug command via its command handler', async () => {
+    const plugin = new Plugin(createApp(), createManifest());
+    const addCommandSpy = vi.spyOn(plugin, 'addCommand');
+    await plugin.onload();
+    expect(addCommandSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'report-bug' })
+    );
+  });
+
   it('should add the plugin settings tab via its child component', async () => {
     const plugin = new Plugin(createApp(), createManifest());
     const addSettingTabSpy = vi.spyOn(plugin, 'addSettingTab');
