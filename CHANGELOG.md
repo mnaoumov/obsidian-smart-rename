@@ -1,5 +1,22 @@
 # CHANGELOG
 
+## 2.6.0
+
+- docs(readme): point bug reports at the Report a bug command
+- docs: add issue-filing instructions for AI agents
+- feat: add a Report a bug command
+- chore(github): give the bug form the field ids bug-report links prefill
+- build(deps): float obsidian-dev-toolkit to ^7.4.0 and override re2js to ^2.9.1
+- refactor: drop the obsidian-typings stopgaps in the rename intent hooks
+- build(deps): bump @mnaoumov/obsidian-lib to ^10.1.0 and adopt its Reference API names
+- feat: ask the rename intent on Obsidian's own rename surfaces
+- build(deps): bump typescript-dev-toolkit to ^5.2.0
+- build(deps): bump obsidian-dev-toolkit to ^7.1.1 and typescript-dev-toolkit to ^5.1.0
+- chore: adopt readonly interface members
+- docs(readme): combine related resources and plugin comparisons
+- docs: list similar plugins in the README
+- feat: refuse Windows device names and trailing dots in the rename dialog
+
 ## 2.5.1
 
 - test(integration): poll the invoke-on-link rename from Node
