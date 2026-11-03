@@ -28,16 +28,30 @@ const SOURCE_CONTENT = `[[${OLD_TITLE}]]`;
 const WAIT_TIMEOUT_IN_MILLISECONDS = 4000;
 
 interface IntentRenameResult {
+  readonly hasReadableLayout: boolean;
   readonly renamedContent: string;
   readonly sourceContentAfter: string;
   readonly wasDialogShown: boolean;
 }
 
 describe('Rename intent dialog', () => {
+  it('keeps long paths readable and all actions in one row in a narrow dialog', async () => {
+    const result = await runIntentRename({
+      folder: `intent-layout-${'long-folder-name-'.repeat(8)}`,
+      intent: 'RenameOnly',
+      modalWidth: 288,
+      surface: 'renameDialog'
+    });
+
+    expect(result.hasReadableLayout).toBe(true);
+    expect(result.renamedContent).toBe(TARGET_CONTENT);
+  });
+
   it('syncs title and H1 when the inline title is renamed with the default choice', async () => {
     const result = await runIntentRename({ folder: 'intent-inline-sync', intent: 'SyncTitleAndHeading', surface: 'inlineTitle' });
 
     expect(result.wasDialogShown).toBe(true);
+    expect(result.hasReadableLayout).toBe(true);
     expect(result.renamedContent).toContain(`title: ${NEW_TITLE}`);
     expect(result.renamedContent).toContain(`# ${NEW_TITLE}`);
     expect(result.renamedContent).not.toContain('aliases');
@@ -79,6 +93,7 @@ interface RunIntentRenameParams {
    */
   readonly folder: string;
   readonly intent: string;
+  readonly modalWidth?: number;
   readonly surface: 'fileExplorer' | 'inlineTitle' | 'renameDialog';
 }
 
@@ -94,6 +109,7 @@ async function runIntentRename(params: RunIntentRenameParams): Promise<IntentRen
         pressKey,
         waitUntil
       },
+      modalWidth,
       newTitle,
       obsidianModule,
       renamedTargetPath,
@@ -205,6 +221,8 @@ async function runIntentRename(params: RunIntentRenameParams): Promise<IntentRen
       if (!intentButtonEl) {
         throw new Error('Intent button is missing');
       }
+
+      const hasReadableLayout = checkDialogLayout();
       await clickElement({ element: intentButtonEl });
       await renamePromise;
 
@@ -238,11 +256,35 @@ async function runIntentRename(params: RunIntentRenameParams): Promise<IntentRen
       leaf.detach();
       await cleanUp();
 
-      return { renamedContent, sourceContentAfter, wasDialogShown };
+      return { hasReadableLayout, renamedContent, sourceContentAfter, wasDialogShown };
+
+      function checkDialogLayout(): boolean {
+        const modalEl = document.querySelector<HTMLElement>(`${intentModalSelector} .modal`);
+        if (!modalEl) {
+          throw new Error('Intent modal is missing');
+        }
+
+        if (modalWidth) {
+          modalEl.style.width = `${String(modalWidth)}px`;
+        }
+
+        const paths = [...modalEl.querySelectorAll<HTMLElement>(':scope .smart-rename-intent-paths > *')];
+        const pathRects = paths.map((el) => el.getBoundingClientRect());
+        const buttons = [...modalEl.querySelectorAll<HTMLElement>('button[data-intent]')];
+        const buttonRects = buttons.map((el) => el.getBoundingClientRect());
+        const firstButtonRect = buttonRects[0];
+        return paths[0]?.querySelector('code')?.textContent === targetPath
+          && paths[2]?.querySelector('code')?.textContent === renamedTargetPath
+          && pathRects.every((rect, index) => index === 0 || rect.top >= (pathRects[index - 1]?.bottom ?? 0))
+          && buttons.length === 3
+          && buttonRects.every((rect) => rect.width > 0 && rect.top === firstButtonRect?.top)
+          && [...paths, ...buttons, modalEl].every((el) => el.scrollWidth <= el.clientWidth + 1);
+      }
     },
     input: {
       intent: params.intent,
       intentModalSelector: INTENT_MODAL_SELECTOR,
+      modalWidth: params.modalWidth ?? null,
       newTitle: NEW_TITLE,
       renamedTargetPath: `${params.folder}/${NEW_TITLE}.md`,
       sourceContent: SOURCE_CONTENT,

@@ -51,8 +51,8 @@ function openDialog(params?: Partial<SelectRenameIntentParams>): OpenedDialog {
   const constructorSpy = vi.spyOn(Modal.prototype, 'constructor__');
   const choicePromise = selectRenameIntent({
     app: createApp(),
-    newTitle: 'NewTitle',
-    oldTitle: 'OldTitle',
+    newPath: 'NewTitle',
+    oldPath: 'OldTitle',
     preselectedIntent: RenameIntent.SyncTitleAndHeading,
     shouldSaveLastUsedChoice: false,
     ...params
@@ -68,12 +68,14 @@ afterEach(() => {
 });
 
 describe('selectRenameIntent', () => {
-  it('should show the old and new title and one button per intent', () => {
+  it('should show the old and new paths and one button per intent', () => {
     const { modal } = openDialog();
 
     expect(modal.containerEl.hasClass('smart-rename-intent-modal')).toBe(true);
     expect(modal.titleEl.getText()).toBe('Rename note');
-    expect(modal.contentEl.getText()).toContain('OldTitle → NewTitle');
+    expect(Array.from(modal.contentEl.querySelectorAll(':scope .smart-rename-intent-paths > *'), (el) => el.textContent))
+      .toStrictEqual(['OldTitle', '→', 'NewTitle']);
+    expect(Array.from(modal.contentEl.querySelectorAll('code'), (el) => el.textContent)).toStrictEqual(['OldTitle', 'NewTitle']);
     expect(findButton(modal, RenameIntent.SyncTitleAndHeading).getText()).toBe('Rename and sync to title/H1');
     expect(findButton(modal, RenameIntent.StorePreviousName).getText()).toBe('Rename and store previous name/title/H1');
     expect(findButton(modal, RenameIntent.RenameOnly).getText()).toBe('Rename only');

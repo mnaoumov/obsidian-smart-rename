@@ -37,6 +37,8 @@ Renames a note and rewrites its backlinks so each one **keeps displaying the old
 
 **The control strip is `@mnaoumov/obsidian-lib`'s, not ours.** `ModalCommandBuilder` from `@mnaoumov/obsidian-lib/modals/modal-command-builder`, passed to `prompt()` as `commandBuilder`. The default `Instructions` render mode gives real inline checkboxes, which matters on mobile where there is no modifier key to press. Do not hand-roll a modal here.
 
+**The rename intent dialog previews resolved paths.** Its old and new paths include the folder and extension, with the destination reflecting filename sanitization. Each path uses the library's code-chip helper on its own row. The three action buttons stay in one grid row; their labels wrap within their columns on narrow screens. The layout lives in `src/rename-intent-modal.scss`.
+
 ## Testing traps this repo has already hit
 
 - A unit test that renders the command strip must attach its host element to the document. jsdom fires `change` on `checkbox.click()` only for a **connected** element, and `change` is what `addCheckbox` binds `onChange` to; detached, the click toggles `checked` and notifies nobody.
