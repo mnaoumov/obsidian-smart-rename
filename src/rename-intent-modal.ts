@@ -1,6 +1,7 @@
 import type { ModalBaseConstructorParams } from '@mnaoumov/obsidian-lib/modals/modal';
 import type { App } from 'obsidian';
 
+import { appendCodeBlock } from '@mnaoumov/obsidian-lib/html-element';
 import {
   ModalBase,
   showModal
@@ -9,6 +10,7 @@ import { ModalCommandBuilder } from '@mnaoumov/obsidian-lib/modals/modal-command
 import { ButtonComponent } from 'obsidian';
 
 import { RenameIntent } from './rename-intent.ts';
+import './rename-intent-modal.scss';
 
 /**
  * What the user answered in the {@link RenameIntentModal}.
@@ -23,8 +25,8 @@ export interface RenameIntentChoice {
  */
 export interface SelectRenameIntentParams {
   readonly app: App;
-  readonly newTitle: string;
-  readonly oldTitle: string;
+  readonly newPath: string;
+  readonly oldPath: string;
   readonly preselectedIntent: RenameIntent;
   readonly shouldSaveLastUsedChoice: boolean;
 }
@@ -46,16 +48,16 @@ const RENAME_INTENT_OPTIONS: readonly RenameIntentOption[] = [
 
 class RenameIntentModal extends ModalBase<null | RenameIntentChoice> {
   private isChosen = false;
-  private readonly newTitle: string;
-  private readonly oldTitle: string;
+  private readonly newPath: string;
+  private readonly oldPath: string;
   private readonly preselectedIntent: RenameIntent;
   private shouldSaveLastUsedChoice: boolean;
 
   public constructor(params: RenameIntentModalConstructorParams) {
     super(params);
     this.addCssClasses(RENAME_INTENT_MODAL_CSS_CLASS);
-    this.newTitle = params.newTitle;
-    this.oldTitle = params.oldTitle;
+    this.newPath = params.newPath;
+    this.oldPath = params.oldPath;
     this.preselectedIntent = params.preselectedIntent;
     this.shouldSaveLastUsedChoice = params.shouldSaveLastUsedChoice;
   }
@@ -68,9 +70,11 @@ class RenameIntentModal extends ModalBase<null | RenameIntentChoice> {
 
   public override onOpen(): void {
     this.titleEl.setText('Rename note');
-    this.contentEl.createEl('p', { text: `${this.oldTitle} → ${this.newTitle}` });
+    const pathsEl = this.contentEl.createDiv({ cls: 'smart-rename-intent-paths' });
+    appendCodeBlock(pathsEl, this.oldPath);
+    pathsEl.createDiv({ text: '→' });
+    appendCodeBlock(pathsEl, this.newPath);
 
-    // Obsidian's own button row, which wraps, so the three long labels stay readable on a phone.
     const buttonsEl = this.contentEl.createDiv({ cls: 'modal-button-container' });
     let preselectedButton: ButtonComponent | null = null;
 

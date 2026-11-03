@@ -1,0 +1,37 @@
+.smart-rename-intent-modal .modal {
+  width: 900px;
+  max-width: calc(100vw - 32px);
+}
+
+.smart-rename-intent-paths {
+  display: grid;
+  gap: var(--size-4-2);
+  margin-block: var(--size-4-4);
+}
+
+.smart-rename-intent-paths code {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+
+.smart-rename-intent-paths > strong {
+  min-width: 0;
+}
+
+.smart-rename-intent-modal .modal-button-container {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--size-4-2);
+}
+
+.smart-rename-intent-modal .modal-button-container button {
+  width: 100%;
+  min-width: 0;
+  height: auto;
+  min-height: var(--input-height);
+  margin: 0;
+  padding: var(--size-4-2);
+  white-space: normal;
+  overflow-wrap: anywhere;
+}

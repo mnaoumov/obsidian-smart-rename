@@ -236,8 +236,8 @@ export class SmartRenameComponent extends ComponentEx {
     const settings = this.pluginSettingsComponent.settings;
     const choice = await selectRenameIntent({
       app: this.app,
-      newTitle: resolvedRename.titleToStore,
-      oldTitle: file.basename,
+      newPath: resolvedRename.newPath,
+      oldPath: file.path,
       preselectedIntent: settings.shouldSaveLastRenameIntent ? settings.lastRenameIntent : RenameIntent.SyncTitleAndHeading,
       shouldSaveLastUsedChoice: settings.shouldSaveLastRenameIntent
     });

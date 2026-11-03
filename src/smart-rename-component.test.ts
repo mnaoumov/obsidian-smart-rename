@@ -422,7 +422,7 @@ describe('SmartRenameComponent', () => {
     });
 
     it('should show notice when rename throws Error action for invalid characters', async () => {
-      hoisted.mockPrompt.mockResolvedValue('foo/bar');
+      hoisted.mockPrompt.mockResolvedValue('alpha/Bravo');
       const component = await createComponent({
         settings: { invalidCharacterAction: castTo<PluginSettings['invalidCharacterAction']>('Error') }
       });
@@ -431,7 +431,7 @@ describe('SmartRenameComponent', () => {
     });
 
     it('should remove invalid characters when action is Remove', async () => {
-      hoisted.mockPrompt.mockResolvedValue('foo/bar');
+      hoisted.mockPrompt.mockResolvedValue('alpha/Bravo');
       const component = await createComponent({
         settings: { invalidCharacterAction: castTo<PluginSettings['invalidCharacterAction']>('Remove') }
       });
@@ -440,7 +440,7 @@ describe('SmartRenameComponent', () => {
     });
 
     it('should replace invalid characters when action is Replace', async () => {
-      hoisted.mockPrompt.mockResolvedValue('foo/bar');
+      hoisted.mockPrompt.mockResolvedValue('alpha/Bravo');
       const component = await createComponent({
         settings: {
           invalidCharacterAction: castTo<PluginSettings['invalidCharacterAction']>('Replace'),
@@ -452,7 +452,7 @@ describe('SmartRenameComponent', () => {
     });
 
     it('should throw when invalidCharacterAction is unknown', async () => {
-      hoisted.mockPrompt.mockResolvedValue('foo/bar');
+      hoisted.mockPrompt.mockResolvedValue('alpha/Bravo');
       const component = await createComponent({
         settings: { invalidCharacterAction: castTo<PluginSettings['invalidCharacterAction']>('Unknown') }
       });
@@ -480,7 +480,7 @@ describe('SmartRenameComponent', () => {
     });
 
     it('should store sanitized title when shouldStoreInvalidTitle is false', async () => {
-      hoisted.mockPrompt.mockResolvedValue('foo/bar');
+      hoisted.mockPrompt.mockResolvedValue('alpha/Bravo');
       const component = await createComponent({
         settings: {
           invalidCharacterAction: castTo<PluginSettings['invalidCharacterAction']>('Remove'),
@@ -604,11 +604,11 @@ describe('SmartRenameComponent', () => {
     });
 
     it('should call addAlias with titleToStore when shouldStoreInvalidTitle is true and titleToStore differs', async () => {
-      hoisted.mockPrompt.mockResolvedValue('foo/bar');
+      hoisted.mockPrompt.mockResolvedValue('alpha/Bravo');
       hoisted.mockIsMarkdownFile.mockReturnValue(true);
       hoisted.mockGetFile.mockReturnValue(strictProxy<TFile>({
-        basename: 'foobar',
-        path: 'foobar.md'
+        basename: 'alphaBravo',
+        path: 'alphaBravo.md'
       }));
       hoisted.mockAddAlias.mockResolvedValue(undefined);
 
@@ -1026,10 +1026,10 @@ describe('SmartRenameComponent', () => {
     it('should still store the invalid title when the old title alias is unticked', async () => {
       await runRenameWithStrip({
         newFile: {
-          basename: 'foobar',
-          path: 'foobar.md'
+          basename: 'alphaBravo',
+          path: 'alphaBravo.md'
         },
-        newTitle: 'foo/bar',
+        newTitle: 'alpha/Bravo',
         settings: {
           invalidCharacterAction: castTo<PluginSettings['invalidCharacterAction']>('Remove'),
           shouldStoreInvalidTitle: true
@@ -1040,7 +1040,7 @@ describe('SmartRenameComponent', () => {
       });
 
       expect(hoisted.mockAddAlias).toHaveBeenCalledTimes(1);
-      expect(hoisted.mockAddAlias).toHaveBeenCalledWith(expect.objectContaining({ alias: 'foo/bar' }));
+      expect(hoisted.mockAddAlias).toHaveBeenCalledWith(expect.objectContaining({ alias: 'alpha/Bravo' }));
     });
   });
 });
@@ -1082,7 +1082,7 @@ describe('SmartRenameComponent rename intent', () => {
   it('should leave the note alone when only renaming', async () => {
     const isResult = await checkRenamedWithIntent(RenameIntent.RenameOnly, {
       settings: { invalidCharacterAction: castTo<PluginSettings['invalidCharacterAction']>('Replace') },
-      typedTitle: 'foo/bar'
+      typedTitle: 'alpha/Bravo'
     });
 
     expect(isResult).toBe(true);
@@ -1094,11 +1094,11 @@ describe('SmartRenameComponent rename intent', () => {
   it('should keep the typed title with its real characters when the file name had them replaced', async () => {
     await checkRenamedWithIntent(RenameIntent.SyncTitleAndHeading, {
       settings: { invalidCharacterAction: castTo<PluginSettings['invalidCharacterAction']>('Replace') },
-      typedTitle: 'foo/bar'
+      typedTitle: 'alpha/Bravo'
     });
 
-    expect(getFrontmatterTitle()).toBe('foo/bar');
-    expect(hoisted.mockSelectRenameIntent).toHaveBeenCalledWith(expect.objectContaining({ newTitle: 'foo/bar', oldTitle: 'OldTitle' }));
+    expect(getFrontmatterTitle()).toBe('alpha/Bravo');
+    expect(hoisted.mockSelectRenameIntent).toHaveBeenCalledWith(expect.objectContaining({ newPath: 'alpha_Bravo.md', oldPath: 'OldTitle.md' }));
   });
 
   it('should not ask when the new title is refused', async () => {

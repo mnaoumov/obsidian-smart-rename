@@ -20,6 +20,7 @@
     "target": "es2022",
     "skipLibCheck": true,
     "types": [
+      "@mnaoumov/obsidian-dev-toolkit/types/styles",
       "@obsidian-typings/obsidian-public-latest",
       "@total-typescript/ts-reset",
       "node"
