@@ -81,6 +81,17 @@ async function createFixture(leaves: WorkspaceLeaf[] = []): Promise<Fixture> {
   // Not on the mock: the hooks patch it, and a patch needs the member to exist.
   app.fileManager.promptForFileRename = originalPromptForFileRename;
   app.workspace.getLeavesOfType = vi.fn(() => leaves);
+  let untitledCount = 0;
+  // Not on the mock: stands in for Obsidian's, which names a note with no file name after the localized label.
+  app.fileManager.createNewFile = async (_location, filename): Promise<TFile> => {
+    if (filename) {
+      return await app.vault.create(`${filename}.md`, '');
+    }
+
+    const suffix = untitledCount === 0 ? '' : ` ${String(untitledCount)}`;
+    untitledCount++;
+    return await app.vault.create(`Untitled${suffix}.md`, '');
+  };
 
   const settings = new PluginSettings();
   const promptAndRenameWithIntent = vi.fn(noopAsync);
@@ -149,6 +160,79 @@ describe('RenameIntentHooksComponent', () => {
       await fixture.app.fileManager.promptForFileRename(fixture.markdownFile);
 
       expect(fixture.originalPromptForFileRename).toHaveBeenCalledWith(fixture.markdownFile);
+    });
+  });
+
+  describe('a just-created default-named note', () => {
+    it.each([
+      ['Untitled.md', 0],
+      ['Untitled 1.md', 1],
+      ['Untitled 2.md', 2]
+    ])('should leave the first rename of %s to Obsidian', async (expectedPath, earlierNotes) => {
+      fixture = await createFixture();
+      for (let index = 0; index < earlierNotes; index++) {
+        await fixture.app.fileManager.createNewFile();
+      }
+
+      const file = await fixture.app.fileManager.createNewFile();
+      await fixture.app.fileManager.promptForFileRename(file);
+
+      expect(file.path).toBe(expectedPath);
+      expect(fixture.originalPromptForFileRename).toHaveBeenCalledWith(file);
+      expect(fixture.promptAndRenameWithIntent).not.toHaveBeenCalled();
+    });
+
+    it('should leave the inline title rename of a new note to Obsidian', async () => {
+      fixture = await createFixture();
+      const file = await fixture.app.fileManager.createNewFile();
+      const view = createEditableView(file, file);
+      const titleEl = createTitleEl('Named');
+
+      await view.saveTitle(titleEl);
+
+      expect(originalSaveTitle).toHaveBeenCalledWith(titleEl);
+      expect(fixture.renameWithIntent).not.toHaveBeenCalled();
+    });
+
+    it('should ask again once the new note has been renamed', async () => {
+      fixture = await createFixture();
+      const file = await fixture.app.fileManager.createNewFile();
+      await fixture.app.vault.rename(file, 'Named.md');
+
+      await fixture.app.fileManager.promptForFileRename(file);
+
+      expect(fixture.promptAndRenameWithIntent).toHaveBeenCalledWith(file);
+    });
+
+    it('should forget a new note once it is deleted', async () => {
+      fixture = await createFixture();
+      const file = await fixture.app.fileManager.createNewFile();
+      await fixture.app.fileManager.trashFile(file);
+      const folder = await fixture.app.vault.createFolder('Folder');
+      // A folder event reaches the same handler and must be ignored.
+      await fixture.app.vault.rename(folder, 'Renamed folder');
+
+      await fixture.app.fileManager.promptForFileRename(file);
+
+      expect(fixture.promptAndRenameWithIntent).toHaveBeenCalledWith(file);
+    });
+
+    it('should ask for a note created with an explicit name, even one that looks untitled', async () => {
+      fixture = await createFixture();
+      const file = await fixture.app.fileManager.createNewFile(undefined, 'Untitled 5');
+
+      await fixture.app.fileManager.promptForFileRename(file);
+
+      expect(fixture.promptAndRenameWithIntent).toHaveBeenCalledWith(file);
+    });
+
+    it('should ask for an existing note named Untitled that this session did not create', async () => {
+      fixture = await createFixture();
+      const file = await fixture.app.vault.create('Untitled.md', '');
+
+      await fixture.app.fileManager.promptForFileRename(file);
+
+      expect(fixture.promptAndRenameWithIntent).toHaveBeenCalledWith(file);
     });
   });
 

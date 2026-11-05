@@ -49,8 +49,10 @@ function createAppMock(options?: Parameters<typeof App.createConfigured__>[0]): 
   appMock.workspace.onLayoutReady = vi.fn((callback: () => void) => {
     callback();
   });
-  // Not on the mock: the rename intent hooks patch it, and a patch needs the member to exist.
-  appMock.asOriginalType__().fileManager.promptForFileRename = vi.fn(noopAsync);
+  // Not on the mock: the rename intent hooks patch them, and a patch needs the member to exist.
+  const fileManager = appMock.asOriginalType__().fileManager;
+  fileManager.promptForFileRename = vi.fn(noopAsync);
+  fileManager.createNewFile = vi.fn();
   return appMock;
 }
 
