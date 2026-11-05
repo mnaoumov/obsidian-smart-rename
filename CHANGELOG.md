@@ -6,12 +6,12 @@
 - docs: add issue-filing instructions for AI agents
 - feat: add a Report a bug command
 - chore(github): give the bug form the field ids bug-report links prefill
-- build(deps): float obsidian-dev-toolkit to ^7.4.0 and override re2js to ^2.9.1
-- refactor: drop the obsidian-typings stopgaps in the rename intent hooks
+- build(deps): float `obsidian-dev-toolkit` to ^7.4.0 and override re2js to ^2.9.1
+- refactor: drop the `obsidian-typings` stopgaps in the rename intent hooks
 - build(deps): bump @mnaoumov/obsidian-lib to ^10.1.0 and adopt its Reference API names
 - feat: ask the rename intent on Obsidian's own rename surfaces
-- build(deps): bump typescript-dev-toolkit to ^5.2.0
-- build(deps): bump obsidian-dev-toolkit to ^7.1.1 and typescript-dev-toolkit to ^5.1.0
+- build(deps): bump `typescript-dev-toolkit` to ^5.2.0
+- build(deps): bump `obsidian-dev-toolkit` to ^7.1.1 and `typescript-dev-toolkit` to ^5.1.0
 - chore: adopt readonly interface members
 - docs(readme): combine related resources and plugin comparisons
 - docs: list similar plugins in the README
@@ -21,8 +21,8 @@
 
 - test(integration): poll the invoke-on-link rename from Node
 - test(demo-vault): floor `CodeScript Toolkit` at 15.0.0
-- chore(deps): move to obsidian-lib 6 and off the dropped obsidian-dev-utils names
-- chore(deps): move to obsidian-dev-toolkit 4 and its demo-vault directive spelling
+- chore(deps): move to `obsidian-lib` 6 and off the dropped `obsidian-dev-utils` names
+- chore(deps): move to `obsidian-dev-toolkit` 4 and its demo-vault directive spelling
 - docs: shorten the debugging section
 - fix(demo-vault): load the demo setup helpers from @mnaoumov/obsidian-lib
 - docs(readme): lead the Debugging section with `Advanced Debug Mode`
@@ -30,10 +30,10 @@
 - docs: mark plugin names as code
 - chore(github): point questions to Discussions from the new-issue page
 - ci: merge attesting release assets through the toolkit's reusable workflow
-- build(deps): move off obsidian-dev-utils onto the @mnaoumov packages
-- chore(spellcheck): accept Sidedock from the obsidian-typings sidedock declarations
+- build(deps): move off `obsidian-dev-utils` onto the @mnaoumov packages
+- chore(spellcheck): accept Sidedock from the `obsidian-typings` sidedock declarations
 - docs: mark plugin names as code in prose, comments and the changelog
-- test: merge using the obsidian-typings declarations of Obsidian internals
+- test: merge using the `obsidian-typings` declarations of Obsidian internals
 
 ## 2.5.0
 
@@ -41,8 +41,8 @@
 - test(screenshots): merge the dark-theme guard for the desktop capture
 - docs(screenshots): merge the frame 2 caption that fits both frames
 - test(integration): merge the clickElement-settled rename prompt
-- chore(deps): merge the obsidian-integration-testing 17 raise
-- chore(deps): merge the obsidian-test-mocks 7.0.0 raise
+- chore(deps): merge the `obsidian-integration-testing` 17 raise
+- chore(deps): merge the `obsidian-test-mocks` 7.0.0 raise
 - style(comments): stop capitalizing the middle of a wrapped comment
 - test(demo-vault): merge the headless toolkit install
 - test(checkboxes): merge the settled-prompt tap fix for Android
@@ -52,7 +52,7 @@
 - docs(screenshots): merge the mobile rename-prompt re-capture
 - fix(deps): float the transitive devalue past GHSA-9rgm-9g3h-6x36
 - docs(agents): record why the mobile prompt frame does not raise the soft keyboard
-- build(markdownlint): forbid hard-wrapped markdown paragraphs
+- build(`markdownlint`): forbid hard-wrapped markdown paragraphs
 - refactor(smart-rename): rewrite backlinks through the shared snapshot primitive
 - docs(agents): record the per-eval cap trap behind the shared wait ceilings
 - fix(tests): size the two shared wait ceilings under the per-eval cap
@@ -62,7 +62,7 @@
 - docs: name the library and the sibling plugins so a reader can resolve them
 - docs: replace the private tracker references with what they pointed at
 - docs(agents): name the branch gate in the commands section
-- chore: adopt the npm run gate branch gate
+- chore: adopt the `npm` run gate branch gate
 - docs: say where the debug command is run
 - test: bring the in-closure wait ceiling under the transport's per-eval cap
 - refactor(android): drive the Android suites with trusted input
@@ -74,7 +74,7 @@
 
 ## 2.4.1
 
-- fix(deps): move to obsidian-integration-testing 11 and drop the brace-expansion override
+- fix(deps): move to `obsidian-integration-testing` 11 and drop the brace-expansion override
 
 ## 2.4.0
 
@@ -86,13 +86,13 @@
 ## 2.3.4
 
 - docs(demo-vault): unwrap the notes so Obsidian stops rendering a break per line
-- docs(readme): render the same in Obsidian's plugin page as on GitHub
+- docs(readme): render the same in Obsidian's plugin page as on `GitHub`
 - chore: update libs
-- chore: update obsidian-dev-utils to 94.6.1
-- chore: update obsidian-dev-utils to 94.6.0
+- chore: update `obsidian-dev-utils` to 94.6.1
+- chore: update `obsidian-dev-utils` to 94.6.0
 - fix: override deepmerge-ts to clear GHSA-ggr8-5vv4-36mx
 - test: gate the demo vault by clicking every code button
-- chore: teach cspell the advisory wording
+- chore: teach `cspell` the advisory wording
 - chore: update libs
 - docs(demo-vault): give the demo vault its code buttons
 - docs: show the screenshots in the README
@@ -101,22 +101,22 @@
 ## 2.3.3
 
 - docs: make the demo vault the documentation, in the standard layout
-- feat(demo-vault): migrate to obsidian-dev-utils 93.3.1 and adopt the authoring convention
+- feat(demo-vault): migrate to `obsidian-dev-utils` 93.3.1 and adopt the authoring convention
 
 ## 2.3.2
 
-- chore: update libs and adopt obsidian-integration-testing 10
+- chore: update libs and adopt `obsidian-integration-testing` 10
 
 ## 2.3.1
 
 - chore: update libs
 - chore: update libs
-- chore(vitest): consume the shared vitest configuration
+- chore(`vitest`): consume the shared `vitest` configuration
 
 ## 2.3.0
 
 - refactor(settings): move the settings tab onto the declarative settings API
-- chore: update libs and clear the npm audit
+- chore: update libs and clear the `npm` audit
 - docs: fix the demo vault download instructions
 
 ## 2.2.10
@@ -141,7 +141,7 @@
 ## 2.2.6
 
 - docs: standardize demo-vault README
-- docs: drop per-plugin demo-vault setup notes (bootstrap covered by the obsidian-dev-utils harness)
+- docs: drop per-plugin demo-vault setup notes (bootstrap covered by the `obsidian-dev-utils` harness)
 - docs: unnumber demo-vault setup notes
 - docs(demo-vault): number the `Smart Rename` demo vault example notes
 - docs(demo-vault): create the `Smart Rename` demo vault
@@ -152,9 +152,9 @@
 ## 2.2.5
 
 - chore: update libs
-- chore: update obsidian-dev-utils to 85.0.0
+- chore: update `obsidian-dev-utils` to 85.0.0
 - refactor: pass params objects to SmartRenameComponent methods
-- test: use commands__ accessor after obsidian-test-mocks bridge rename
+- test: use commands__ accessor after `obsidian-test-mocks` bridge rename
 - build: lock typescript to 6.0.3
 - test: wire integration-testing vitest-setup into integration projects
 - chore: update libs
@@ -202,7 +202,7 @@
 
 - chore: update libs
 - chore: lint
-- chore: enable markdownlint
+- chore: enable `markdownlint`
 
 ## 2.1.9
 
@@ -299,7 +299,7 @@
 ## 2.0.15
 
 - New template
-- ESLint template
+- `ESLint` template
 
 ## 2.0.14
 

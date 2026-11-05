@@ -58,12 +58,12 @@ class FileExplorerViewStub {
   public readonly fileItems: Record<string, FileTreeItemStub> = {};
 
   public async saveRename(): Promise<boolean> {
-    return await originalSaveRename();
+    return await didOriginalSaveRename();
   }
 }
 
-const originalSaveRename = vi.fn(() => Promise.resolve(true));
-const originalSaveTitle = vi.fn(() => Promise.resolve(true));
+const didOriginalSaveRename = vi.fn(() => Promise.resolve(true));
+const didOriginalSaveTitle = vi.fn(() => Promise.resolve(true));
 
 let fixture: Fixture;
 
@@ -95,11 +95,11 @@ async function createFixture(leaves: WorkspaceLeaf[] = []): Promise<Fixture> {
 
   const settings = new PluginSettings();
   const promptAndRenameWithIntent = vi.fn(noopAsync);
-  const renameWithIntent = vi.fn(() => Promise.resolve(true));
+  const didRenameWithIntent = vi.fn(() => Promise.resolve(true));
   const component = new RenameIntentHooksComponent({
     app,
     pluginSettingsComponent: strictProxy<PluginSettingsComponent>({ settings }),
-    smartRenameComponent: strictProxy<SmartRenameComponent>({ promptAndRenameWithIntent, renameWithIntent })
+    smartRenameComponent: strictProxy<SmartRenameComponent>({ promptAndRenameWithIntent, renameWithIntent: didRenameWithIntent })
   });
   component.load();
   // The layout-ready callback is deferred to a timer and then run as tracked async work.
@@ -113,7 +113,7 @@ async function createFixture(leaves: WorkspaceLeaf[] = []): Promise<Fixture> {
     originalPromptForFileRename,
     otherFile: ensureNonNullable(app.vault.getFileByPath('Picture.png')),
     promptAndRenameWithIntent,
-    renameWithIntent,
+    renameWithIntent: didRenameWithIntent,
     settings
   };
 }
@@ -124,7 +124,7 @@ function createTitleEl(text: string): HTMLElement {
 
 beforeEach(() => {
   // Not on the mock: the hooks patch it, and a patch needs the member to exist.
-  Object.assign(EditableFileView.prototype, { saveTitle: originalSaveTitle });
+  Object.assign(EditableFileView.prototype, { saveTitle: didOriginalSaveTitle });
 });
 
 afterEach(() => {
@@ -190,7 +190,7 @@ describe('RenameIntentHooksComponent', () => {
 
       await view.saveTitle(titleEl);
 
-      expect(originalSaveTitle).toHaveBeenCalledWith(titleEl);
+      expect(didOriginalSaveTitle).toHaveBeenCalledWith(titleEl);
       expect(fixture.renameWithIntent).not.toHaveBeenCalled();
     });
 
@@ -246,7 +246,7 @@ describe('RenameIntentHooksComponent', () => {
       expect(isResult).toBe(true);
       expect(fixture.renameWithIntent).toHaveBeenCalledWith({ file: fixture.markdownFile, typedTitle: 'NewTitle' });
       expect(view.fileBeingRenamed).toBeNull();
-      expect(originalSaveTitle).not.toHaveBeenCalled();
+      expect(didOriginalSaveTitle).not.toHaveBeenCalled();
     });
 
     it('should restore the title when the rename does not happen', async () => {
@@ -272,7 +272,7 @@ describe('RenameIntentHooksComponent', () => {
 
       await view.saveTitle(titleEl);
 
-      expect(originalSaveTitle).toHaveBeenCalledWith(titleEl);
+      expect(didOriginalSaveTitle).toHaveBeenCalledWith(titleEl);
       expect(fixture.renameWithIntent).not.toHaveBeenCalled();
     });
 
@@ -282,7 +282,7 @@ describe('RenameIntentHooksComponent', () => {
 
       await view.saveTitle(createTitleEl('NewTitle'));
 
-      expect(originalSaveTitle).toHaveBeenCalled();
+      expect(didOriginalSaveTitle).toHaveBeenCalled();
     });
   });
 
@@ -306,7 +306,7 @@ describe('RenameIntentHooksComponent', () => {
       expect(isResult).toBe(true);
       expect(view.exitRename).toHaveBeenCalled();
       expect(fixture.renameWithIntent).toHaveBeenCalledWith({ file: fixture.markdownFile, typedTitle: 'NewTitle' });
-      expect(originalSaveRename).not.toHaveBeenCalled();
+      expect(didOriginalSaveRename).not.toHaveBeenCalled();
     });
 
     it('should patch the explorer once, when it appears after layout ready', async () => {
@@ -337,7 +337,7 @@ describe('RenameIntentHooksComponent', () => {
 
       await view.saveRename();
 
-      expect(originalSaveRename).toHaveBeenCalled();
+      expect(didOriginalSaveRename).toHaveBeenCalled();
       expect(fixture.renameWithIntent).not.toHaveBeenCalled();
     });
 
@@ -348,7 +348,7 @@ describe('RenameIntentHooksComponent', () => {
 
       await view.saveRename();
 
-      expect(originalSaveRename).toHaveBeenCalled();
+      expect(didOriginalSaveRename).toHaveBeenCalled();
     });
   });
 });
