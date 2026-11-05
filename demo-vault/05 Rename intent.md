@@ -8,6 +8,8 @@ Renaming a note through Obsidian itself - its inline title, the file explorer, F
 
 Renames made by other plugins, by sync or by scripts never ask, and behave as **Rename only**. So do renames of anything that is not a markdown note.
 
+Naming a note you have just created does not ask either. When **New note** makes `Untitled.md` (or `Untitled 1.md`, ..., in your interface language), its first rename only gives it a name, so it goes through as a plain rename. A note that is merely called `Untitled` but was not just created by Obsidian, for example one from an earlier session or one that arrived through sync, still asks.
+
 When the new name has characters a file name cannot hold, they are handled as [02 Invalid characters](<./02 Invalid characters.md>) describes, and the `title` keeps the name exactly as you typed it.
 
 ## Try it

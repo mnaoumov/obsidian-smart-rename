@@ -78,6 +78,67 @@ describe('Rename intent dialog', () => {
     expect(result.sourceContentAfter).toBe(`[[${NEW_TITLE}]]`);
   });
 
+  it('names a just-created Untitled note without asking, and asks for its next rename', async () => {
+    const result = await evalInObsidian({
+      async callback({ app, intentModalSelector, lib: { clickElement, pressKey, waitUntil }, namedPath, namedTitle, obsidianModule, waitTimeoutInMilliseconds }) {
+        const folder = app.vault.getFolderByPath('intent-new-note') ?? await app.vault.createFolder('intent-new-note');
+        // What the New note command calls: no file name, so Obsidian picks the localized Untitled one.
+        const file = await app.fileManager.createNewMarkdownFile(folder, '', '');
+        const createdPath = file.path;
+
+        const leaf = app.workspace.getLeaf(true);
+        await leaf.openFile(file, { active: true, state: { mode: 'source' } });
+        app.workspace.setActiveLeaf(leaf, { focus: true });
+        const view = app.workspace.getActiveViewOfType(obsidianModule.MarkdownView);
+        if (view?.file !== file) {
+          throw new Error('The new note is not the active markdown view');
+        }
+
+        // Naming the note through its inline title, as a user does right after New note.
+        await clickElement({ element: view.inlineTitleEl });
+        await waitUntil({
+          message: 'inline title did not take focus',
+          predicate: () => view.inlineTitleEl.ownerDocument.activeElement === view.inlineTitleEl,
+          timeoutInMilliseconds: waitTimeoutInMilliseconds
+        });
+        view.inlineTitleEl.setText(namedTitle);
+        await pressKey({ key: 'Enter' });
+        await waitUntil({
+          message: 'the new note was not renamed',
+          predicate: () => app.vault.getFileByPath(namedPath) !== null,
+          timeoutInMilliseconds: waitTimeoutInMilliseconds
+        });
+        const wasPromptShownForNewNote = document.querySelector(intentModalSelector) !== null;
+
+        // The same note again: no longer just created, so the plugin's own rename prompt opens.
+        const secondRename = app.fileManager.promptForFileRename(file);
+        await waitUntil({
+          message: 'the Smart Rename prompt did not open for the second rename',
+          predicate: () => document.querySelector('.prompt-modal input.text-box') !== null,
+          timeoutInMilliseconds: waitTimeoutInMilliseconds
+        });
+        const wasPromptShownForSecondRename = true;
+        await pressKey({ key: 'Escape' });
+        await secondRename;
+
+        leaf.detach();
+        await app.fileManager.trashFile(file);
+        return { createdPath, wasPromptShownForNewNote, wasPromptShownForSecondRename };
+      },
+      input: {
+        intentModalSelector: INTENT_MODAL_SELECTOR,
+        namedPath: 'intent-new-note/intent-named.md',
+        namedTitle: 'intent-named',
+        waitTimeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS
+      },
+      vaultPath: getTemporaryVault().path
+    });
+
+    expect(result.createdPath).toMatch(/^intent-new-note\/.+\.md$/);
+    expect(result.wasPromptShownForNewNote).toBe(false);
+    expect(result.wasPromptShownForSecondRename).toBe(true);
+  });
+
   it('changes only the file name when rename only is chosen', async () => {
     const result = await runIntentRename({ folder: 'intent-inline-only', intent: 'RenameOnly', surface: 'inlineTitle' });
 

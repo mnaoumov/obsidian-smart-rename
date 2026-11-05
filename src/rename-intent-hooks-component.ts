@@ -1,5 +1,8 @@
 import type { FileExplorerView } from '@obsidian-typings/obsidian-public-latest';
-import type { App } from 'obsidian';
+import type {
+  App,
+  TAbstractFile
+} from 'obsidian';
 
 import { CallbackLayoutReadyComponent } from '@mnaoumov/obsidian-lib/components/layout-ready-component';
 import { MonkeyAroundComponent } from '@mnaoumov/obsidian-lib/components/monkey-around-component';
@@ -44,9 +47,17 @@ interface RenameIntentHooksComponentSaveTitleParams {
  *   and link menus.
  *
  * Only markdown notes are intercepted, since the intent is about `title:` and the first H1.
+ *
+ * A note Obsidian has just created under its default name (`Untitled`, `Untitled 1`, ... in the interface language)
+ * is not intercepted on its first rename either: that rename names a new note, and its placeholder title is worth
+ * keeping nowhere. Such a note is recognized by the call that made it, `FileManager.createNewFile` with no file
+ * name, so a note that merely bears that name - created in an earlier session, by sync, or by code with an explicit
+ * name - is still asked about. The mark lasts until the note's first rename or its deletion, and lives in memory
+ * only.
  */
 export class RenameIntentHooksComponent extends MonkeyAroundComponent {
   private readonly app: App;
+  private readonly defaultNamedNewFiles = new WeakSet<TFile>();
   private isFileExplorerPatched = false;
   private readonly pluginSettingsComponent: PluginSettingsComponent;
   private readonly smartRenameComponent: SmartRenameComponent;
@@ -75,6 +86,22 @@ export class RenameIntentHooksComponent extends MonkeyAroundComponent {
     });
 
     this.registerMethodPatch({
+      $object: this.app.fileManager,
+      methodName: 'createNewFile',
+      patchHandler: async ({ fallback, originalArguments: [, filename] }) => {
+        const file = await fallback();
+        if (!filename) {
+          this.defaultNamedNewFiles.add(file);
+        }
+
+        return file;
+      }
+    });
+
+    this.registerEvent(this.app.vault.on('rename', this.forgetNewFile.bind(this)));
+    this.registerEvent(this.app.vault.on('delete', this.forgetNewFile.bind(this)));
+
+    this.registerMethodPatch({
       $object: EditableFileView.prototype,
       methodName: 'saveTitle',
       patchHandler: ({ fallback, originalArguments: [titleEl], originalThis }) => this.saveTitle({ fallback, titleEl, view: originalThis })
@@ -83,6 +110,12 @@ export class RenameIntentHooksComponent extends MonkeyAroundComponent {
     // The explorer view is created lazily, so its class is reached through the first loaded instance.
     this.addChild(new CallbackLayoutReadyComponent(this.app, this.patchFileExplorer.bind(this)));
     this.registerEvent(this.app.workspace.on('layout-change', this.patchFileExplorer.bind(this)));
+  }
+
+  private forgetNewFile(file: TAbstractFile): void {
+    if (file instanceof TFile) {
+      this.defaultNamedNewFiles.delete(file);
+    }
   }
 
   private patchFileExplorer(): void {
@@ -147,6 +180,6 @@ export class RenameIntentHooksComponent extends MonkeyAroundComponent {
   }
 
   private shouldIntercept(file: TFile): boolean {
-    return this.pluginSettingsComponent.settings.shouldAskRenameIntent && isMarkdownFile(file);
+    return this.pluginSettingsComponent.settings.shouldAskRenameIntent && isMarkdownFile(file) && !this.defaultNamedNewFiles.has(file);
   }
 }
