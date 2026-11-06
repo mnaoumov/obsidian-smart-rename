@@ -9,7 +9,10 @@
  * `isDesktopOnly: false`, so the desktop AND android projects both collect it.
  */
 
-import { evalInObsidian } from 'obsidian-integration-testing';
+import {
+  evalInObsidian,
+  pollInObsidian
+} from 'obsidian-integration-testing';
 import { getTemporaryVault } from 'obsidian-integration-testing/vitest-global-setup-plugin';
 import {
   describe,
@@ -27,6 +30,26 @@ const SOURCE_CONTENT = `[[${OLD_TITLE}]]`;
  */
 const WAIT_TIMEOUT_IN_MILLISECONDS = 4000;
 
+/**
+ * The Node-side budget for the rename to land, the backlink to be rewritten and the post-rename steps to run.
+ *
+ * That is the one step here doing real work, and on a loaded one-core Android emulator it overran the 4s
+ * in-closure ceiling. It is polled from Node with {@link pollInObsidian}, one short read per eval, so this
+ * budget is not bounded by the per-eval cap.
+ */
+const RENAME_POLL_TIMEOUT_IN_MILLISECONDS = 30_000;
+
+/**
+ * Above the Android project's 60s default, which the submit closure's declared waits plus
+ * {@link RENAME_POLL_TIMEOUT_IN_MILLISECONDS} plus the eval round trips of a starved emulator could reach.
+ */
+const RENAME_TEST_TIMEOUT_IN_MILLISECONDS = 90_000;
+
+/**
+ * How many Escape presses the cleanup spends closing a dialog a failed case left open.
+ */
+const MAX_MODAL_CLOSE_ATTEMPTS = 3;
+
 interface IntentRenameResult {
   readonly hasReadableLayout: boolean;
   readonly renamedContent: string;
@@ -35,7 +58,7 @@ interface IntentRenameResult {
 }
 
 describe('Rename intent dialog', () => {
-  it('keeps long paths readable and all actions in one row in a narrow dialog', async () => {
+  it('keeps long paths readable and all actions in one row in a narrow dialog', { timeout: RENAME_TEST_TIMEOUT_IN_MILLISECONDS }, async () => {
     const result = await runIntentRename({
       folder: `intent-layout-${'long-folder-name-'.repeat(8)}`,
       intent: 'RenameOnly',
@@ -47,7 +70,7 @@ describe('Rename intent dialog', () => {
     expect(result.renamedContent).toBe(TARGET_CONTENT);
   });
 
-  it('syncs title and H1 when the inline title is renamed with the default choice', async () => {
+  it('syncs title and H1 when the inline title is renamed with the default choice', { timeout: RENAME_TEST_TIMEOUT_IN_MILLISECONDS }, async () => {
     const result = await runIntentRename({ folder: 'intent-inline-sync', intent: 'SyncTitleAndHeading', surface: 'inlineTitle' });
 
     expect(result.wasDialogShown).toBe(true);
@@ -58,7 +81,7 @@ describe('Rename intent dialog', () => {
     expect(result.sourceContentAfter).toBe(`[[${NEW_TITLE}]]`);
   });
 
-  it('stores the previous name when the rename dialog is used with that choice', async () => {
+  it('stores the previous name when the rename dialog is used with that choice', { timeout: RENAME_TEST_TIMEOUT_IN_MILLISECONDS }, async () => {
     const result = await runIntentRename({ folder: 'intent-dialog-store', intent: 'StorePreviousName', surface: 'renameDialog' });
 
     expect(result.wasDialogShown).toBe(true);
@@ -69,7 +92,7 @@ describe('Rename intent dialog', () => {
     expect(result.sourceContentAfter).toBe(`[[${NEW_TITLE}|${OLD_TITLE}]]`);
   });
 
-  it('syncs title and H1 when the file explorer renames the note', async () => {
+  it('syncs title and H1 when the file explorer renames the note', { timeout: RENAME_TEST_TIMEOUT_IN_MILLISECONDS }, async () => {
     const result = await runIntentRename({ folder: 'intent-explorer-sync', intent: 'SyncTitleAndHeading', surface: 'fileExplorer' });
 
     expect(result.wasDialogShown).toBe(true);
@@ -139,7 +162,7 @@ describe('Rename intent dialog', () => {
     expect(result.wasPromptShownForSecondRename).toBe(true);
   });
 
-  it('changes only the file name when rename only is chosen', async () => {
+  it('changes only the file name when rename only is chosen', { timeout: RENAME_TEST_TIMEOUT_IN_MILLISECONDS }, async () => {
     const result = await runIntentRename({ folder: 'intent-inline-only', intent: 'RenameOnly', surface: 'inlineTitle' });
 
     expect(result.wasDialogShown).toBe(true);
@@ -158,7 +181,87 @@ interface RunIntentRenameParams {
   readonly surface: 'fileExplorer' | 'inlineTitle' | 'renameDialog';
 }
 
+interface SubmitIntentRenamePaths {
+  readonly renamedTargetPath: string;
+  readonly sourcePath: string;
+  readonly targetPath: string;
+  readonly vaultPath: string;
+}
+
+/**
+ * Runs one rename through the intent dialog, then polls from Node for its outcome.
+ *
+ * Cleanup runs in a `finally`: a case that throws would otherwise leave its renamed `intent-beta` note in the
+ * vault, after which `intent-beta` is no longer unique and every later case gets a path-qualified link.
+ *
+ * @param params - The case to run.
+ * @returns What the dialog showed and what the two notes hold once the rename has landed.
+ */
 async function runIntentRename(params: RunIntentRenameParams): Promise<IntentRenameResult> {
+  const vaultPath = getTemporaryVault().path;
+  const renamedTargetPath = `${params.folder}/${NEW_TITLE}.md`;
+  const sourcePath = `${params.folder}/intent-source.md`;
+  const targetPath = `${params.folder}/${OLD_TITLE}.md`;
+
+  try {
+    const dialogResult = await submitIntentRename(params, { renamedTargetPath, sourcePath, targetPath, vaultPath });
+
+    const outcome = await pollInObsidian({
+      input: { renamedTargetPath, sourcePath },
+      async poll({ app, renamedTargetPath: renamedPath, sourcePath: sourceNotePath }) {
+        const renamedFile = app.vault.getFileByPath(renamedPath);
+        const sourceFile = app.vault.getFileByPath(sourceNotePath);
+        return {
+          isRenamedTargetPresent: renamedFile !== null,
+          renamedContent: renamedFile ? await app.vault.read(renamedFile) : '',
+          sourceContentAfter: sourceFile ? await app.vault.read(sourceFile) : ''
+        };
+      },
+      timeoutInMilliseconds: RENAME_POLL_TIMEOUT_IN_MILLISECONDS,
+      timeoutMessage: 'the backlink was not rewritten, or the post-rename steps did not land',
+      until: ({ isRenamedTargetPresent, renamedContent, sourceContentAfter }) =>
+        isRenamedTargetPresent
+        && sourceContentAfter.includes(NEW_TITLE)
+        && (params.intent === 'RenameOnly' || renamedContent.includes(`# ${NEW_TITLE}`)),
+      vaultPath
+    });
+
+    return {
+      ...dialogResult,
+      renamedContent: outcome.renamedContent,
+      sourceContentAfter: outcome.sourceContentAfter
+    };
+  } finally {
+    await evalInObsidian({
+      async callback({ app, folder, lib: { pressKey }, maxModalCloseAttempts, obsidianModule, paths }) {
+        // A case that failed with its dialog still open would leave it over the next case's view.
+        for (let attempt = 0; attempt < maxModalCloseAttempts && document.querySelector('.modal-container'); attempt++) {
+          await pressKey({ key: 'Escape' });
+        }
+
+        for (const leaf of app.workspace.getLeavesOfType('markdown')) {
+          if (leaf.view instanceof obsidianModule.MarkdownView && leaf.view.file?.path.startsWith(`${folder}/`)) {
+            leaf.detach();
+          }
+        }
+
+        for (const path of paths) {
+          const existing = app.vault.getAbstractFileByPath(path);
+          if (existing) {
+            await app.fileManager.trashFile(existing);
+          }
+        }
+      },
+      input: { folder: params.folder, maxModalCloseAttempts: MAX_MODAL_CLOSE_ATTEMPTS, paths: [sourcePath, targetPath, renamedTargetPath] },
+      vaultPath
+    });
+  }
+}
+
+async function submitIntentRename(
+  params: RunIntentRenameParams,
+  notePaths: SubmitIntentRenamePaths
+): Promise<Pick<IntentRenameResult, 'hasReadableLayout' | 'wasDialogShown'>> {
   return await evalInObsidian({
     async callback({
       app,
@@ -181,23 +284,21 @@ async function runIntentRename(params: RunIntentRenameParams): Promise<IntentRen
       targetPath,
       waitTimeoutInMilliseconds
     }) {
-      async function cleanUp(): Promise<void> {
-        for (const path of [sourcePath, targetPath, renamedTargetPath]) {
-          const existing = app.vault.getAbstractFileByPath(path);
-          if (existing) {
-            await app.fileManager.trashFile(existing);
-          }
+      // A leftover from an earlier run of the same case; `runIntentRename` trashes these again in its `finally`.
+      for (const path of [sourcePath, targetPath, renamedTargetPath]) {
+        const existing = app.vault.getAbstractFileByPath(path);
+        if (existing) {
+          await app.fileManager.trashFile(existing);
         }
       }
 
-      await cleanUp();
       const folderPath = targetPath.slice(0, targetPath.lastIndexOf('/'));
       if (!app.vault.getFolderByPath(folderPath)) {
         await app.vault.createFolder(folderPath);
       }
 
       const targetFile = await createNote({ content: targetContent, path: targetPath });
-      const sourceFile = await createNote({ content: sourceContent, path: sourcePath });
+      await createNote({ content: sourceContent, path: sourcePath });
 
       const leaf = app.workspace.getLeaf(true);
       await leaf.openFile(targetFile, { active: true, state: { mode: 'source' } });
@@ -287,37 +388,8 @@ async function runIntentRename(params: RunIntentRenameParams): Promise<IntentRen
       await clickElement({ element: intentButtonEl });
       await renamePromise;
 
-      await waitUntil({
-        message: 'backlink was not rewritten',
-        predicate: async () => {
-          const sourceContentNow = await app.vault.read(sourceFile);
-          return app.vault.getFileByPath(renamedTargetPath) !== null && sourceContentNow.includes(newTitle);
-        },
-        timeoutInMilliseconds: waitTimeoutInMilliseconds
-      });
-
-      const shouldExpectFrontmatterChange = intent !== 'RenameOnly';
-      await waitUntil({
-        message: 'post-rename steps did not land',
-        predicate: async () => {
-          const renamedFile = app.vault.getFileByPath(renamedTargetPath);
-          if (!shouldExpectFrontmatterChange) {
-            return true;
-          }
-
-          const renamedContentNow = renamedFile ? await app.vault.read(renamedFile) : '';
-          return renamedContentNow.includes(`# ${newTitle}`);
-        },
-        timeoutInMilliseconds: waitTimeoutInMilliseconds
-      });
-
-      const renamedFile = app.vault.getFileByPath(renamedTargetPath);
-      const renamedContent = renamedFile ? await app.vault.read(renamedFile) : '';
-      const sourceContentAfter = await app.vault.read(sourceFile);
-      leaf.detach();
-      await cleanUp();
-
-      return { hasReadableLayout, renamedContent, sourceContentAfter, wasDialogShown };
+      // The rename and its backlink rewrite are awaited from Node by `runIntentRename`, outside this eval's cap.
+      return { hasReadableLayout, wasDialogShown };
 
       function checkDialogLayout(): boolean {
         const modalEl = document.querySelector<HTMLElement>(`${intentModalSelector} .modal`);
@@ -347,14 +419,14 @@ async function runIntentRename(params: RunIntentRenameParams): Promise<IntentRen
       intentModalSelector: INTENT_MODAL_SELECTOR,
       modalWidth: params.modalWidth ?? null,
       newTitle: NEW_TITLE,
-      renamedTargetPath: `${params.folder}/${NEW_TITLE}.md`,
+      renamedTargetPath: notePaths.renamedTargetPath,
       sourceContent: SOURCE_CONTENT,
-      sourcePath: `${params.folder}/intent-source.md`,
+      sourcePath: notePaths.sourcePath,
       surface: params.surface,
       targetContent: TARGET_CONTENT,
-      targetPath: `${params.folder}/${OLD_TITLE}.md`,
+      targetPath: notePaths.targetPath,
       waitTimeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS
     },
-    vaultPath: getTemporaryVault().path
+    vaultPath: notePaths.vaultPath
   });
 }
