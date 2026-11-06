@@ -10,6 +10,7 @@
  */
 
 import {
+  ContextId,
   evalInObsidian,
   pollInObsidian
 } from 'obsidian-integration-testing';
@@ -26,7 +27,7 @@ const NEW_TITLE = 'intent-beta';
 const TARGET_CONTENT = `---\ntitle: ${OLD_TITLE}\n---\n# ${OLD_TITLE}\n`;
 const SOURCE_CONTENT = `[[${OLD_TITLE}]]`;
 /**
- * Under the transport's ~30s per-closure cap, not at it: each closure spends this budget on six waits at most.
+ * Under the transport's ~30s per-closure cap, not at it: each closure spends this budget on two waits at most.
  */
 const WAIT_TIMEOUT_IN_MILLISECONDS = 4000;
 
@@ -40,7 +41,15 @@ const WAIT_TIMEOUT_IN_MILLISECONDS = 4000;
 const RENAME_POLL_TIMEOUT_IN_MILLISECONDS = 30_000;
 
 /**
- * Above the Android project's 60s default, which the submit closure's declared waits plus
+ * The Node-side budget for the backlink to resolve, and for the intent dialog to open once a rename is committed.
+ *
+ * Under bulk load on desktop the dialog took longer than the 4s in-closure ceiling, so both waits are polled from
+ * Node with {@link pollInObsidian} instead.
+ */
+const DIALOG_POLL_TIMEOUT_IN_MILLISECONDS = 20_000;
+
+/**
+ * Above the Android project's 60s default, which the two {@link DIALOG_POLL_TIMEOUT_IN_MILLISECONDS} polls plus
  * {@link RENAME_POLL_TIMEOUT_IN_MILLISECONDS} plus the eval round trips of a starved emulator could reach.
  */
 const RENAME_TEST_TIMEOUT_IN_MILLISECONDS = 90_000;
@@ -181,11 +190,179 @@ interface RunIntentRenameParams {
   readonly surface: 'fileExplorer' | 'inlineTitle' | 'renameDialog';
 }
 
+/**
+ * What survives in the Obsidian process from the eval that starts a rename to the eval that picks its intent.
+ */
+interface SubmitIntentRenameContext {
+  /**
+   * The rename dialog's pending `promptForFileRename`, awaited once the intent is picked.
+   */
+  // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- The eval that starts the rename stores it here for a later eval.
+  renamePromise?: Promise<void>;
+}
+
 interface SubmitIntentRenamePaths {
   readonly renamedTargetPath: string;
   readonly sourcePath: string;
   readonly targetPath: string;
   readonly vaultPath: string;
+}
+
+async function pickIntent(
+  params: RunIntentRenameParams,
+  notePaths: SubmitIntentRenamePaths,
+  contextId: ContextId<SubmitIntentRenameContext>
+): Promise<Pick<IntentRenameResult, 'hasReadableLayout' | 'wasDialogShown'>> {
+  const { renamedTargetPath, targetPath, vaultPath } = notePaths;
+
+  await pollInObsidian({
+    contextId,
+    input: {
+      intent: params.intent,
+      intentModalSelector: INTENT_MODAL_SELECTOR,
+      newTitle: NEW_TITLE,
+      surface: params.surface,
+      targetPath,
+      waitTimeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS
+    },
+    poll({ intent, intentModalSelector }) {
+      return document.querySelector(`${intentModalSelector} button[data-intent="${CSS.escape(intent)}"]`) !== null;
+    },
+    async start({
+      app,
+      context,
+      lib: {
+        clickElement,
+        pressKey,
+        waitUntil
+      },
+      newTitle,
+      obsidianModule,
+      surface,
+      targetPath: targetNotePath,
+      waitTimeoutInMilliseconds
+    }) {
+      const targetFile = app.vault.getFileByPath(targetNotePath);
+      if (!targetFile) {
+        throw new Error('The target note is missing');
+      }
+
+      if (surface === 'inlineTitle') {
+        const view = app.workspace.getActiveViewOfType(obsidianModule.MarkdownView);
+        if (!view) {
+          throw new Error('No active markdown view');
+        }
+
+        // A real pointer click focuses the title the way a user starts a rename there.
+        await clickElement({ element: view.inlineTitleEl });
+        await waitUntil({
+          message: 'inline title did not take focus',
+          predicate: () => view.inlineTitleEl.ownerDocument.activeElement === view.inlineTitleEl,
+          timeoutInMilliseconds: waitTimeoutInMilliseconds
+        });
+        // Replacing the text is not a gesture anything listens for; the Enter that commits it is, and is trusted.
+        view.inlineTitleEl.setText(newTitle);
+        await pressKey({ key: 'Enter' });
+      } else if (surface === 'fileExplorer') {
+        const fileExplorerLeaf = app.workspace.getLeavesOfType('file-explorer')[0];
+        await fileExplorerLeaf?.loadIfDeferred();
+        const fileExplorerView = fileExplorerLeaf?.view;
+        if (!fileExplorerView || !('fileItems' in fileExplorerView)) {
+          throw new Error('No file explorer view');
+        }
+
+        // What the explorer's own Rename menu item calls, so the tree item becomes editable as for a user.
+        await fileExplorerView.startRenameFile(targetFile);
+        const innerEl = fileExplorerView.fileItems[targetNotePath]?.innerEl;
+        if (!innerEl) {
+          throw new Error('No file explorer item');
+        }
+
+        // Replacing the text is not a gesture anything listens for; the Enter that commits it is, and is trusted.
+        innerEl.setText(newTitle);
+        await pressKey({ key: 'Enter' });
+      } else {
+        // `promptForFileRename` is what F2 opens when no title is shown, and what the pane and tab menus call.
+        context.renamePromise = app.fileManager.promptForFileRename(targetFile);
+        await waitUntil({
+          message: 'rename prompt did not open',
+          predicate: () => document.querySelector('.prompt-modal input.text-box') !== null,
+          timeoutInMilliseconds: waitTimeoutInMilliseconds
+        });
+        const inputEl = document.querySelector<HTMLInputElement>('.prompt-modal input.text-box');
+        const okButtonEl = document.querySelector<HTMLElement>('.prompt-modal .ok-button');
+        if (!inputEl || !okButtonEl) {
+          throw new Error('Rename prompt controls are missing');
+        }
+
+        inputEl.value = newTitle;
+        // A notification event, not a simulated user gesture — `AbstractTextComponent` listens for
+        // `input` to publish the new value, and nothing on that path gates on `isTrusted`.
+        inputEl.dispatchEvent(new Event('input', { bubbles: true }));
+        await clickElement({ element: okButtonEl });
+      }
+    },
+    timeoutInMilliseconds: DIALOG_POLL_TIMEOUT_IN_MILLISECONDS,
+    timeoutMessage: 'rename intent dialog did not open',
+    until: (isDialogOpen) => isDialogOpen,
+    vaultPath
+  });
+
+  return await evalInObsidian({
+    async callback({
+      context,
+      intent,
+      intentModalSelector,
+      lib: { clickElement },
+      modalWidth,
+      renamedTargetPath: renamedPath,
+      targetPath: targetNotePath
+    }) {
+      const intentButtonEl = document.querySelector<HTMLElement>(`${intentModalSelector} button[data-intent="${CSS.escape(intent)}"]`);
+      if (!intentButtonEl) {
+        throw new Error('Intent button is missing');
+      }
+
+      const hasReadableLayout = checkDialogLayout();
+      await clickElement({ element: intentButtonEl });
+      await context.renamePromise;
+
+      // The rename and its backlink rewrite are awaited from Node by `runIntentRename`, outside this eval's cap.
+      return { hasReadableLayout, wasDialogShown: true };
+
+      function checkDialogLayout(): boolean {
+        const modalEl = document.querySelector<HTMLElement>(`${intentModalSelector} .modal`);
+        if (!modalEl) {
+          throw new Error('Intent modal is missing');
+        }
+
+        if (modalWidth) {
+          modalEl.style.width = `${String(modalWidth)}px`;
+        }
+
+        const paths = [...modalEl.querySelectorAll<HTMLElement>(':scope .smart-rename-intent-paths > *')];
+        const pathRects = paths.map((el) => el.getBoundingClientRect());
+        const buttons = [...modalEl.querySelectorAll<HTMLElement>('button[data-intent]')];
+        const buttonRects = buttons.map((el) => el.getBoundingClientRect());
+        const firstButtonRect = buttonRects[0];
+        return paths[0]?.querySelector('code')?.textContent === targetNotePath
+          && paths[2]?.querySelector('code')?.textContent === renamedPath
+          && pathRects.every((rect, index) => index === 0 || rect.top >= (pathRects[index - 1]?.bottom ?? 0))
+          && buttons.length === 3
+          && buttonRects.every((rect) => rect.width > 0 && rect.top === firstButtonRect?.top)
+          && [...paths, ...buttons, modalEl].every((el) => el.scrollWidth <= el.clientWidth + 1);
+      }
+    },
+    contextId,
+    input: {
+      intent: params.intent,
+      intentModalSelector: INTENT_MODAL_SELECTOR,
+      modalWidth: params.modalWidth ?? null,
+      renamedTargetPath,
+      targetPath
+    },
+    vaultPath
+  });
 }
 
 /**
@@ -258,175 +435,66 @@ async function runIntentRename(params: RunIntentRenameParams): Promise<IntentRen
   }
 }
 
+/**
+ * Drives one rename up to the intent being picked, in short eval calls with the real waits polled from Node.
+ *
+ * The backlink resolving and the intent dialog opening are the two waits that do real work, and under bulk load
+ * the dialog wait overran its 4s in-closure ceiling on desktop. Each is polled with {@link pollInObsidian}, one
+ * short read per eval, so neither is bounded by the transport's per-eval cap.
+ *
+ * @param params - The case to run.
+ * @param notePaths - The notes the case works with.
+ * @returns Whether the dialog was shown and whether its layout is readable.
+ */
 async function submitIntentRename(
   params: RunIntentRenameParams,
   notePaths: SubmitIntentRenamePaths
 ): Promise<Pick<IntentRenameResult, 'hasReadableLayout' | 'wasDialogShown'>> {
-  return await evalInObsidian({
-    async callback({
-      app,
-      intent,
-      intentModalSelector,
-      lib: {
-        clickElement,
-        createNote,
-        pressKey,
-        waitUntil
-      },
-      modalWidth,
-      newTitle,
-      obsidianModule,
-      renamedTargetPath,
-      sourceContent,
-      sourcePath,
-      surface,
-      targetContent,
-      targetPath,
-      waitTimeoutInMilliseconds
-    }) {
+  const { renamedTargetPath, sourcePath, targetPath, vaultPath } = notePaths;
+
+  await evalInObsidian({
+    async callback({ app, lib: { createNote }, renamedTargetPath: renamedPath, sourceContent, sourcePath: sourceNotePath, targetContent, targetPath: targetNotePath }) {
       // A leftover from an earlier run of the same case; `runIntentRename` trashes these again in its `finally`.
-      for (const path of [sourcePath, targetPath, renamedTargetPath]) {
+      for (const path of [sourceNotePath, targetNotePath, renamedPath]) {
         const existing = app.vault.getAbstractFileByPath(path);
         if (existing) {
           await app.fileManager.trashFile(existing);
         }
       }
 
-      const folderPath = targetPath.slice(0, targetPath.lastIndexOf('/'));
+      const folderPath = targetNotePath.slice(0, targetNotePath.lastIndexOf('/'));
       if (!app.vault.getFolderByPath(folderPath)) {
         await app.vault.createFolder(folderPath);
       }
 
-      const targetFile = await createNote({ content: targetContent, path: targetPath });
-      await createNote({ content: sourceContent, path: sourcePath });
+      const targetFile = await createNote({ content: targetContent, path: targetNotePath });
+      await createNote({ content: sourceContent, path: sourceNotePath });
 
       const leaf = app.workspace.getLeaf(true);
       await leaf.openFile(targetFile, { active: true, state: { mode: 'source' } });
       // Activated explicitly: after the file explorer case, the explorer holds the focus and would stay active.
       app.workspace.setActiveLeaf(leaf, { focus: true });
-
-      await waitUntil({
-        message: 'backlink did not resolve',
-        predicate: () =>
-          app.workspace.getActiveViewOfType(obsidianModule.MarkdownView)?.file?.path === targetPath
-          && app.metadataCache.getFirstLinkpathDest(targetPath.replace('.md', ''), sourcePath) !== null,
-        timeoutInMilliseconds: waitTimeoutInMilliseconds
-      });
-
-      let renamePromise: null | Promise<void> = null;
-      if (surface === 'inlineTitle') {
-        const view = app.workspace.getActiveViewOfType(obsidianModule.MarkdownView);
-        if (!view) {
-          throw new Error('No active markdown view');
-        }
-
-        // A real pointer click focuses the title the way a user starts a rename there.
-        await clickElement({ element: view.inlineTitleEl });
-        await waitUntil({
-          message: 'inline title did not take focus',
-          predicate: () => view.inlineTitleEl.ownerDocument.activeElement === view.inlineTitleEl,
-          timeoutInMilliseconds: waitTimeoutInMilliseconds
-        });
-        // Replacing the text is not a gesture anything listens for; the Enter that commits it is, and is trusted.
-        view.inlineTitleEl.setText(newTitle);
-        await pressKey({ key: 'Enter' });
-      } else if (surface === 'fileExplorer') {
-        const fileExplorerLeaf = app.workspace.getLeavesOfType('file-explorer')[0];
-        await fileExplorerLeaf?.loadIfDeferred();
-        const fileExplorerView = fileExplorerLeaf?.view;
-        if (!fileExplorerView || !('fileItems' in fileExplorerView)) {
-          throw new Error('No file explorer view');
-        }
-
-        // What the explorer's own Rename menu item calls, so the tree item becomes editable as for a user.
-        await fileExplorerView.startRenameFile(targetFile);
-        const innerEl = fileExplorerView.fileItems[targetPath]?.innerEl;
-        if (!innerEl) {
-          throw new Error('No file explorer item');
-        }
-
-        // Replacing the text is not a gesture anything listens for; the Enter that commits it is, and is trusted.
-        innerEl.setText(newTitle);
-        await pressKey({ key: 'Enter' });
-      } else {
-        // `promptForFileRename` is what F2 opens when no title is shown, and what the pane and tab menus call.
-        renamePromise = app.fileManager.promptForFileRename(targetFile);
-        await waitUntil({
-          message: 'rename prompt did not open',
-          predicate: () => document.querySelector('.prompt-modal input.text-box') !== null,
-          timeoutInMilliseconds: waitTimeoutInMilliseconds
-        });
-        const inputEl = document.querySelector<HTMLInputElement>('.prompt-modal input.text-box');
-        const okButtonEl = document.querySelector<HTMLElement>('.prompt-modal .ok-button');
-        if (!inputEl || !okButtonEl) {
-          throw new Error('Rename prompt controls are missing');
-        }
-
-        inputEl.value = newTitle;
-        // A notification event, not a simulated user gesture — `AbstractTextComponent` listens for
-        // `input` to publish the new value, and nothing on that path gates on `isTrusted`.
-        inputEl.dispatchEvent(new Event('input', { bubbles: true }));
-        await clickElement({ element: okButtonEl });
-      }
-
-      function findIntentButtonEl(): HTMLElement | null {
-        return document.querySelector<HTMLElement>(`${intentModalSelector} button[data-intent="${CSS.escape(intent)}"]`);
-      }
-
-      await waitUntil({
-        message: 'rename intent dialog did not open',
-        predicate: () => findIntentButtonEl() !== null,
-        timeoutInMilliseconds: waitTimeoutInMilliseconds
-      });
-      const wasDialogShown = true;
-      const intentButtonEl = findIntentButtonEl();
-      if (!intentButtonEl) {
-        throw new Error('Intent button is missing');
-      }
-
-      const hasReadableLayout = checkDialogLayout();
-      await clickElement({ element: intentButtonEl });
-      await renamePromise;
-
-      // The rename and its backlink rewrite are awaited from Node by `runIntentRename`, outside this eval's cap.
-      return { hasReadableLayout, wasDialogShown };
-
-      function checkDialogLayout(): boolean {
-        const modalEl = document.querySelector<HTMLElement>(`${intentModalSelector} .modal`);
-        if (!modalEl) {
-          throw new Error('Intent modal is missing');
-        }
-
-        if (modalWidth) {
-          modalEl.style.width = `${String(modalWidth)}px`;
-        }
-
-        const paths = [...modalEl.querySelectorAll<HTMLElement>(':scope .smart-rename-intent-paths > *')];
-        const pathRects = paths.map((el) => el.getBoundingClientRect());
-        const buttons = [...modalEl.querySelectorAll<HTMLElement>('button[data-intent]')];
-        const buttonRects = buttons.map((el) => el.getBoundingClientRect());
-        const firstButtonRect = buttonRects[0];
-        return paths[0]?.querySelector('code')?.textContent === targetPath
-          && paths[2]?.querySelector('code')?.textContent === renamedTargetPath
-          && pathRects.every((rect, index) => index === 0 || rect.top >= (pathRects[index - 1]?.bottom ?? 0))
-          && buttons.length === 3
-          && buttonRects.every((rect) => rect.width > 0 && rect.top === firstButtonRect?.top)
-          && [...paths, ...buttons, modalEl].every((el) => el.scrollWidth <= el.clientWidth + 1);
-      }
     },
-    input: {
-      intent: params.intent,
-      intentModalSelector: INTENT_MODAL_SELECTOR,
-      modalWidth: params.modalWidth ?? null,
-      newTitle: NEW_TITLE,
-      renamedTargetPath: notePaths.renamedTargetPath,
-      sourceContent: SOURCE_CONTENT,
-      sourcePath: notePaths.sourcePath,
-      surface: params.surface,
-      targetContent: TARGET_CONTENT,
-      targetPath: notePaths.targetPath,
-      waitTimeoutInMilliseconds: WAIT_TIMEOUT_IN_MILLISECONDS
-    },
-    vaultPath: notePaths.vaultPath
+    input: { renamedTargetPath, sourceContent: SOURCE_CONTENT, sourcePath, targetContent: TARGET_CONTENT, targetPath },
+    vaultPath
   });
+
+  await pollInObsidian({
+    input: { sourcePath, targetPath },
+    poll({ app, obsidianModule, sourcePath: sourceNotePath, targetPath: targetNotePath }) {
+      return app.workspace.getActiveViewOfType(obsidianModule.MarkdownView)?.file?.path === targetNotePath
+        && app.metadataCache.getFirstLinkpathDest(targetNotePath.replace('.md', ''), sourceNotePath) !== null;
+    },
+    timeoutInMilliseconds: DIALOG_POLL_TIMEOUT_IN_MILLISECONDS,
+    timeoutMessage: 'backlink did not resolve',
+    until: (isResolved) => isResolved,
+    vaultPath
+  });
+
+  const contextId = new ContextId<SubmitIntentRenameContext>();
+  try {
+    return await pickIntent(params, notePaths, contextId);
+  } finally {
+    await contextId.dispose(vaultPath);
+  }
 }
