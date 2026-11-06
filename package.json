@@ -1,6 +1,6 @@
 {
   "name": "smart-rename",
-  "version": "2.6.0",
+  "version": "2.7.0",
   "description": "Renames notes keeping previous title in existing links.",
   "keywords": [],
   "homepage": "https://github.com/mnaoumov/obsidian-smart-rename#readme",
