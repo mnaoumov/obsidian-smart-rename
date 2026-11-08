@@ -19,216 +19,227 @@ This release has 1 new feature, 1 fix and 2 documentation changes. 3 maintenance
 
 ## 2.6.0
 
-- docs(readme): point bug reports at the Report a bug command
-- docs: add issue-filing instructions for AI agents
-- feat: add a Report a bug command
-- chore(github): give the bug form the field ids bug-report links prefill
-- build(deps): float `obsidian-dev-toolkit` to ^7.4.0 and override re2js to ^2.9.1
-- refactor: drop the `obsidian-typings` stopgaps in the rename intent hooks
-- build(deps): bump @mnaoumov/obsidian-lib to ^10.1.0 and adopt its Reference API names
-- feat: ask the rename intent on Obsidian's own rename surfaces
-- build(deps): bump `typescript-dev-toolkit` to ^5.2.0
-- build(deps): bump `obsidian-dev-toolkit` to ^7.1.1 and `typescript-dev-toolkit` to ^5.1.0
-- chore: adopt readonly interface members
-- docs(readme): combine related resources and plugin comparisons
-- docs: list similar plugins in the README
-- feat: refuse Windows device names and trailing dots in the rename dialog
+This release has 3 new features and 4 documentation changes. 7 maintenance commits (tests, build, CI, refactoring, dependencies) are not listed.
+
+### New
+
+- add a Report a bug command
+- ask the rename intent on Obsidian's own rename surfaces
+- refuse Windows device names and trailing dots in the rename dialog
+
+### Documentation
+
+- **readme:** point bug reports at the Report a bug command
+- add issue-filing instructions for AI agents
+- **readme:** combine related resources and plugin comparisons
+- list similar plugins in the README
 
 ## 2.5.1
 
-- test(integration): poll the invoke-on-link rename from Node
-- test(demo-vault): floor `CodeScript Toolkit` at 15.0.0
-- chore(deps): move to `obsidian-lib` 6 and off the dropped `obsidian-dev-utils` names
-- chore(deps): move to `obsidian-dev-toolkit` 4 and its demo-vault directive spelling
-- docs: shorten the debugging section
-- fix(demo-vault): load the demo setup helpers from @mnaoumov/obsidian-lib
-- docs(readme): lead the Debugging section with `Advanced Debug Mode`
-- build(deps): float brace-expansion, sharp and fast-uri past their advisories
-- docs: mark plugin names as code
-- chore(github): point questions to Discussions from the new-issue page
-- ci: merge attesting release assets through the toolkit's reusable workflow
-- build(deps): move off `obsidian-dev-utils` onto the @mnaoumov packages
-- chore(spellcheck): accept Sidedock from the `obsidian-typings` sidedock declarations
-- docs: mark plugin names as code in prose, comments and the changelog
-- test: merge using the `obsidian-typings` declarations of Obsidian internals
+This release has 1 fix and 4 documentation changes. 10 maintenance commits (tests, build, CI, refactoring, dependencies) are not listed.
+
+### Fixed
+
+- **demo-vault:** load the demo setup helpers from @mnaoumov/obsidian-lib
+
+### Documentation
+
+- shorten the debugging section
+- **readme:** lead the Debugging section with `Advanced Debug Mode`
+- mark plugin names as code
+- mark plugin names as code in prose, comments and the changelog
 
 ## 2.5.0
 
-- test(screenshots): merge the desktop capture onto applyObsidianTheme
-- test(screenshots): merge the dark-theme guard for the desktop capture
-- docs(screenshots): merge the frame 2 caption that fits both frames
-- test(integration): merge the clickElement-settled rename prompt
-- chore(deps): merge the `obsidian-integration-testing` 17 raise
-- chore(deps): merge the `obsidian-test-mocks` 7.0.0 raise
-- style(comments): stop capitalizing the middle of a wrapped comment
-- test(demo-vault): merge the headless toolkit install
-- test(checkboxes): merge the settled-prompt tap fix for Android
-- docs(agents): merge the backlink snapshot key note
-- fix(smart-rename): merge the backlink rewrite fix
-- chore(deps): merge the restored lockfile resolved and integrity fields
-- docs(screenshots): merge the mobile rename-prompt re-capture
-- fix(deps): float the transitive devalue past GHSA-9rgm-9g3h-6x36
-- docs(agents): record why the mobile prompt frame does not raise the soft keyboard
-- build(`markdownlint`): forbid hard-wrapped markdown paragraphs
-- refactor(smart-rename): rewrite backlinks through the shared snapshot primitive
-- docs(agents): record the per-eval cap trap behind the shared wait ceilings
-- fix(tests): size the two shared wait ceilings under the per-eval cap
-- chore(deps): drop the dead markdown-it override
-- chore(deps): drop the dead js-yaml override
-- docs: replace the private rule-id citations with what they assert
-- docs: name the library and the sibling plugins so a reader can resolve them
-- docs: replace the private tracker references with what they pointed at
-- docs(agents): name the branch gate in the commands section
-- chore: adopt the `npm` run gate branch gate
-- docs: say where the debug command is run
-- test: bring the in-closure wait ceiling under the transport's per-eval cap
-- refactor(android): drive the Android suites with trusted input
-- chore: make the LICENSE copyright line checkable by the linter and guard it against the year roll-over
-- test(test-mocks): drop the hand-rolled app.plugins stub, and sweep the dependencies
-- docs(screenshots): re-capture the desktop rename-prompt set
-- feat(rename): put the five post-rename steps in the rename prompt as per-rename checkboxes
-- fix(build): wire build:compile to buildCompile and drop the duplicate leaf script
+This release has 1 new feature, 4 fixes and 11 documentation changes. 18 maintenance commits (tests, build, CI, refactoring, dependencies) are not listed.
+
+### New
+
+- **rename:** put the five post-rename steps in the rename prompt as per-rename checkboxes
+
+### Fixed
+
+- **smart-rename:** merge the backlink rewrite fix
+- **deps:** float the transitive devalue past GHSA-9rgm-9g3h-6x36
+- **tests:** size the two shared wait ceilings under the per-eval cap
+- **build:** wire build:compile to buildCompile and drop the duplicate leaf script
+
+### Documentation
+
+- **screenshots:** merge the frame 2 caption that fits both frames
+- **agents:** merge the backlink snapshot key note
+- **screenshots:** merge the mobile rename-prompt re-capture
+- **agents:** record why the mobile prompt frame does not raise the soft keyboard
+- **agents:** record the per-eval cap trap behind the shared wait ceilings
+- replace the private rule-id citations with what they assert
+- name the library and the sibling plugins so a reader can resolve them
+- replace the private tracker references with what they pointed at
+- **agents:** name the branch gate in the commands section
+- say where the debug command is run
+- **screenshots:** re-capture the desktop rename-prompt set
 
 ## 2.4.1
 
-- fix(deps): move to `obsidian-integration-testing` 11 and drop the brace-expansion override
+This release has 1 fix.
+
+### Fixed
+
+- **deps:** move to `obsidian-integration-testing` 11 and drop the brace-expansion override
 
 ## 2.4.0
 
-- test: fix
-- chore: update libs
-- feat(command): smart rename the note a link points at, from the cursor
-- fix(settings): point the Filename Heading Sync link at community.obsidian.md
+This release has 1 new feature and 1 fix. 2 maintenance commits (tests, build, CI, refactoring, dependencies) are not listed.
+
+### New
+
+- **command:** smart rename the note a link points at, from the cursor
+
+### Fixed
+
+- **settings:** point the Filename Heading Sync link at community.obsidian.md
 
 ## 2.3.4
 
-- docs(demo-vault): unwrap the notes so Obsidian stops rendering a break per line
-- docs(readme): render the same in Obsidian's plugin page as on `GitHub`
-- chore: update libs
-- chore: update `obsidian-dev-utils` to 94.6.1
-- chore: update `obsidian-dev-utils` to 94.6.0
-- fix: override deepmerge-ts to clear GHSA-ggr8-5vv4-36mx
-- test: gate the demo vault by clicking every code button
-- chore: teach `cspell` the advisory wording
-- chore: update libs
-- docs(demo-vault): give the demo vault its code buttons
-- docs: show the screenshots in the README
-- docs: capture the community-store screenshot set
+This release has 1 fix and 5 documentation changes. 6 maintenance commits (tests, build, CI, refactoring, dependencies) are not listed.
+
+### Fixed
+
+- override deepmerge-ts to clear GHSA-ggr8-5vv4-36mx
+
+### Documentation
+
+- **demo-vault:** unwrap the notes so Obsidian stops rendering a break per line
+- **readme:** render the same in Obsidian's plugin page as on `GitHub`
+- **demo-vault:** give the demo vault its code buttons
+- show the screenshots in the README
+- capture the community-store screenshot set
 
 ## 2.3.3
 
-- docs: make the demo vault the documentation, in the standard layout
-- feat(demo-vault): migrate to `obsidian-dev-utils` 93.3.1 and adopt the authoring convention
+This release has 1 new feature and 1 documentation change.
+
+### New
+
+- **demo-vault:** migrate to `obsidian-dev-utils` 93.3.1 and adopt the authoring convention
+
+### Documentation
+
+- make the demo vault the documentation, in the standard layout
 
 ## 2.3.2
 
-- chore: update libs and adopt `obsidian-integration-testing` 10
+This release has maintenance changes only. 1 maintenance commit (tests, build, CI, refactoring, dependencies) is not listed.
 
 ## 2.3.1
 
-- chore: update libs
-- chore: update libs
-- chore(`vitest`): consume the shared `vitest` configuration
+This release has maintenance changes only. 3 maintenance commits (tests, build, CI, refactoring, dependencies) are not listed.
 
 ## 2.3.0
 
-- refactor(settings): move the settings tab onto the declarative settings API
-- chore: update libs and clear the `npm` audit
-- docs: fix the demo vault download instructions
+This release has 1 documentation change. 2 maintenance commits (tests, build, CI, refactoring, dependencies) are not listed.
+
+### Documentation
+
+- fix the demo vault download instructions
 
 ## 2.2.10
 
-- fix: pass plugin notice component to rename operations
+This release has 1 fix.
+
+### Fixed
+
+- pass plugin notice component to rename operations
 
 ## 2.2.9
 
-- chore: update libs
-- chore: update libs
+This release has maintenance changes only. 2 maintenance commits (tests, build, CI, refactoring, dependencies) are not listed.
 
 ## 2.2.8
 
-- chore: update libs
+This release has maintenance changes only. 1 maintenance commit (tests, build, CI, refactoring, dependencies) is not listed.
 
 ## 2.2.7
 
-- chore: update libs
-- chore(demo-vault): drop committed Invocables placeholder
-- fix(demo-vault): export invoke() from startup script; add Invocables folder
+This release has 1 fix. 2 maintenance commits (tests, build, CI, refactoring, dependencies) are not listed.
+
+### Fixed
+
+- **demo-vault:** export invoke() from startup script; add Invocables folder
 
 ## 2.2.6
 
-- docs: standardize demo-vault README
-- docs: drop per-plugin demo-vault setup notes (bootstrap covered by the `obsidian-dev-utils` harness)
-- docs: unnumber demo-vault setup notes
-- docs(demo-vault): number the `Smart Rename` demo vault example notes
-- docs(demo-vault): create the `Smart Rename` demo vault
-- chore: update lib
-- docs: update
-- docs: migrate to AGENTS.md
+This release has 7 documentation changes. 1 maintenance commit (tests, build, CI, refactoring, dependencies) is not listed.
+
+### Documentation
+
+- standardize demo-vault README
+- drop per-plugin demo-vault setup notes (bootstrap covered by the `obsidian-dev-utils` harness)
+- unnumber demo-vault setup notes
+- **demo-vault:** number the `Smart Rename` demo vault example notes
+- **demo-vault:** create the `Smart Rename` demo vault
+- update
+- migrate to AGENTS.md
 
 ## 2.2.5
 
-- chore: update libs
-- chore: update `obsidian-dev-utils` to 85.0.0
-- refactor: pass params objects to SmartRenameComponent methods
-- test: use commands__ accessor after `obsidian-test-mocks` bridge rename
-- build: lock typescript to 6.0.3
-- test: wire integration-testing vitest-setup into integration projects
-- chore: update libs
-- chore: sort tsconfig types
+This release has maintenance changes only. 8 maintenance commits (tests, build, CI, refactoring, dependencies) are not listed.
 
 ## 2.2.4
 
-- refactor: new template
+This release has maintenance changes only. 1 maintenance commit (tests, build, CI, refactoring, dependencies) is not listed.
 
 ## 2.2.3
 
-- chore: update libs
+This release has maintenance changes only. 1 maintenance commit (tests, build, CI, refactoring, dependencies) is not listed.
 
 ## 2.2.2
 
-- chore: update template
+This release has maintenance changes only. 1 maintenance commit (tests, build, CI, refactoring, dependencies) is not listed.
 
 ## 2.2.1
 
-- chore: update template
+This release has maintenance changes only. 1 maintenance commit (tests, build, CI, refactoring, dependencies) is not listed.
 
 ## 2.2.0
 
-- feat: allow configuring preserving old titles re #14
-- feat: add setting groups
-- chore: update libs
+This release has 2 new features. 1 maintenance commit (tests, build, CI, refactoring, dependencies) is not listed.
+
+### New
+
+- allow configuring preserving old titles re #14
+- add setting groups
 
 ## 2.1.14
 
-- refactor: commands
+This release has maintenance changes only. 1 maintenance commit (tests, build, CI, refactoring, dependencies) is not listed.
 
 ## 2.1.13
 
-- chore: update libs
+This release has maintenance changes only. 1 maintenance commit (tests, build, CI, refactoring, dependencies) is not listed.
 
 ## 2.1.12
 
-- chore: update libs
+This release has maintenance changes only. 1 maintenance commit (tests, build, CI, refactoring, dependencies) is not listed.
 
 ## 2.1.11
 
-- chore: update libs
+This release has maintenance changes only. 1 maintenance commit (tests, build, CI, refactoring, dependencies) is not listed.
 
 ## 2.1.10
 
-- chore: update libs
-- chore: lint
-- chore: enable `markdownlint`
+This release has maintenance changes only. 3 maintenance commits (tests, build, CI, refactoring, dependencies) are not listed.
 
 ## 2.1.9
 
-- fix: build
-- chore: update libs
+This release has 1 fix. 1 maintenance commit (tests, build, CI, refactoring, dependencies) is not listed.
+
+### Fixed
+
+- build
 
 ## 2.1.8
 
-- chore: enable conventional commits
+This release has maintenance changes only. 1 maintenance commit (tests, build, CI, refactoring, dependencies) is not listed.
 
 ## 2.1.7
 
@@ -260,6 +271,10 @@ This release has 1 new feature, 1 fix and 2 documentation changes. 3 maintenance
 
 ## 2.1.0
 
+This release has 4 other changes.
+
+### Other changes
+
 - shouldSupportNonMarkdownFiles config
 - Update settings UI
 - Don't edit non-md files
@@ -274,6 +289,10 @@ This release has 1 new feature, 1 fix and 2 documentation changes. 3 maintenance
 - Minor changes
 
 ## 2.0.25
+
+This release has 1 other change.
+
+### Other changes
 
 - Use getOsAndObsidianUnsafePathCharsRegExp
 
@@ -299,6 +318,10 @@ This release has 1 new feature, 1 fix and 2 documentation changes. 3 maintenance
 
 ## 2.0.19
 
+This release has 1 other change.
+
+### Other changes
+
 - Fix initialization
 
 ## 2.0.18
@@ -314,6 +337,10 @@ This release has 1 new feature, 1 fix and 2 documentation changes. 3 maintenance
 - Minor changes
 
 ## 2.0.15
+
+This release has 2 other changes.
+
+### Other changes
 
 - New template
 - `ESLint` template
@@ -331,6 +358,10 @@ This release has 1 new feature, 1 fix and 2 documentation changes. 3 maintenance
 - Minor changes
 
 ## 2.0.11
+
+This release has 1 other change.
+
+### Other changes
 
 - Update template
 
@@ -364,6 +395,10 @@ This release has 1 new feature, 1 fix and 2 documentation changes. 3 maintenance
 
 ## 2.0.3
 
+This release has 1 other change.
+
+### Other changes
+
 - Avoid default exports
 
 ## 2.0.2
@@ -375,6 +410,10 @@ This release has 1 new feature, 1 fix and 2 documentation changes. 3 maintenance
 - Minor changes
 
 ## 2.0.0
+
+This release has 5 other changes.
+
+### Other changes
 
 - Add support to case changing
 - Check for title starting with dot
