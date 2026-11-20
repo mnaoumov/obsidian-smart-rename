@@ -427,7 +427,7 @@ This release has 5 other changes.
 
 ## 1.1.1
 
-- Minor changes
+- No change in behavior: the plugin was moved onto a new build template (sources under `src/`, a TypeScript `esbuild` build and a new `ESLint` setup).
 
 ## 1.1.0
 
