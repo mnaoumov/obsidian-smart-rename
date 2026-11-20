@@ -1,10 +1,14 @@
 import type { App } from 'obsidian';
 
+import { configureCommunityPlugin } from '@mnaoumov/obsidian-lib/community-plugins';
+import {
+  asCodeBlock,
+  createFragmentWithCodeBlocks
+} from '@mnaoumov/obsidian-lib/html-element';
 import {
   MarkdownView,
   Notice
 } from 'obsidian';
-import { configureCommunityPlugin } from '@mnaoumov/obsidian-lib/community-plugins';
 
 const PLUGIN_ID = 'smart-rename';
 const DEMO_FOLDER_PATH = 'Materials/01 Smart rename';
@@ -14,12 +18,12 @@ const LINK_DEMO_SOURCE_PATH = `${LINK_DEMO_FOLDER_PATH}/Note with links.md`;
 const LINK_DEMO_TARGET_PATH = `${LINK_DEMO_FOLDER_PATH}/Target note.md`;
 
 interface DemoSettingsPatch {
-  invalidCharacterAction?: string;
-  replacementCharacter?: string;
-  shouldPreservePreviousDisplayTextInNoteLinks?: boolean;
-  shouldStoreInvalidTitle?: boolean;
-  shouldUpdateFirstHeader?: boolean;
-  shouldUpdateTitleKey?: boolean;
+  readonly invalidCharacterAction?: string;
+  readonly replacementCharacter?: string;
+  readonly shouldPreservePreviousDisplayTextInNoteLinks?: boolean;
+  readonly shouldStoreInvalidTitle?: boolean;
+  readonly shouldUpdateFirstHeader?: boolean;
+  readonly shouldUpdateTitleKey?: boolean;
 }
 
 // The pristine fixture. Renaming is destructive by nature, so the walkthrough is only repeatable if
@@ -28,7 +32,7 @@ const FIXTURE_NOTES: Record<string, string> = {
   [`${DEMO_FOLDER_PATH}/Rename me.md`]: [
     '# Rename me',
     '',
-    'This is the note the [01 Smart rename](<../../01 Smart rename.md>) demo renames. With this note active, run **Smart Rename: Invoke** and give it a new title.',
+    'This is the note the [01 Smart rename](<../../01 Smart rename.md>) demo renames. With this note active, run **`Smart Rename`: Invoke** and give it a new title.',
     '',
     'Two notes link here - [References/Note A](<./References/Note A.md>) and [References/Note B](<./References/Note B.md>). After the rename, their links will keep showing "Rename me" as their display text instead of switching to the new name.',
     ''
@@ -64,7 +68,7 @@ const LINK_FIXTURE_NOTES: Record<string, string> = {
     '---',
     '# Note with links',
     '',
-    'Put the cursor inside any link below and run **Smart Rename: Invoke on link under cursor**. The link\'s *target* is renamed; this note keeps its own name.',
+    'Put the cursor inside any link below and run **`Smart Rename`: Invoke on link under cursor**. The link\'s *target* is renamed; this note keeps its own name.',
     '',
     'Walkthrough in [03 Rename the link target](<../../03 Rename the link target.md>).',
     '',
@@ -90,60 +94,15 @@ const LINK_FIXTURE_NOTES: Record<string, string> = {
 };
 
 /**
- * Puts the three demo notes back exactly as they ship, so the rename can be tried again.
+ * Applies a settings patch, live, through the plugin's own settings component.
  *
- * Manual equivalent: rename the note back by hand and undo the link rewrites in both referencing
- * notes — which is the tedium this button exists to remove.
+ * Manual equivalent: change the same option in **Settings -> Community plugins ->** `Smart Rename`.
  */
-export async function resetDemo(app: App): Promise<void> {
-  const folder = app.vault.getFolderByPath(DEMO_FOLDER_PATH);
-  if (folder) {
-    await app.fileManager.trashFile(folder);
-  }
-
-  await app.vault.createFolder(DEMO_FOLDER_PATH);
-  await app.vault.createFolder(REFERENCES_FOLDER_PATH);
-
-  for (const [path, content] of Object.entries(FIXTURE_NOTES)) {
-    await app.vault.create(path, content);
-  }
-
-  new Notice('Demo notes restored. Open "Rename me" and try again.');
+export async function changeSettings(app: App, patch: DemoSettingsPatch): Promise<void> {
+  await configureCommunityPlugin({ app, pluginId: PLUGIN_ID, settings: patch });
+  new Notice('Applied. The setting is live — no reload needed.');
 }
 
-/**
- * Opens the note the walkthrough renames and starts the rename prompt on it.
- *
- * Manual equivalent: open `Materials/01 Smart rename/Rename me.md` and run **Smart Rename: Invoke**
- * from the Command Palette.
- */
-export async function startRename(app: App): Promise<void> {
-  const note = app.vault.getFileByPath(`${DEMO_FOLDER_PATH}/Rename me.md`);
-  if (!note) {
-    new Notice('"Rename me" is not there — press the reset button first.');
-    return;
-  }
-
-  await app.workspace.getLeaf(false).openFile(note);
-  app.commands.executeCommandById(`${PLUGIN_ID}:invoke`);
-}
-
-/**
- * Opens the note the walkthrough renames and starts Obsidian's own rename on it, the way F2 does: the inline title
- * takes focus, or the rename dialog opens when no title is shown.
- *
- * Manual equivalent: open `Materials/01 Smart rename/Rename me.md` and press F2, or click its inline title.
- */
-export async function startIntentRename(app: App): Promise<void> {
-  const note = app.vault.getFileByPath(`${DEMO_FOLDER_PATH}/Rename me.md`);
-  if (!note) {
-    new Notice('"Rename me" is not there — press the reset button first.');
-    return;
-  }
-
-  await app.workspace.getLeaf(false).openFile(note);
-  app.commands.executeCommandById('workspace:edit-file-title');
-}
 /**
  * Opens the note that links to the target and drops the cursor inside its first wikilink, so the
  * command is immediately available.
@@ -175,9 +134,30 @@ export async function openLinkDemo(app: App): Promise<void> {
 
   editor.focus();
   editor.setCursor({ ch: WIKILINK_LINE_PREFIX.length + WIKILINK_CURSOR_OFFSET, line: lineIndex });
-  new Notice('Cursor is on the link. Run "Smart Rename: Invoke on link under cursor".');
+  new Notice(createFragmentWithCodeBlocks(`Cursor is on the link. Run ${asCodeBlock('Smart Rename: Invoke on link under cursor')}.`));
 }
 
+/**
+ * Puts the three demo notes back exactly as they ship, so the rename can be tried again.
+ *
+ * Manual equivalent: rename the note back by hand and undo the link rewrites in both referencing
+ * notes — which is the tedium this button exists to remove.
+ */
+export async function resetDemo(app: App): Promise<void> {
+  const folder = app.vault.getFolderByPath(DEMO_FOLDER_PATH);
+  if (folder) {
+    await app.fileManager.trashFile(folder);
+  }
+
+  await app.vault.createFolder(DEMO_FOLDER_PATH);
+  await app.vault.createFolder(REFERENCES_FOLDER_PATH);
+
+  for (const [path, content] of Object.entries(FIXTURE_NOTES)) {
+    await app.vault.create(path, content);
+  }
+
+  new Notice(createFragmentWithCodeBlocks(`Demo notes restored. Open ${asCodeBlock('Rename me')} and try again.`));
+}
 /**
  * Puts the link-target demo notes back exactly as they ship, so the rename can be tried again.
  *
@@ -200,11 +180,35 @@ export async function resetLinkDemo(app: App): Promise<void> {
 }
 
 /**
- * Applies a settings patch, live, through the plugin's own settings component.
+ * Opens the note the walkthrough renames and starts Obsidian's own rename on it, the way F2 does: the inline title
+ * takes focus, or the rename dialog opens when no title is shown.
  *
- * Manual equivalent: change the same option in **Settings -> Community plugins -> Smart Rename**.
+ * Manual equivalent: open `Materials/01 Smart rename/Rename me.md` and press F2, or click its inline title.
  */
-export async function changeSettings(app: App, patch: DemoSettingsPatch): Promise<void> {
-  await configureCommunityPlugin({ app, pluginId: PLUGIN_ID, settings: patch });
-  new Notice('Applied. The setting is live — no reload needed.');
+export async function startIntentRename(app: App): Promise<void> {
+  const note = app.vault.getFileByPath(`${DEMO_FOLDER_PATH}/Rename me.md`);
+  if (!note) {
+    new Notice('"Rename me" is not there — press the reset button first.');
+    return;
+  }
+
+  await app.workspace.getLeaf(false).openFile(note);
+  app.commands.executeCommandById('workspace:edit-file-title');
+}
+
+/**
+ * Opens the note the walkthrough renames and starts the rename prompt on it.
+ *
+ * Manual equivalent: open `Materials/01 Smart rename/Rename me.md` and run `Smart Rename: Invoke`
+ * from the Command Palette.
+ */
+export async function startRename(app: App): Promise<void> {
+  const note = app.vault.getFileByPath(`${DEMO_FOLDER_PATH}/Rename me.md`);
+  if (!note) {
+    new Notice('"Rename me" is not there — press the reset button first.');
+    return;
+  }
+
+  await app.workspace.getLeaf(false).openFile(note);
+  app.commands.executeCommandById(`${PLUGIN_ID}:invoke`);
 }

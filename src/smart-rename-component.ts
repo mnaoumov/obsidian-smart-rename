@@ -426,7 +426,7 @@ export class SmartRenameComponent extends ComponentEx {
          * restyle even when it was absent from the capture, which is why unmatched links are visited.
          */
         if (!wasCaptured && extractReferenceFile({ app: this.app, reference, sourcePathOrFile: sourcePath }) !== newFile) {
-          return;
+          return null;
         }
 
         const isNewTitle = (reference.displayText ?? '').toLowerCase() === newTitle.toLowerCase();
