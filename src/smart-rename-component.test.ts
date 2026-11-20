@@ -188,7 +188,7 @@ interface CreateComponentOptions {
   readonly settings?: Partial<PluginSettings>;
 }
 
-type EditLinksCallback = (params: BacklinkConversion) => string | undefined;
+type EditLinksCallback = (params: BacklinkConversion) => null | string;
 
 interface EnqueuedOperation {
   readonly operationFunction: () => Promise<void>;
@@ -650,7 +650,7 @@ describe('SmartRenameComponent', () => {
       return editLinksCallback;
     }
 
-    it('should return undefined for link not matching newFile or linkJsons', async () => {
+    it('should return null for link not matching newFile or linkJsons', async () => {
       const mockLink = { displayText: 'OtherNote', original: '[[OtherNote]]' };
       const callback = await setupBacklinkCallback({
         backlinks: {
@@ -668,7 +668,7 @@ describe('SmartRenameComponent', () => {
         reference: { displayText: 'SomeOther', original: '[[SomeOther]]' },
         sourcePath: 'note.md'
       });
-      expect(result).toBeUndefined();
+      expect(result).toBeNull();
     });
 
     it('should generate markdown link for matching link', async () => {
