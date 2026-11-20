@@ -64,6 +64,8 @@ async function createLoadedPlugin(app: AppOriginal): Promise<Plugin> {
 
 function createManifest(): PluginManifest {
   return strictProxy<PluginManifest>({
+    // eslint-disable-next-line unicorn/name-replacements -- Obsidian's own `PluginManifest` member.
+    dir: 'plugins-root/smart-rename',
     id: 'smart-rename',
     name: 'Smart Rename',
     version: '1.0.0'
