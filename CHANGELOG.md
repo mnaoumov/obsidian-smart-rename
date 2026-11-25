@@ -1,5 +1,16 @@
 # CHANGELOG
 
+## 2.7.1
+
+This release has 4 documentation changes. 5 maintenance commits (tests, build, CI, refactoring, dependencies) are not listed.
+
+### Documentation
+
+- **readme:** refresh the See also section
+- use the plugin badge line in the README
+- **changelog:** describe the 1.1.1 release
+- **changelog:** regroup the published release notes for readers
+
 ## 2.7.0
 
 This release has 1 new feature, 1 fix and 2 documentation changes. 3 maintenance commits (tests, build, CI, refactoring, dependencies) are not listed.
