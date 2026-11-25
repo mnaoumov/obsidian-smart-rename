@@ -78,30 +78,30 @@ vi.mock('obsidian', async (importOriginal) => {
 });
 
 vi.mock('@mnaoumov/obsidian-lib/modals/prompt', async (importOriginal) => ({
-  ...await importOriginal<typeof import('@mnaoumov/obsidian-lib/modals/prompt')>(),
+  ...(await importOriginal<typeof import('@mnaoumov/obsidian-lib/modals/prompt')>()),
   prompt: (...$arguments: unknown[]): unknown => hoisted.mockPrompt(...$arguments)
 }));
 
 vi.mock('@mnaoumov/obsidian-lib/metadata-cache', async (importOriginal) => ({
-  ...await importOriginal<typeof import('@mnaoumov/obsidian-lib/metadata-cache')>(),
+  ...(await importOriginal<typeof import('@mnaoumov/obsidian-lib/metadata-cache')>()),
   getBacklinksForFileSafe: (...$arguments: unknown[]): unknown => hoisted.mockGetBacklinksForFileSafe(...$arguments),
   getCacheSafe: (...$arguments: unknown[]): unknown => hoisted.mockGetCacheSafe(...$arguments)
 }));
 
 vi.mock('@mnaoumov/obsidian-lib/file-system', async (importOriginal) => ({
-  ...await importOriginal<typeof import('@mnaoumov/obsidian-lib/file-system')>(),
+  ...(await importOriginal<typeof import('@mnaoumov/obsidian-lib/file-system')>()),
   getFile: (...$arguments: unknown[]): unknown => hoisted.mockGetFile(...$arguments),
   isMarkdownFile: (...$arguments: unknown[]): unknown => hoisted.mockIsMarkdownFile(...$arguments)
 }));
 
 vi.mock('@mnaoumov/obsidian-lib/file-manager', async (importOriginal) => ({
-  ...await importOriginal<typeof import('@mnaoumov/obsidian-lib/file-manager')>(),
+  ...(await importOriginal<typeof import('@mnaoumov/obsidian-lib/file-manager')>()),
   addAlias: (...$arguments: unknown[]): unknown => hoisted.mockAddAlias(...$arguments),
   processFrontmatter: (...$arguments: unknown[]): unknown => hoisted.mockProcessFrontmatter(...$arguments)
 }));
 
 vi.mock('@mnaoumov/obsidian-lib/link', async (importOriginal) => ({
-  ...await importOriginal<typeof import('@mnaoumov/obsidian-lib/link')>(),
+  ...(await importOriginal<typeof import('@mnaoumov/obsidian-lib/link')>()),
   // `buildBacklinksSnapshot` is deliberately NOT mocked: letting the real one run is what proves the
   // snapshot the converter is judged against was actually built from these backlinks (G49).
   editBacklinksSnapshot: (...$arguments: unknown[]): unknown => hoisted.mockEditBacklinksSnapshot(...$arguments),
@@ -111,27 +111,27 @@ vi.mock('@mnaoumov/obsidian-lib/link', async (importOriginal) => ({
 }));
 
 vi.mock('./rename-intent-modal.ts', async (importOriginal) => ({
-  ...await importOriginal<typeof import('./rename-intent-modal.ts')>(),
+  ...(await importOriginal<typeof import('./rename-intent-modal.ts')>()),
   selectRenameIntent: (...$arguments: unknown[]): unknown => hoisted.mockSelectRenameIntent(...$arguments)
 }));
 
 vi.mock('@mnaoumov/obsidian-lib/queue', async (importOriginal) => ({
-  ...await importOriginal<typeof import('@mnaoumov/obsidian-lib/queue')>(),
+  ...(await importOriginal<typeof import('@mnaoumov/obsidian-lib/queue')>()),
   addToQueue: (...$arguments: unknown[]): unknown => hoisted.mockAddToQueue(...$arguments)
 }));
 
 vi.mock('@mnaoumov/obsidian-lib/vault', async (importOriginal) => ({
-  ...await importOriginal<typeof import('@mnaoumov/obsidian-lib/vault')>(),
+  ...(await importOriginal<typeof import('@mnaoumov/obsidian-lib/vault')>()),
   process: (...$arguments: unknown[]): unknown => hoisted.mockProcessVault(...$arguments)
 }));
 
 vi.mock('@mnaoumov/obsidian-lib/validation', async (importOriginal) => ({
-  ...await importOriginal<typeof import('@mnaoumov/obsidian-lib/validation')>(),
+  ...(await importOriginal<typeof import('@mnaoumov/obsidian-lib/validation')>()),
   getOsAndObsidianUnsafePathCharsRegExp: (): unknown => hoisted.mockGetOsAndObsidianUnsafePathCharsRegExp()
 }));
 
 vi.mock('@obsidian-typings/obsidian-public-latest/implementations', async (importOriginal) => ({
-  ...await importOriginal<typeof import('@obsidian-typings/obsidian-public-latest/implementations')>(),
+  ...(await importOriginal<typeof import('@obsidian-typings/obsidian-public-latest/implementations')>()),
   isFrontmatterLinkCache: (...$arguments: unknown[]): unknown => hoisted.mockIsFrontmatterLinkCache(...$arguments),
   isReferenceCache: (...$arguments: unknown[]): unknown => hoisted.mockIsReferenceCache(...$arguments)
 }));
