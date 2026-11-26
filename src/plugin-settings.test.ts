@@ -13,6 +13,11 @@ describe('PluginSettings', () => {
     expect(settings.invalidCharacterAction).toBe(InvalidCharacterAction.Error);
   });
 
+  it('should default titleKey to title', () => {
+    const settings = new PluginSettings();
+    expect(settings.titleKey).toBe('title');
+  });
+
   it('should default replacementCharacter to underscore', () => {
     const settings = new PluginSettings();
     expect(settings.replacementCharacter).toBe('_');

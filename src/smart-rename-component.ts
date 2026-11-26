@@ -57,6 +57,7 @@ import { InvalidCharacterAction } from './invalid-character-action.ts';
 import { hasInvalidCharacters } from './invalid-character.ts';
 import { selectRenameIntent } from './rename-intent-modal.ts';
 import { RenameIntent } from './rename-intent.ts';
+import { resolveTitleKey } from './title-key.ts';
 
 /**
  * One checkbox in the rename prompt's control strip, bound to the {@link PostRenameSteps} member it
@@ -70,7 +71,11 @@ interface PostRenameStepCheckbox {
   readonly isMarkdownOnly: boolean;
 
   readonly key: string;
-  readonly purpose: string;
+
+  /**
+   * The checkbox label, or a function building it from the resolved `Title key` setting.
+   */
+  readonly purpose: ((titleKey: string) => string) | string;
   readonly stepName: Exclude<keyof PostRenameSteps, 'shouldStoreInvalidTitleAsAlias' | 'shouldUpdateOnlyMatchingTitle'>;
 }
 
@@ -191,7 +196,7 @@ const POST_RENAME_STEP_CHECKBOXES: readonly PostRenameStepCheckbox[] = [
   { isMarkdownOnly: false, key: '1', purpose: 'Keep old title in note links', stepName: 'shouldPreservePreviousDisplayTextInNoteLinks' },
   { isMarkdownOnly: false, key: '2', purpose: 'Keep old title in frontmatter links', stepName: 'shouldPreservePreviousDisplayTextInFrontmatterLinks' },
   { isMarkdownOnly: true, key: '3', purpose: 'Add old title as alias', stepName: 'shouldAddOldTitleAsAlias' },
-  { isMarkdownOnly: true, key: '4', purpose: 'Update title key', stepName: 'shouldUpdateTitleKey' },
+  { isMarkdownOnly: true, key: '4', purpose: (titleKey) => `Update ${titleKey} key`, stepName: 'shouldUpdateTitleKey' },
   { isMarkdownOnly: true, key: '5', purpose: 'Update first header', stepName: 'shouldUpdateFirstHeader' }
 ];
 
@@ -294,6 +299,7 @@ export class SmartRenameComponent extends ComponentEx {
     const { file, steps } = params;
     const isMarkdown = isMarkdownFile(file);
     const commandBuilder = new ModalCommandBuilder();
+    const titleKey = resolveTitleKey(this.pluginSettingsComponent.settings.titleKey);
 
     for (const stepCheckbox of POST_RENAME_STEP_CHECKBOXES) {
       commandBuilder.addCheckbox({
@@ -306,7 +312,7 @@ export class SmartRenameComponent extends ComponentEx {
         onInit: (checkboxEl) => {
           checkboxEl.checked = steps[stepCheckbox.stepName];
         },
-        purpose: stepCheckbox.purpose
+        purpose: typeof stepCheckbox.purpose === 'string' ? stepCheckbox.purpose : stepCheckbox.purpose(titleKey)
       });
     }
 
@@ -628,13 +634,14 @@ export class SmartRenameComponent extends ComponentEx {
     if (!steps.shouldUpdateTitleKey) {
       return;
     }
+    const titleKey = resolveTitleKey(this.pluginSettingsComponent.settings.titleKey);
     await processFrontmatter({
       app: this.app,
       frontmatterFunction: (frontMatter) => {
-        const currentValue = frontMatter['title'];
+        const currentValue = frontMatter[titleKey];
         // A missing or empty title is filled in: nothing the author chose is lost by it.
         if (currentValue === undefined || currentValue === null || currentValue === '' || this.shouldReplaceTitle({ currentValue, oldTitle, steps })) {
-          frontMatter['title'] = titleToStore;
+          frontMatter[titleKey] = titleToStore;
         }
       },
       pathOrFile: newPath,

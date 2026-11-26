@@ -583,6 +583,34 @@ describe('SmartRenameComponent', () => {
       expect(capturedFrontmatter['title']).toBe('NewTitle');
     });
 
+    it.each([
+      ['name', 'name'],
+      ['  heading  ', 'heading'],
+      ['', 'title'],
+      [' \t', 'title']
+    ])('should write the frontmatter key from the titleKey setting %j as %j', async (titleKey, expectedKey) => {
+      hoisted.mockPrompt.mockResolvedValue('NewTitle');
+      hoisted.mockIsMarkdownFile.mockReturnValue(true);
+      hoisted.mockGetFile.mockReturnValue(strictProxy<TFile>({ basename: 'NewTitle', path: 'NewTitle.md' }));
+      hoisted.mockAddAlias.mockResolvedValue(undefined);
+
+      const capturedFrontmatter = castTo<CombinedFrontmatter<unknown>>({ title: 'Kept' });
+      hoisted.mockProcessFrontmatter.mockImplementation((params: CapturedProcessFrontmatterParams) => {
+        params.frontmatterFunction(capturedFrontmatter);
+        return noopAsync();
+      });
+
+      const component = await createComponent({ settings: { shouldUpdateOnlyMatchingTitle: false, shouldUpdateTitleKey: true, titleKey } });
+
+      await component.smartRename(createInputFile());
+      await runEnqueuedOperation();
+
+      expect(capturedFrontmatter[expectedKey]).toBe('NewTitle');
+      if (expectedKey !== 'title') {
+        expect(capturedFrontmatter['title']).toBe('Kept');
+      }
+    });
+
     it('should not call updateTitle when shouldUpdateTitleKey is false', async () => {
       await runProcessRename({ isMarkdown: true, shouldUpdateTitleKey: false });
       expect(hoisted.mockProcessFrontmatter).not.toHaveBeenCalled();
@@ -1061,6 +1089,17 @@ describe('SmartRenameComponent', () => {
       });
 
       expect(checkboxEls.map((checkboxEl) => checkboxEl.checked)).toStrictEqual([false, true, false, false, true]);
+    });
+
+    it.each([
+      ['title', 'Update title key'],
+      ['name', 'Update name key'],
+      ['', 'Update title key']
+    ])('should name the titleKey setting %j in the title key checkbox as %j', async (titleKey, expectedPurpose) => {
+      const checkboxEls = await runRenameWithStrip({ settings: { titleKey } });
+
+      const stripText = ensureNonNullable(ensureNonNullable(checkboxEls[TITLE_KEY_CHECKBOX_INDEX]).parentElement?.parentElement).textContent;
+      expect(stripText).toContain(expectedPurpose);
     });
 
     it('should disable the markdown-only checkboxes for a non-markdown file', async () => {
