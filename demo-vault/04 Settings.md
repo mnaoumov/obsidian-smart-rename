@@ -19,10 +19,10 @@ Manual equivalent: turn on **Should update first header** and **Should update ti
 ---
 caption: Restore every setting this vault changes
 ---
-await require('/demoSetup.ts').changeSettings(app, { invalidCharacterAction: 'Error', replacementCharacter: '_', shouldStoreInvalidTitle: true, shouldUpdateFirstHeader: false, shouldUpdateTitleKey: false });
+await require('/demoSetup.ts').changeSettings(app, { invalidCharacterAction: 'Error', replacementCharacter: '_', shouldStoreInvalidTitle: true, shouldUpdateFirstHeader: false, shouldUpdateOnlyMatchingTitle: true, shouldUpdateTitleKey: false });
 ```
 
-Manual equivalent: set **Invalid characters action** back to *Error*, **Replacement character** to `_`, **Should store invalid title** on, and both title options off.
+Manual equivalent: set **Invalid characters action** back to *Error*, **Replacement character** to `_`, **Should store invalid title** on, both title options off, and **Should update only matching title and header** on.
 
 ## Invalid characters
 
@@ -47,9 +47,11 @@ Manual equivalent: set **Invalid characters action** back to *Error*, **Replacem
 - `shouldAddOldTitleAsAlias`
   - add the old title as an alias of the renamed note, so searches and links using it still resolve.
 - `shouldUpdateFirstHeader`
-  - also update the first header of the note when it matches the old title.
+  - also update the first header of the note.
 - `shouldUpdateTitleKey`
-  - update the `title` key in the note's frontmatter.
+  - update the `title` key in the note's frontmatter, adding it when the note has none.
+- `shouldUpdateOnlyMatchingTitle`
+  - on by default: update the first header and the `title` key only while they still show the old title, so a custom value is left alone. A note `Domain-driven Design (book)` whose first header is `# Domain-driven Design` keeps that header when renamed. A value holding characters the old file name could not, which `shouldStoreInvalidTitle` stores, still counts as the old title. Turn it off to overwrite both every time.
 
 ## Previous display text
 

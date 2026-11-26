@@ -14,5 +14,6 @@ export class PluginSettings {
   public shouldStoreInvalidTitle = true;
   public shouldSupportNonMarkdownFiles = true;
   public shouldUpdateFirstHeader = false;
+  public shouldUpdateOnlyMatchingTitle = true;
   public shouldUpdateTitleKey = false;
 }

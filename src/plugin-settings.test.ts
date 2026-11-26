@@ -52,4 +52,9 @@ describe('PluginSettings', () => {
     const settings = new PluginSettings();
     expect(settings.shouldUpdateTitleKey).toBe(false);
   });
+
+  it('should default shouldUpdateOnlyMatchingTitle to true', () => {
+    const settings = new PluginSettings();
+    expect(settings.shouldUpdateOnlyMatchingTitle).toBe(true);
+  });
 });

@@ -2,7 +2,7 @@
 
 Renaming a note through Obsidian itself - its inline title, the file explorer, F2, or **Rename...** in a menu - asks what the rename is meant to do:
 
-1. **Rename and sync to title/H1** - the default, picked by Enter. The note's frontmatter `title` and its first H1 become the new name.
+1. **Rename and sync to title/H1** - the default, picked by Enter. The note's frontmatter `title` and its first H1 become the new name, unless either was set to something other than the old name; see `shouldUpdateOnlyMatchingTitle` in [04 Settings](<./04 Settings.md>).
 2. **Rename and store previous name/title/H1** - as 1, and the previous name is kept: as an alias, and as the display text of the links that showed it, which is what [01 Smart rename](<./01 Smart rename.md>) does.
 3. **Rename only** - the file name changes and nothing else, for a file name you only want to shorten or adjust.
 

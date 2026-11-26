@@ -71,7 +71,7 @@ interface PostRenameStepCheckbox {
 
   readonly key: string;
   readonly purpose: string;
-  readonly stepName: Exclude<keyof PostRenameSteps, 'shouldStoreInvalidTitleAsAlias'>;
+  readonly stepName: Exclude<keyof PostRenameSteps, 'shouldStoreInvalidTitleAsAlias' | 'shouldUpdateOnlyMatchingTitle'>;
 }
 
 /**
@@ -93,6 +93,8 @@ interface PostRenameSteps {
   readonly shouldStoreInvalidTitleAsAlias: boolean;
   // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- The rename prompt checkbox toggles this per-rename flag.
   shouldUpdateFirstHeader: boolean;
+  // No checkbox: whether the title key and the first header are rewritten only while they still show the old title.
+  readonly shouldUpdateOnlyMatchingTitle: boolean;
   // eslint-disable-next-line typescript-dev-toolkit/readonly-interface-members -- The rename prompt checkbox toggles this per-rename flag.
   shouldUpdateTitleKey: boolean;
 }
@@ -166,14 +168,21 @@ interface SmartRenameComponentResolveRenameParams {
   readonly typedTitle: string;
 }
 
+interface SmartRenameComponentShouldReplaceTitleParams {
+  readonly currentValue: unknown;
+  readonly oldTitle: string;
+  readonly steps: PostRenameSteps;
+}
 interface SmartRenameComponentUpdateFirstHeaderParams {
   readonly newPath: string;
+  readonly oldTitle: string;
   readonly steps: PostRenameSteps;
   readonly titleToStore: string;
 }
 
 interface SmartRenameComponentUpdateTitleParams {
   readonly newPath: string;
+  readonly oldTitle: string;
   readonly steps: PostRenameSteps;
   readonly titleToStore: string;
 }
@@ -324,6 +333,7 @@ export class SmartRenameComponent extends ComponentEx {
       shouldPreservePreviousDisplayTextInNoteLinks: shouldStorePreviousName && settings.shouldPreservePreviousDisplayTextInNoteLinks,
       shouldStoreInvalidTitleAsAlias: shouldSync && settings.shouldStoreInvalidTitle,
       shouldUpdateFirstHeader: shouldSync,
+      shouldUpdateOnlyMatchingTitle: settings.shouldUpdateOnlyMatchingTitle,
       shouldUpdateTitleKey: shouldSync
     };
   }
@@ -336,6 +346,7 @@ export class SmartRenameComponent extends ComponentEx {
       shouldPreservePreviousDisplayTextInNoteLinks: settings.shouldPreservePreviousDisplayTextInNoteLinks,
       shouldStoreInvalidTitleAsAlias: settings.shouldStoreInvalidTitle,
       shouldUpdateFirstHeader: settings.shouldUpdateFirstHeader,
+      shouldUpdateOnlyMatchingTitle: settings.shouldUpdateOnlyMatchingTitle,
       shouldUpdateTitleKey: settings.shouldUpdateTitleKey
     };
   }
@@ -476,8 +487,8 @@ export class SmartRenameComponent extends ComponentEx {
     }
 
     await this.addAliases({ newPath, oldTitle, steps, titleToStore });
-    await this.updateTitle({ newPath, steps, titleToStore });
-    await this.updateFirstHeader({ newPath, steps, titleToStore });
+    await this.updateTitle({ newPath, oldTitle, steps, titleToStore });
+    await this.updateFirstHeader({ newPath, oldTitle, steps, titleToStore });
   }
 
   private replaceInvalidCharacters(params: SmartRenameComponentReplaceInvalidCharactersParams): string {
@@ -548,8 +559,38 @@ export class SmartRenameComponent extends ComponentEx {
     });
   }
 
+  /**
+   * Whether a title value - the frontmatter title key or the first header's text - may be replaced by the new title.
+   *
+   * With `shouldUpdateOnlyMatchingTitle` off, any value may. With it on, only a value that still shows the old title:
+   * the old file name itself, or a title holding characters the file name had sanitized away, which is what this
+   * plugin stores when `Should store invalid title` is on. A value the author made different from the file name is
+   * left alone. Adapted from `Update Title on Rename` (MIT), see `THIRD-PARTY-NOTICES.md`.
+   *
+   * @param params - The parameters.
+   * @returns Whether the value may be replaced.
+   */
+  private shouldReplaceTitle(params: SmartRenameComponentShouldReplaceTitleParams): boolean {
+    const { currentValue, oldTitle, steps } = params;
+    if (!steps.shouldUpdateOnlyMatchingTitle) {
+      return true;
+    }
+
+    if (typeof currentValue !== 'string') {
+      return false;
+    }
+
+    const value = currentValue.trim();
+    if (value === oldTitle) {
+      return true;
+    }
+
+    const settings = this.pluginSettingsComponent.settings;
+    return [settings.replacementCharacter, ''].some((replacement) => this.replaceInvalidCharacters({ $string: value, replacement }) === oldTitle);
+  }
+
   private async updateFirstHeader(params: SmartRenameComponentUpdateFirstHeaderParams): Promise<void> {
-    const { newPath, steps, titleToStore } = params;
+    const { newPath, oldTitle, steps, titleToStore } = params;
     if (!steps.shouldUpdateFirstHeader) {
       return;
     }
@@ -565,7 +606,7 @@ export class SmartRenameComponent extends ComponentEx {
         }
 
         const firstHeading = cache.headings?.filter((h) => h.level === 1).sort((a, b) => a.position.start.offset - b.position.start.offset)[0];
-        if (!firstHeading) {
+        if (!firstHeading || !this.shouldReplaceTitle({ currentValue: firstHeading.heading, oldTitle, steps })) {
           return content;
         }
 
@@ -583,14 +624,18 @@ export class SmartRenameComponent extends ComponentEx {
   }
 
   private async updateTitle(params: SmartRenameComponentUpdateTitleParams): Promise<void> {
-    const { newPath, steps, titleToStore } = params;
+    const { newPath, oldTitle, steps, titleToStore } = params;
     if (!steps.shouldUpdateTitleKey) {
       return;
     }
     await processFrontmatter({
       app: this.app,
       frontmatterFunction: (frontMatter) => {
-        frontMatter['title'] = titleToStore;
+        const currentValue = frontMatter['title'];
+        // A missing or empty title is filled in: nothing the author chose is lost by it.
+        if (currentValue === undefined || currentValue === null || currentValue === '' || this.shouldReplaceTitle({ currentValue, oldTitle, steps })) {
+          frontMatter['title'] = titleToStore;
+        }
       },
       pathOrFile: newPath,
       pluginNoticeComponent: this.pluginNoticeComponent,
