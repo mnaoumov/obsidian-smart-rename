@@ -105,6 +105,14 @@ describe('PluginSettingsTab', () => {
     expect(getBoundKeys()).toContain('shouldUpdateTitleKey');
   });
 
+  it('should bind shouldUpdateOnlyMatchingTitle setting', () => {
+    const tab = createSettingsTab(InvalidCharacterAction.Error);
+
+    renderRows(tab);
+
+    expect(getBoundKeys()).toContain('shouldUpdateOnlyMatchingTitle');
+  });
+
   it('should bind shouldStoreInvalidTitle setting', () => {
     const tab = createSettingsTab(InvalidCharacterAction.Error);
 

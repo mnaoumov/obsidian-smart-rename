@@ -217,6 +217,7 @@ interface SetupBacklinkCallbackOptions {
 
 interface SetupProcessVaultCallbackOptions {
   readonly cache: unknown;
+  readonly settings?: Partial<PluginSettings>;
 }
 
 class MockDataHandler implements DataHandler {
@@ -848,7 +849,7 @@ describe('SmartRenameComponent', () => {
       });
       hoisted.mockGetCacheSafe.mockResolvedValue(options.cache);
 
-      const component = await createComponent({ settings: { shouldUpdateFirstHeader: true } });
+      const component = await createComponent({ settings: { shouldUpdateFirstHeader: true, ...options.settings } });
 
       await component.smartRename(createInputFile());
       await runEnqueuedOperation();
@@ -877,6 +878,7 @@ describe('SmartRenameComponent', () => {
 
     it('should update first heading when found', async () => {
       const heading = {
+        heading: 'OldTitle',
         level: 1,
         position: {
           end: { offset: 10 },
@@ -923,6 +925,7 @@ describe('SmartRenameComponent', () => {
 
     it('should pick the earliest first heading when multiple level-1 headings exist', async () => {
       const laterHeading = {
+        heading: 'Another',
         level: 1,
         position: {
           end: { offset: 30 },
@@ -930,6 +933,7 @@ describe('SmartRenameComponent', () => {
         }
       };
       const earlierHeading = {
+        heading: 'OldTitle',
         level: 1,
         position: {
           end: { offset: 10 },
@@ -940,6 +944,76 @@ describe('SmartRenameComponent', () => {
       const controller = new AbortController();
       const result = await callback({ abortSignal: controller.signal, content: '# OldTitle\n\nContent\n\n# Another' });
       expect(result).toBe('# NewTitle\n\nContent\n\n# Another');
+    });
+
+    it('should leave a custom first heading alone', async () => {
+      const content = '# Custom heading\n\nContent';
+      const heading = { heading: 'Custom heading', level: 1, position: { end: { offset: 16 }, start: { offset: 0 } } };
+      const callback = await setupProcessVaultCallback({ cache: { headings: [heading] } });
+      const result = await callback({ abortSignal: new AbortController().signal, content });
+      expect(result).toBe(content);
+    });
+
+    it('should replace a custom first heading when shouldUpdateOnlyMatchingTitle is off', async () => {
+      const heading = { heading: 'Custom heading', level: 1, position: { end: { offset: 16 }, start: { offset: 0 } } };
+      const callback = await setupProcessVaultCallback({ cache: { headings: [heading] }, settings: { shouldUpdateOnlyMatchingTitle: false } });
+      const result = await callback({ abortSignal: new AbortController().signal, content: '# Custom heading\n\nContent' });
+      expect(result).toBe('# NewTitle\n\nContent');
+    });
+
+    it('should update a first heading holding the invalid characters the old file name had sanitized away', async () => {
+      const heading = { heading: 'Old/Title', level: 1, position: { end: { offset: 11 }, start: { offset: 0 } } };
+      const callback = await setupProcessVaultCallback({ cache: { headings: [heading] } });
+      const result = await callback({ abortSignal: new AbortController().signal, content: '# Old/Title\n\nContent' });
+      expect(result).toBe('# NewTitle\n\nContent');
+    });
+  });
+
+  describe('updateTitle (via addToQueue callback)', () => {
+    async function getUpdatedTitle(currentTitle: unknown, settings?: Partial<PluginSettings>): Promise<unknown> {
+      hoisted.mockPrompt.mockResolvedValue('NewTitle');
+      hoisted.mockIsMarkdownFile.mockReturnValue(true);
+      hoisted.mockGetFile.mockReturnValue(strictProxy<TFile>({ basename: 'NewTitle', path: 'NewTitle.md' }));
+      hoisted.mockAddAlias.mockResolvedValue(undefined);
+
+      const frontmatter: Record<string, unknown> = currentTitle === undefined ? {} : { title: currentTitle };
+      hoisted.mockProcessFrontmatter.mockImplementation((params: CapturedProcessFrontmatterParams) => {
+        params.frontmatterFunction(castTo<CombinedFrontmatter<unknown>>(frontmatter));
+        return noopAsync();
+      });
+
+      const component = await createComponent({ settings: { shouldUpdateTitleKey: true, ...settings } });
+      await component.smartRename(createInputFile());
+      await runEnqueuedOperation();
+      return frontmatter['title'];
+    }
+
+    it('should replace a title that matches the old file name', async () => {
+      expect(await getUpdatedTitle('OldTitle')).toBe('NewTitle');
+    });
+
+    it('should fill in an empty title', async () => {
+      expect(await getUpdatedTitle('')).toBe('NewTitle');
+    });
+
+    it('should fill in a null title', async () => {
+      expect(await getUpdatedTitle(null)).toBe('NewTitle');
+    });
+
+    it('should leave a custom title alone', async () => {
+      expect(await getUpdatedTitle('Domain-driven Design')).toBe('Domain-driven Design');
+    });
+
+    it('should leave a non-string title alone', async () => {
+      expect(await getUpdatedTitle(42)).toBe(42);
+    });
+
+    it('should replace a title holding the invalid characters the old file name had sanitized away', async () => {
+      expect(await getUpdatedTitle('Old/Title')).toBe('NewTitle');
+    });
+
+    it('should replace a custom title when shouldUpdateOnlyMatchingTitle is off', async () => {
+      expect(await getUpdatedTitle('Domain-driven Design', { shouldUpdateOnlyMatchingTitle: false })).toBe('NewTitle');
     });
   });
 

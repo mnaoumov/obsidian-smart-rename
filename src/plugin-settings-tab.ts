@@ -112,6 +112,19 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
           }),
           this.settingEx({
             desc: createFragment((f) => {
+              f.appendText('Whether the title key and the first header are updated only while they still show the old title.');
+              f.createEl('br');
+              f.appendText('A custom title or header, different from the file name, is left alone. An empty title key is always filled in.');
+            }),
+            name: 'Should update only matching title and header',
+            render: (setting) => {
+              setting.addToggle((toggle) => {
+                this.bind({ propertyName: 'shouldUpdateOnlyMatchingTitle', valueComponent: toggle });
+              });
+            }
+          }),
+          this.settingEx({
+            desc: createFragment((f) => {
               f.appendText('Whether to store the title with invalid characters.');
               f.createEl('br');
               f.appendText('If disabled, stores the sanitized version.');
