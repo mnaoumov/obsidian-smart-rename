@@ -40,7 +40,7 @@ The rename prompt carries a checkbox for each of the five steps that run after t
 | Keep old title in note links | `Alt+1` | keeping the old title as display text in ordinary note links |
 | Keep old title in frontmatter links | `Alt+2` | keeping the old title as display text in frontmatter links |
 | Add old title as alias | `Alt+3` | adding the old title to the renamed note's `aliases` |
-| Update title key | `Alt+4` | updating the frontmatter `title` key |
+| Update title key | `Alt+4` | updating the frontmatter title key (`title`, or the key set in **Title key**, which the checkbox then names) |
 | Update first header | `Alt+5` | updating the note's first header |
 
 The last three apply to markdown notes only, so they are shown disabled when the file being renamed is anything else.

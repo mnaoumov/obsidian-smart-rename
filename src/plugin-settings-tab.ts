@@ -6,6 +6,7 @@ import { PluginSettingsTabBase } from '@mnaoumov/obsidian-lib/plugin/plugin-sett
 import type { PluginSettings } from './plugin-settings.ts';
 
 import { InvalidCharacterAction } from './invalid-character-action.ts';
+import { DEFAULT_TITLE_KEY } from './title-key.ts';
 
 export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
   protected override getSettingDefinitionItems(): SettingDefinitionItem[] {
@@ -107,6 +108,28 @@ export class PluginSettingsTab extends PluginSettingsTabBase<PluginSettings> {
             render: (setting) => {
               setting.addToggle((toggle) => {
                 this.bind({ propertyName: 'shouldUpdateTitleKey', valueComponent: toggle });
+              });
+            }
+          }),
+          this.settingEx({
+            desc: createFragment((f) => {
+              f.appendText('The frontmatter key that holds the note title, such as ');
+              appendCodeBlock(f, 'name');
+              f.appendText(' or ');
+              appendCodeBlock(f, 'heading');
+              f.appendText('. Used by ');
+              appendCodeBlock(f, 'Should update title key');
+              f.appendText(' and named in its rename prompt checkbox.');
+              f.createEl('br');
+              f.appendText('Leave empty to use ');
+              appendCodeBlock(f, 'title');
+              f.appendText('.');
+            }),
+            name: 'Title key',
+            render: (setting) => {
+              setting.addText((text) => {
+                text.setPlaceholder(DEFAULT_TITLE_KEY);
+                this.bind({ propertyName: 'titleKey', valueComponent: text });
               });
             }
           }),

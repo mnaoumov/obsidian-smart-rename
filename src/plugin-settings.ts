@@ -16,4 +16,5 @@ export class PluginSettings {
   public shouldUpdateFirstHeader = false;
   public shouldUpdateOnlyMatchingTitle = true;
   public shouldUpdateTitleKey = false;
+  public titleKey = 'title';
 }

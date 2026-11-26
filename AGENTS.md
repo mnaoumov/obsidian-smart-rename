@@ -18,7 +18,7 @@ Renames a note and rewrites its backlinks so each one **keeps displaying the old
 - `src/smart-rename-component.ts` — the whole feature: validation, the prompt, the queued rename, and the five post-rename steps.
 - `src/command-handlers/` — one handler per command (`invoke`, `invoke-on-link`).
 - `src/plugin-settings.ts` / `-component.ts` / `-tab.ts` — the settings class, its persistence and its tab.
-- `src/link-target.ts`, `src/invalid-character*.ts` — the two supporting concerns.
+- `src/link-target.ts`, `src/invalid-character*.ts`, `src/title-key.ts` — the supporting concerns; `resolveTitleKey` is the one place the `Title key` setting falls back to `title`, read by both the title step and its prompt checkbox label.
 - `src/rename-intent-hooks-component.ts` / `rename-intent-modal.ts` / `rename-intent.ts` — the rename intent: Obsidian's own rename surfaces ask what a rename is for.
 
 ## Non-obvious design decisions

@@ -2,7 +2,7 @@
 
 ## `Update Title on Rename`
 
-The check that updates the frontmatter `title` only while it still matches the previous file name, which `Smart Rename` applies to both the `title` key and the first header, is adapted from [`Update Title on Rename`](https://github.com/r3Fuze/obsidian-update-title-on-rename), used under the MIT License:
+The check that updates the frontmatter `title` only while it still matches the previous file name, which `Smart Rename` applies to both the `title` key and the first header, is adapted from [`Update Title on Rename`](https://github.com/r3Fuze/obsidian-update-title-on-rename), used under the MIT License. So is the `Title key` setting, which names the frontmatter key that step writes and falls back to `title` when left empty, after that plugin's `Title property name` setting:
 
 ```text
 MIT License

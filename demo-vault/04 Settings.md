@@ -19,10 +19,10 @@ Manual equivalent: turn on **Should update first header** and **Should update ti
 ---
 caption: Restore every setting this vault changes
 ---
-await require('/demoSetup.ts').changeSettings(app, { invalidCharacterAction: 'Error', replacementCharacter: '_', shouldStoreInvalidTitle: true, shouldUpdateFirstHeader: false, shouldUpdateOnlyMatchingTitle: true, shouldUpdateTitleKey: false });
+await require('/demoSetup.ts').changeSettings(app, { invalidCharacterAction: 'Error', replacementCharacter: '_', shouldStoreInvalidTitle: true, shouldUpdateFirstHeader: false, shouldUpdateOnlyMatchingTitle: true, shouldUpdateTitleKey: false, titleKey: 'title' });
 ```
 
-Manual equivalent: set **Invalid characters action** back to *Error*, **Replacement character** to `_`, **Should store invalid title** on, both title options off, and **Should update only matching title and header** on.
+Manual equivalent: set **Invalid characters action** back to *Error*, **Replacement character** to `_`, **Should store invalid title** on, both title options off, **Should update only matching title and header** on, and **Title key** to `title`.
 
 ## Invalid characters
 
@@ -49,7 +49,9 @@ Manual equivalent: set **Invalid characters action** back to *Error*, **Replacem
 - `shouldUpdateFirstHeader`
   - also update the first header of the note.
 - `shouldUpdateTitleKey`
-  - update the `title` key in the note's frontmatter, adding it when the note has none.
+  - update the title key in the note's frontmatter, adding it when the note has none.
+- `titleKey`
+  - the frontmatter key that holds the note title, `title` by default. Set it to `name`, `heading` or a key in your own language when your vault keeps the display title there. The rename prompt checkbox names it, for example **Update name key**. Left empty, it falls back to `title`.
 - `shouldUpdateOnlyMatchingTitle`
   - on by default: update the first header and the `title` key only while they still show the old title, so a custom value is left alone. A note `Domain-driven Design (book)` whose first header is `# Domain-driven Design` keeps that header when renamed. A value holding characters the old file name could not, which `shouldStoreInvalidTitle` stores, still counts as the old title. Turn it off to overwrite both every time.
 
